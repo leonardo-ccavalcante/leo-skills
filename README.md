@@ -15,7 +15,6 @@ Every folder here is a skill: a `SKILL.md` with YAML frontmatter (`name` + `desc
 | `sat` | Structured Analytic Techniques — the 12 CIA Tradecraft Primer techniques (ACH, Key Assumptions Check, Red Team, Alternative Futures…) for high-stakes analysis |
 | `problem-solving` | McKinsey-style problem solving — MECE issue trees, mindset pairs, Pyramid Principle communication |
 | `expert-review` | Divergent/convergent review of any decision or artifact, grounded in a 240+ transcript podcast archive |
-| `interview-coach` | Interview preparation coaching |
 | `dale-carnegie-coach` | Applied *How to Win Friends and Influence People* principles |
 | `skill-router` | Need-first router that elicits the real need through three analytical lenses before picking a skill from this library |
 
@@ -36,6 +35,7 @@ The rest of the library is adapted from community suites. These remain the work 
 
 - **[garrytan/gstack](https://github.com/garrytan/gstack)** (via a portable skill pack) — the 30+ skill engineering lifecycle suite: `office-hours`, `autoplan`, `plan-*-review`, `design-*`, `qa`, `ship`, `cso`, `codex`, `investigate`, `retro`, and friends
 - **[obra/superpowers](https://github.com/obra/superpowers)** — engineering-practice skills: `brainstorming`, `systematic-debugging`, `test-driven-development`, `writing-plans`, `executing-plans`, `using-git-worktrees`, and related workflow skills
+- **[noamseg/interview-coach-skill](https://github.com/noamseg/interview-coach-skill)** (MIT) — `interview-coach`, adaptive job-search and interview coaching
 - **[JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)** — token-efficient communication modes
 - **[JordanCoin/codemap](https://github.com/JordanCoin/codemap)** — codebase mapping
 - **[anthropics/skills](https://github.com/anthropics/skills)** — document & creative skills (symlinked locally, not committed — install from upstream)
