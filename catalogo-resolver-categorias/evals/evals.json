@@ -1,0 +1,24 @@
+{
+  "skill": "catalogo-resolver-categorias",
+  "notes": "Cost-gated: must confirm Sin clasificar count and get explicit opt-in before the paid Workflow. Reinforcement loop must produce review candidates, never auto-edit the classifier.",
+  "evals": [
+    {
+      "id": "should-trigger-resolve-leftovers",
+      "prompt": "O lote 07_08 ficou com 180 Sin clasificar depois de normalizar. Pode rodar os agentes pra resolver as categorias? Pode gastar.",
+      "should_trigger": true,
+      "expected_output": "Confirms count + cost, then split → Workflow → persist CANDIDATE → review → re-run normalize; then reflection loop (candidate hints + memory)."
+    },
+    {
+      "id": "should-gate-on-cost",
+      "prompt": "Resolve as categorias que sobraram no lote.",
+      "should_trigger": true,
+      "expected_output": "Triggers, but states the paid agent count and asks for explicit opt-in before invoking the Workflow; if 0 Sin clasificar, stops."
+    },
+    {
+      "id": "should-not-trigger-normalize",
+      "prompt": "Arruma o autor, a editorial e a categoria do CSV novo do Alexandria.",
+      "should_trigger": false,
+      "expected_output": "That is catalogo-normalize (the free deterministic step) — this paid skill only handles the Sin clasificar leftovers."
+    }
+  ]
+}

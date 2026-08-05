@@ -1,0 +1,41 @@
+{
+  "skill_name": "spec-driven-development",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Here's a spec for a URL-shortener service (paste below). Build it. \n\n---\nname: URL Shortener\ndescription: Create short codes for long URLs and redirect on lookup\n---\n# URL Shortener\n## Shorten\n- POST /shorten takes a long URL, returns a 7-char base62 code\n- Duplicate URLs return the existing code (idempotent)\n## Redirect\n- GET /{code} 302-redirects to the original URL\n- Unknown codes return 404\n\nRun this spec.",
+      "expected_output": "Claude follows the SDD lifecycle starting from the provided spec: verifies/clarifies the spec (P3), produces a short plan + dependency-ordered tasks (P4), implements test-first against the spec respecting the stated behaviors (idempotency, 302, 404) (P5), then verifies tests pass and notes any drift/discovered requirements (P6). It does NOT just start coding ad hoc.",
+      "files": [],
+      "assertions": [
+        "Treats the provided spec as the source of truth and runs the lifecycle on it rather than ad-hoc coding",
+        "Produces dependency-ordered tasks before implementing",
+        "Writes or references tests for the stated behaviors (idempotent shorten, 302 redirect, 404 on unknown code) — test-first",
+        "Ends with a verification/review step confirming behavior matches the spec"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "My PM says 'users want to export their data'. That's all I have. I want to do this properly with spec-driven development before anyone writes code.",
+      "expected_output": "Claude recognizes there is no usable spec yet and enters requirement-gathering: it asks ONE focused question at a time (not a bundled list), covering scope, format, sync vs async, fields, scale, retention, access control. It defers writing any .spec.md or code until requirements are confirmed, and explicitly seeks approval before implementation (spec-before-code).",
+      "files": [],
+      "assertions": [
+        "Asks clarifying questions one at a time rather than a bundled numbered list",
+        "Covers gaps like format, sync vs async, scope/fields, scale, and access control",
+        "Does not write implementation code or a final spec before requirements are confirmed and approved",
+        "References the spec-before-code / approval gate explicitly"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We refactored auth: moved src/auth/* to src/identity/* and changed the session timeout from 24h to 8h. We have specs/auth.spec.md with [@test] links. Can you check the spec is still accurate?",
+      "expected_output": "Claude runs spec-verification/work-review: locates the spec, checks that targets and [@test] links still resolve (they won't, since files moved), compares documented behavior to the code (24h vs 8h drift), reports the mismatches, and updates the spec (targets, test paths, the 8h timeout) so it reflects reality, then re-verifies. May reference scripts/check-spec-links.sh.",
+      "files": [],
+      "assertions": [
+        "Identifies that target paths and [@test] links are broken after the move",
+        "Detects the 24h→8h session-timeout drift between spec and code",
+        "Updates the spec to match current reality (paths + behavior) and re-verifies, treating the spec as a living document",
+        "Does not silently claim the spec is fine"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "skill": "catalogo-normalize",
+  "notes": "Should-trigger and should-not-trigger prompts for description tuning (run via skill-creator/scripts/run_loop.py). Objectively verifiable: the output CSV must have 0 empty Categoría and 0 out-of-BISAC.",
+  "evals": [
+    {
+      "id": "should-trigger-alexandria-export",
+      "prompt": "Acabei de exportar o inventário novo do Alexandria OS (07_08_2026_Inventario.csv). Arruma os dados das colunas pra deixar pronto.",
+      "should_trigger": true,
+      "expected_output": "Runs scripts/fix_batch.py on the batch CSV; produces <batch>_fixed.csv with 0 empty Categoría and 0 out-of-BISAC; reports the Sin clasificar count."
+    },
+    {
+      "id": "should-trigger-fix-batch",
+      "prompt": "normaliza o lote 13_05: autor, editorial, ano, categoria BISAC, sinopse e edição.",
+      "should_trigger": true,
+      "expected_output": "Runs fix_batch.py; normalizes the six columns; emits fixed.csv + audit.csv."
+    },
+    {
+      "id": "should-not-trigger-iberlibro-export",
+      "prompt": "Converte o CSV já normalizado para o TXT de 30 colunas do IberLibro.",
+      "should_trigger": false,
+      "expected_output": "That is the iberlibro-csv-converter skill, not this one — normalization is upstream and done."
+    }
+  ]
+}
