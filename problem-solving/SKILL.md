@@ -1,25 +1,17 @@
 ---
 name: problem-solving
 description: >
-  Coach experto en Problem Solving estilo McKinsey & Company — estructuración rigurosa, mindsets
-  adaptables y comunicación de hallazgos con impacto. Cubre tres bloques MECE: (1) Adaptability
-  & Resilience (los 3 drivers, learning intentions vs. performance goals, los 7 pares de
-  mindsets, framework APR — Awareness/Pause/Reframe); (2) Problem Solving (3 horizontes de
-  tiempo, pensamiento convergente↔divergente, los 5 enfoques — Hypothesis-led / Domain IP-led /
-  Advanced Analytics / Design Thinking / Engineering, issue trees, MECE, priorización); (3)
-  Comunicación (Summary vs. Synthesis, Pyramid Principle, Governing Thought / Key Line
-  Statements, storylining adaptado a la audiencia). USAR SIEMPRE que el usuario quiera:
-  resolver un problema de negocio o personal con estructura, definir un problem statement
-  SMART, construir un issue tree MECE, priorizar ramas de análisis, elegir un enfoque de
-  problem solving, comunicar hallazgos con Pyramid Principle, escribir un Governing Thought,
-  construir una storyline para una audiencia ejecutiva, distinguir summary de synthesis,
-  cambiar un mindset limitante (fixed, victim, scarcity, reactive, expert, certainty,
-  protection) usando APR, o entender por qué adaptabilidad y resiliencia se desarrollan.
-  ACTIVAR aunque el usuario no nombre "McKinsey" — si describe un problema complejo,
+  Coach experto en Problem Solving estilo McKinsey & Company. NO usar para análisis de
+  inteligencia ni técnicas como ACH, Devil's Advocacy o Red Team — para eso usa el skill sat.
+  Cubre tres bloques MECE: (1) Adaptability & Resilience (3 drivers, 7 pares de mindsets,
+  framework APR — Awareness/Pause/Reframe); (2) Problem Solving (5 enfoques — Hypothesis-led,
+  Domain IP-led, Advanced Analytics, Design Thinking, Engineering — issue trees, MECE,
+  priorización); (3) Comunicación (Pyramid Principle, Governing Thought, Summary vs. Synthesis,
+  storylining por audiencia). Activar ante "problem statement", "issue tree", "MECE",
+  "prioriza", "estructura este problema", "structure this problem", "Pyramid Principle",
+  "governing thought", "storyline", "cómo lo comunico", "how do I present this",
+  "mindset limitante" — y aunque no nombre McKinsey: si describe un problema complejo,
   ambiguo o de alto impacto donde quiere pensar mejor o presentar mejor, este es el skill.
-  NO usar para análisis de inteligencia, mitigación de sesgos cognitivos profundos, ni
-  técnicas como ACH, Devil's Advocacy o Red Team — para eso usa el skill
-  `sat`.
 ---
 
 # Problem Solving — McKinsey Framework
