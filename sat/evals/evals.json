@@ -1,0 +1,100 @@
+{
+  "skill_name": "sat",
+  "note": "Trigger + output-contract evals. The failure class this skill actually suffered is trigger regression: the v1 description exceeded the 1024-char frontmatter limit and silently truncated, losing all English trigger phrases and the entire when-NOT-to-use clause. Hard rule: the description must pass `wc -c` <= 1024. Output-conformance cases (11-13) exist because the one machine-consumed interface (skill-router Phase 2) was v1's other silent break.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Mañana tengo que responder si acepto la oferta de Head of Ops o me quedo donde estoy. Ya casi decidí que sí, pero es irreversible y me da miedo estar viéndolo con el filtro del entusiasmo. ¿Me ayudas a revisarlo en serio?",
+      "should_trigger": true,
+      "notes": "Spanish, no SAT keyword. Irreversible + favored hypothesis + suspected bias = proactive clause. Expected entry: diagnostic mode, Key Assumptions Check default."
+    },
+    {
+      "id": 2,
+      "prompt": "I have our go-to-market plan for Q1 ready. Before I present it, red team this — pretend you're our main competitor and tell me how you'd eat our lunch.",
+      "should_trigger": true,
+      "notes": "English idiom 'red team this'. Expected: Red Team with explicit first-person adversary role (modo solo)."
+    },
+    {
+      "id": 3,
+      "prompt": "Hazme un premortem del lanzamiento de la tienda en Portugal. Asume que fracasó y cuéntame por qué.",
+      "should_trigger": true,
+      "notes": "Premortem = alias of What If? Analysis. Expected: hecho-consumado framing, causas hacia atrás, señales + desactivadores."
+    },
+    {
+      "id": 4,
+      "prompt": "Everyone on the team agrees we should migrate to the new platform and honestly I do too, but it feels too easy. Can you stress test this decision? Play devil's advocate for real.",
+      "should_trigger": true,
+      "notes": "English 'stress test' + 'devil's advocate' + consensus. Expected: Devil's Advocacy, sustained role, no early softening."
+    },
+    {
+      "id": 5,
+      "prompt": "Hagamos un ACH sobre por qué perdimos el cliente grande — tengo tres explicaciones posibles y no sé cuál es la real.",
+      "should_trigger": true,
+      "notes": "Named technique in Spanish. Boundary case vs the legacy problem-solving-coach plugin, which also enumerates the 12 SATs: sat must win because it *executes* the technique. Expected: matrix with CC/C/N/I/II cells, not prose."
+    },
+    {
+      "id": 6,
+      "prompt": "Ayúdame a estructurar el problema de la caída de ventas con un issue tree MECE, quiero presentarlo con Pyramid Principle al comité.",
+      "should_trigger": false,
+      "notes": "Near-miss: analysis vocabulary, but issue trees + MECE + executive communication = problem-solving."
+    },
+    {
+      "id": 7,
+      "prompt": "Quiero hacer un brainstorm de ideas para mi side project este finde, algo divertido que pueda enseñar a mis amigos.",
+      "should_trigger": false,
+      "notes": "Near-miss: 'brainstorm' is technique #9, but creative product ideation with nothing analytic at stake = office-hours/brainstorming."
+    },
+    {
+      "id": 8,
+      "prompt": "Ya tengo mi plan de posicionamiento casi final. ¿Qué dirían los expertos de producto sobre esto? ¿Qué me estoy perdiendo según la gente que sabe?",
+      "should_trigger": false,
+      "notes": "Near-miss: 'what am I missing' belongs contractually to expert-review (project CLAUDE.md routing). Blind spots via citable experts = expert-review; blind spots via self-run technique = sat."
+    },
+    {
+      "id": 9,
+      "prompt": "Before I build the new settings page, help me think through the component design and what the user actually needs from it.",
+      "should_trigger": false,
+      "notes": "Near-miss: 'think through' + pre-code design exploration = brainstorming (its own description demands it before creative work)."
+    },
+    {
+      "id": 10,
+      "prompt": "Estoy pensando si pido la ensalada o la pasta... no sé, ¿tú qué harías? Es que la pasta ahí es muy buena.",
+      "should_trigger": false,
+      "notes": "Proactive-mode negative: favored hypothesis present but decision is trivially reversible — modo centinela must NOT fire. SATs on low-stakes questions are bureaucratic overhead (own skill rule)."
+    },
+    {
+      "id": 11,
+      "prompt": "[Invoked by skill-router Phase 2] Surface the assumption landscape of this need and the competing hypotheses about what the user actually requires. Do NOT recommend a skill — output only the assumption surface and the competing hypotheses.",
+      "should_trigger": true,
+      "expectations": [
+        "Output contains assumptions tagged [CONFIRMED] / [LIKELY] / [UNSURE]",
+        "Output contains 2-3 competing hypotheses, each with disconfirming evidence",
+        "Output contains NO skill recommendation",
+        "Output contains NO question back to the user — unverifiable assumptions are tagged [UNSURE — needs check] instead of asked"
+      ],
+      "notes": "Router-invoked mode: entry (c), elicitation suspended."
+    },
+    {
+      "id": 12,
+      "prompt": "Corre un Key Assumptions Check sobre mi plan: 'Voy a dejar mi trabajo para hacer freelance porque tengo tres clientes interesados y seis meses de ahorro.'",
+      "should_trigger": true,
+      "expectations": [
+        "Every assumption in the table traces to something the user stated or is explicitly marked as proposed-by-model for confirmation",
+        "Table uses sólido / correcto con salvedades / frágil classification with si-es-falso-entonces column",
+        "At least one assumption marked frágil, or the session returns to elicitation"
+      ],
+      "notes": "Elicit-not-invent conformance: the model must not fabricate unstated assumptions as if the user said them."
+    },
+    {
+      "id": 13,
+      "prompt": "Tengo tres hipótesis de por qué cayó la activación: el cambio de pricing, el bug del onboarding, o estacionalidad. Evidencia: el bug se arregló hace 2 semanas y la métrica no volvió; la caída empezó justo con el pricing nuevo; agosto siempre baja algo. Compáralas en serio.",
+      "should_trigger": true,
+      "expectations": [
+        "Produces an actual ACH matrix (evidence rows × hypothesis columns) with CC/C/N/I/II cells — not comparative prose",
+        "Verdict names the hypothesis with FEWEST inconsistencies, not most consistencies",
+        "Close names the decisive evidence to verify next"
+      ],
+      "notes": "ACH output-shape conformance — the artifact raw Claude reliably fails to produce unprompted."
+    }
+  ]
+}
