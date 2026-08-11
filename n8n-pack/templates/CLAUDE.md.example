@@ -1,0 +1,46 @@
+# <project> — n8n workflow orchestration (dispatch layer)
+
+Template for wiring the n8n skills pack into a project `CLAUDE.md`. Fill the `<placeholders>`, delete what you don't use. Read every session.
+
+**Instance:** `https://<your-instance>.app.n8n.cloud` · API base `/api/v1` · auth header `X-N8N-API-KEY` (env `N8N_API_KEY`, `N8N_API_URL`).
+
+## 1. Preflight — before any n8n write
+
+1. **Env loaded?** `N8N_API_KEY` + `N8N_API_URL` (from gitignored `.env`; template `.env.example`).
+2. **API healthy?** `200` = go, `401` = rotate the key (n8n UI → Settings → n8n API, update env, restart MCP client — it caches the key):
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}\n" -H "X-N8N-API-KEY: $N8N_API_KEY" "$N8N_API_URL/api/v1/workflows?limit=1"
+   ```
+
+3. **Which MCP servers are connected?** Check `/mcp`. If none, the REST API via `curl` does everything.
+4. **Mutating a protected workflow?** Back it up first (§3).
+
+## 2. MCP servers — community drives, official verifies
+
+- **Community ([czlonkowski/n8n-mcp](https://github.com/czlonkowski/n8n-mcp), version-pinned)**: discovery (`search_nodes`, `get_node`), validation (`validate_node`, `validate_workflow`, `n8n_validate_workflow({id})`), build (`n8n_create_workflow`, `n8n_update_partial_workflow`), inspect (`n8n_executions`).
+- **Official (built into the instance, Settings → MCP)**: independent `validate_workflow` / `test_workflow` cross-check before activating; `execute_workflow`.
+- Tool names differ per server — calling a tool on the wrong server fails with "tool not found".
+
+## 3. Guardrails (non-negotiable)
+
+1. **Backup before mutating a protected workflow** — dump to `backups/<id>-<UTC>.json` first; enforced by `pre-tool-prod-guard.sh` if configured (`N8N_PROTECTED_WORKFLOW_IDS`).
+2. **No `?.` / `??` in IF/Switch `leftValue`/`rightValue`** — use `||` chains.
+3. **Agent typeVersion 3.1+**: systemMessage/maxIterations live under `parameters.options.*` — re-verify after upgrades.
+4. **Don't "fix" validator false positives** — see `n8n-pack/LANDMINES.md` §1-4.
+5. **Never print credentials** — agent transcripts persist terminal output; verify keys via status codes only.
+6. **Two prefix formats**: `nodes-base.*` / `nodes-langchain.*` for search & validate; `n8n-nodes-base.*` / `@n8n/n8n-nodes-langchain.*` for create & update.
+7. **REST `PUT` 400** → strip unknown `settings` fields (allowed set in `LANDMINES.md` §6).
+
+## 4. Protected workflows
+
+| Workflow | n8n ID | Trigger | Status |
+| --- | --- | --- | --- |
+| `<name>` | `<id>` | `<trigger>` | active 🔒 |
+
+🔒 = listed in `N8N_PROTECTED_WORKFLOW_IDS`; backup-guarded.
+
+## 5. Where depth lives
+
+- Skills auto-load on keywords: `n8n-mcp-tools-expert`, `n8n-workflow-patterns`, `n8n-node-configuration`, `n8n-validation-expert`, `n8n-expression-syntax`, `n8n-code-javascript`, `n8n-code-python`, `n8n-self-hosted`.
+- Landmine registry: `n8n-pack/LANDMINES.md`. Security: `n8n-pack/HARDENING.md`.

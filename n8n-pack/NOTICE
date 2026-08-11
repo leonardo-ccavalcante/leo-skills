@@ -1,0 +1,16 @@
+n8n skills pack for Claude Code
+Copyright 2026 Leonardo Cavalcante
+
+This product includes material adapted from third-party projects:
+
+1. n8n-self-hosted/SKILL.md is adapted from the README of the
+   n8n self-hosted-ai-starter-kit (https://github.com/n8n-io/self-hosted-ai-starter-kit),
+   Copyright 2024-present n8n GmbH, licensed under the Apache License, Version 2.0.
+
+2. Node-schema and MCP tool-behavior knowledge throughout the pack was learned
+   working with the n8n-mcp server (https://github.com/czlonkowski/n8n-mcp),
+   Copyright Romuald Czlonkowski, licensed under the MIT License.
+   (Courtesy attribution; no code from that project is included.)
+
+"n8n" is a trademark of n8n GmbH. This pack is an unofficial community project,
+not affiliated with or endorsed by n8n GmbH.
