@@ -18,6 +18,11 @@ Every folder here is a skill: a `SKILL.md` with YAML frontmatter (`name` + `desc
 | `dale-carnegie-coach` | Applied *How to Win Friends and Influence People* principles |
 | `skill-router` | Need-first router that elicits the real need through three analytical lenses before picking a skill from this library |
 
+### Finance & analysis
+| Skill | What it does |
+|---|---|
+| `financial-analysis` | Interactive financial analysis where all math runs in bundled Python scripts (tagged evidence, INSUFFICIENT_DATA gating, reversal-threshold solver) and all reasoning stays in conversation — covers startup viability, statement ratios, SaaS metrics, and ops finance (cost per ticket, capacity, ROI, variance). Ships eval suite, self-tests, and optional validation/retrospective hooks |
+
 ### Prompt engineering toolkit (9 skills)
 `prompt-engineering-router` plus eight specialized skills: `prompt-foundations`, `prompt-reasoning`, `prompt-role-and-context`, `prompt-orchestration`, `prompt-output-control`, `prompt-reliability`, `prompt-security`, `prompt-task-patterns`. A meta-router dispatches to the right one based on the actual failure mode or task.
 

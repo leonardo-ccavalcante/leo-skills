@@ -1,0 +1,52 @@
+{
+  "skill_name": "financial-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "name": "viability-from-conversation",
+      "prompt": "I'm thinking about launching a B2B SaaS tool for onboarding agencies. Pricing around $99/mo. I think I can get to maybe 20 customers by end of year 1 through LinkedIn outreach. Hosting will run about $400/mo, and I'd quit my job so I need to pay myself $4k/mo. I have $30k saved to put in. Is this viable?",
+      "expected_output": "An interactive viability analysis: tagged input table (churn/CAC flagged as unknown or labeled assumptions, never invented), calculations run via the skill's Python scripts, a projection/runway figure traced to script output (or explicitly not computed), honest INSUFFICIENT_DATA handling, and a verdict using CRITICAL/WATCH/HEALTHY/EXCELLENT vocabulary with kill assumptions.",
+      "files": [],
+      "assertions": [
+        "skill-scripts-executed: script JSON artifacts (unit economics / projection / scenarios output) are saved alongside report.md, proving Python did the math",
+        "tagged-inputs-shown: the report contains a tagged input table where churn and CAC appear as labeled assumptions or Unknown \u2014 never silently invented numbers",
+        "numbers-trace-to-scripts: every numeric claim in report.md (runway, break-even, LTV, cash) appears in a saved script JSON output",
+        "runway-from-projection: the runway/zero-cash figure comes from the projection script output, or is explicitly reported as not computable",
+        "closed-vocabulary-verdict: verdicts use only CRITICAL/WATCH/HEALTHY/EXCELLENT",
+        "kill-assumptions-with-reversal: a kill-assumptions table exists and at least one reversal threshold was computed by the scenarios script (present in a JSON artifact)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "saas-health-check",
+      "prompt": "Quick health check on my SaaS: MRR is $85k now, was $70k six months ago. Monthly logo churn is about 4%, NRR is 96%. We're SMB-focused. Burning about $60k/mo with $900k in the bank. Last quarter we spent $150k on sales and marketing and added 45 customers. How are we doing?",
+      "expected_output": "A SaaS health report: metrics computed by saas_metrics.py (growth, churn, NRR, CAC, runway, burn multiple), each benchmarked against the SMB band specifically, closed-vocabulary verdicts, at most 3 prioritized issues, and at least one reversal threshold computed by scenarios.py rather than estimated in prose.",
+      "files": [],
+      "assertions": [
+        "metrics-from-script: saas_metrics JSON artifact saved; growth (CMGR ~3.3%), CAC (~$3,333), runway (15 months) and NRR values in the report match it",
+        "smb-band-benchmarking: 4% churn and other metrics are benchmarked against the SMB band specifically (4% = boundary WATCH/HEALTHY for SMB), not a generic or Enterprise band",
+        "max-three-issues: the report prioritizes at most 3 issues",
+        "reversal-computed-not-estimated: at least one reversal threshold comes from a scenarios script run saved as JSON, not prose estimation",
+        "closed-vocabulary-verdict: verdicts use only CRITICAL/WATCH/HEALTHY/EXCELLENT",
+        "tier-ordering: the report leads with Tier 1/2 concerns (NRR below 100%, runway) rather than Tier 4 diagnostics"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "cost-per-ticket-csv",
+      "prompt": "Here's our support cost export for H1 (support_costs.csv) and monthly ticket volumes (support_tickets.csv). What's our cost per ticket trend, and are we staying under the $38/ticket we budgeted?",
+      "expected_output": "A cost-per-ticket trend analysis: CSVs loaded by opsfinance.py (not hand-parsed), per-month unit costs matching script output exactly, the March spike (~$44.87 vs $38 budget, ~+18%) narrated at the 'paragraph' tier of the variance ladder, cost-pool allocation caveats stated as tagged assumptions, and no missing month rendered as zero.",
+      "files": [
+        "fixtures/support_costs.csv",
+        "fixtures/support_tickets.csv"
+      ],
+      "assertions": [
+        "csv-via-script: the opsfinance unit-cost trend JSON artifact is saved (CSVs loaded by the script, not hand-parsed arithmetic)",
+        "monthly-values-exact: per-month cost-per-ticket in the report matches script output (Jan 37.46, Feb 38.31, Mar 44.87, Apr 37.50, May 38.05, Jun 37.58)",
+        "spike-at-paragraph-tier: the March spike (~+18% vs $38 budget) is narrated at the 'paragraph' tier of the variance ladder \u2014 a full explanation attempt, not a one-liner and not >20% escalation language",
+        "allocation-caveat-tagged: the report states what is in/out of the cost pool and marks allocation choices as assumptions",
+        "no-fabricated-months: no month is rendered as zero or blank, and no months beyond the CSV are invented"
+      ]
+    }
+  ]
+}

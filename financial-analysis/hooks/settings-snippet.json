@@ -1,0 +1,26 @@
+{
+  "_comment": "financial-analysis skill hooks. Merge the 'hooks' object below into ~/.claude/settings.json (create the file if absent, or extend existing PostToolUse/Stop arrays). Both hooks are optional hardening: validation and the retrospective already run as workflow steps inside the skill.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/skills/financial-analysis/hooks/validate_hook.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/skills/financial-analysis/hooks/retro_hook.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}
