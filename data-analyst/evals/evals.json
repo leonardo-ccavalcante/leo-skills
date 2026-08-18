@@ -1,0 +1,27 @@
+{
+  "skill_name": "data-analyst",
+  "evals": [
+    {
+      "id": 0,
+      "name": "churn-investigate",
+      "prompt": "Nosso churn mensal de assinaturas vem subindo há alguns trimestres e o time de growth está sob pressão. Os dados estão em {DATA}/subscriptions.csv (uma linha por cliente ativo por mês; churned=1 quando o cliente cancelou naquele mês). Preciso saber: o churn realmente subiu? Por quê? E quanto isso está custando em MRR? Vou levar isso pro comitê executivo, então preciso de números que eu possa defender.",
+      "expected_output": "Full INVESTIGATE pipeline: profiles data first (flags 177 duplicate rows and missing month 2025-11), recovers the planted Simpson's-paradox mix shift (overall churn up ~3.7%→4.8% Q-o-Q while every channel is flat/down; partner channel share grew ~6%→39% and drives the rise), validates numbers through a second path, sizes the MRR impact with a range, delivers report + executed notebook + CSVs.",
+      "files": ["{DATA}/subscriptions.csv"]
+    },
+    {
+      "id": 1,
+      "name": "directed-formula",
+      "prompt": "I need one specific metric computed from my retail data, exactly as our finance team defines it. Files: {DATA}/sales.csv (transactional: date, store_id, category, units, unit_price, revenue) and {DATA}/stores.csv (store_id, region, size_tier). The metric: monthly ARPAS for electronics = (total electronics revenue in the month) / (number of distinct stores with at least one electronics sale in that month), EXCLUDING stores with size_tier = 'S', for each month from 2026-01 through 2026-06. Please run exactly this formula and share the calculation file and the output as a CSV so I can audit it.",
+      "expected_output": "DIRECTED route: implements the formula exactly as specified (no uninvited changes), values match ground truth (2026-01: 28741.90 ... 2026-06: 27874.85, ±0.5%), verifies via a second computation path, delivers the calc notebook/script and an output CSV.",
+      "files": ["{DATA}/sales.csv", "{DATA}/stores.csv"]
+    },
+    {
+      "id": 2,
+      "name": "vague-framing",
+      "prompt": "Leadership asked me where we're losing money and whether it's worth fixing. I honestly don't know where to start — here's what we have: {DATA}/sales.csv and {DATA}/stores.csv. Can you dig in and tell me what actually matters and how big the problem is? I need something I can present.",
+      "expected_output": "FRAME protocol on a vague ask: proposes candidate questions (or picks top one in solo mode with [ASSUMED] markers), profiles first, finds the planted South-region electronics decline (~-35% units from 2026-01, ~119k/month revenue loss) and does NOT misattribute the Home price-increase confounder, sizes the problem with denominator + range, humanized Pyramid-Principle report, delivers report + notebook + CSVs.",
+      "files": ["{DATA}/sales.csv", "{DATA}/stores.csv"]
+    }
+  ],
+  "notes": "{DATA} = data-analyst-workspace/data (CSVs copied without ground_truth.json). Ground truth lives in data-analyst-workspace/datasets/ground_truth.json — never expose it to eval agents. Assertions are added after the first run drafting pass."
+}
