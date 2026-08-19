@@ -14,11 +14,17 @@ description: >
   a business idea, asks "is this viable", mentions unit economics, runway, burn,
   pricing, break-even, SaaS health, churn or retention, ratio analysis, cost per
   ticket, cost-to-serve, capacity or headcount sizing, a business case or ROI of an
-  initiative, or budget variance — even if they never say "financial analysis".
-  Accepts numbers stated in conversation or CSV/Excel exports. This skill owns any
-  analysis where the metric or decision is financial; for domain-agnostic dataset
-  investigation with no financial framing (product, ops, marketing or scientific data —
-  "why did this metric drop" on raw event data), use the data-analyst skill instead.
+  initiative, or budget variance — even if they never say "financial analysis", and
+  even when the ask looks like a quick lookup (Rule of 40, magic number, LTV:CAC from
+  a handful of numbers): consult this skill instead of computing inline, so every
+  figure comes from executed scripts. Accepts numbers stated in conversation or
+  CSV/Excel exports — a CSV or spreadsheet of costs, spend, revenue or efficiency
+  (cost per ticket between teams, cost-to-serve between units, budget vs actual)
+  belongs HERE even though it is a data file. This skill owns any analysis where the
+  metric or decision is financial; for domain-agnostic dataset investigation with no
+  financial framing (product, ops, marketing or scientific data — "why did this metric
+  drop" on raw event data, sizing measured in time not money), use the data-analyst
+  skill instead.
 ---
 
 # Financial Analysis

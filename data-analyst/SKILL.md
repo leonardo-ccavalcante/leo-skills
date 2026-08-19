@@ -13,7 +13,9 @@ description: >
   Use it even when the user doesn't say "analysis" but clearly wants conclusions drawn
   from data. Do NOT use for financial analysis — business viability, unit economics,
   financial statements and ratios, SaaS revenue metrics (ARR, MRR, churn, NRR, LTV/CAC),
-  costing, budgets — that belongs to the financial-analysis skill; data-analyst covers
+  budgets, and any costing or money-denominated efficiency question (cost per
+  ticket/project, cost-to-serve, which team or unit is cheaper) even when the data
+  arrives as a CSV — that belongs to the financial-analysis skill; data-analyst covers
   every non-financial domain. Also NOT for building dashboards or data apps, pure
   statistics theory questions with no dataset, or one-off file format conversions.
 ---
