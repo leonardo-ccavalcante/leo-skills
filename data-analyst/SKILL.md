@@ -1,18 +1,21 @@
 ---
 name: data-analyst
 description: >
-  Senior data analyst workflow: interactive problem framing, Python/Jupyter-grounded
-  calculation, root-cause investigation, opportunity sizing, and self-validated reporting.
-  Use this skill whenever the user asks to analyze data or metrics — "analyze this
-  CSV/Excel/parquet/database", "why did X drop/rise", "investigate churn/revenue/conversion/
-  retention", "size this opportunity", "how much is this costing us", "what does this data
-  say", "run this formula/metric on my data", "compute NRR/LTV/margin as ..." — or shares a
-  data file and wants numbers, drivers, or recommendations from it. Also triggers in
-  Portuguese: "analisa esses dados", "por que caiu/subiu", "quanto isso custa", "roda esse
-  cálculo", "dimensiona esse problema". Use it even when the user doesn't say "analysis" but
-  clearly wants conclusions drawn from data. Do NOT use for building dashboards or data apps,
-  for pure statistics theory questions with no dataset, or for one-off file format
-  conversions.
+  Senior data analyst workflow, domain-agnostic: interactive problem framing,
+  Python/Jupyter-grounded calculation, root-cause investigation, opportunity sizing, and
+  self-validated reporting on any dataset — product, operations, marketing, growth,
+  logistics, support, scientific or sensor data. Use this skill whenever the user asks to
+  analyze data or metrics — "analyze this CSV/Excel/parquet/database", "why did X
+  drop/rise", "find the driver of this change", "size this opportunity", "what does this
+  data say", "run this formula/metric on my data" — or shares a data file and wants
+  numbers, drivers, or recommendations from it. Also triggers in Portuguese: "analisa
+  esses dados", "por que caiu/subiu", "roda esse cálculo", "dimensiona esse problema".
+  Use it even when the user doesn't say "analysis" but clearly wants conclusions drawn
+  from data. Do NOT use for financial analysis — business viability, unit economics,
+  financial statements and ratios, SaaS revenue metrics (ARR, MRR, churn, NRR, LTV/CAC),
+  costing, budgets — that belongs to the financial-analysis skill; data-analyst covers
+  every non-financial domain. Also NOT for building dashboards or data apps, pure
+  statistics theory questions with no dataset, or one-off file format conversions.
 ---
 
 # Data Analyst

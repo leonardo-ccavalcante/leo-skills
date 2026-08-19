@@ -15,7 +15,10 @@ description: >
   pricing, break-even, SaaS health, churn or retention, ratio analysis, cost per
   ticket, cost-to-serve, capacity or headcount sizing, a business case or ROI of an
   initiative, or budget variance — even if they never say "financial analysis".
-  Accepts numbers stated in conversation or CSV/Excel exports.
+  Accepts numbers stated in conversation or CSV/Excel exports. This skill owns any
+  analysis where the metric or decision is financial; for domain-agnostic dataset
+  investigation with no financial framing (product, ops, marketing or scientific data —
+  "why did this metric drop" on raw event data), use the data-analyst skill instead.
 ---
 
 # Financial Analysis
