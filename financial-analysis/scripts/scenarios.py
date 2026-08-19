@@ -17,7 +17,8 @@ Three analyses over any of the skill's models (unit-economics | saas | projectio
 For projection, multipliers apply to well-known driver families across all lines:
   price · volume · unit_variable_cost · opex · payroll
 or to any scalar top-level driver by name (e.g. tax_rate_pct, dso_days).
-For flat models, multipliers apply to the named tagged input.
+For flat models — unit-economics, saas, and the ops models (ops-unit-cost,
+ops-capacity, ops-roi) — multipliers apply to the named numeric tagged input.
 """
 
 from __future__ import annotations
@@ -30,7 +31,8 @@ import sys
 from fin_common import (EXIT_UNEXPECTED, Result, Tagged, load_inputs)
 from finmath import bisect_solve
 
-MODELS = ("unit-economics", "saas", "projection")
+MODELS = ("unit-economics", "saas", "projection",
+          "ops-unit-cost", "ops-capacity", "ops-roi")
 PROJECTION_FAMILIES = {
     "price": ("activities", "price"),
     "volume": ("activities", ("volume_start", "volumes")),
@@ -64,6 +66,15 @@ def _run_model(model: str, payload) -> dict[str, float]:
     if model == "saas":
         from saas_metrics import compute_point_metrics
         return _scalars(compute_point_metrics(payload))
+    if model == "ops-unit-cost":
+        from opsfinance import unit_cost
+        return _scalars(unit_cost(dict(payload)))
+    if model == "ops-capacity":
+        from opsfinance import capacity_plan
+        return _scalars(capacity_plan(dict(payload)))
+    if model == "ops-roi":
+        from opsfinance import initiative_roi
+        return _scalars(initiative_roi(dict(payload)))
     raise ValueError(f"unknown model {model!r}")
 
 
@@ -89,6 +100,12 @@ def mutate_flat(inputs: dict[str, Tagged], driver: str, mult: float | None = Non
         raise SystemExit(
             f"driver '{driver}' is not a known input — scenario multipliers can "
             "only scale inputs that exist and are not unknown"
+        )
+    if not isinstance(inputs[driver].value, (int, float)) \
+            or isinstance(inputs[driver].value, bool):
+        raise SystemExit(
+            f"driver '{driver}' is not numeric — scenarios and reversals can "
+            "only vary numeric drivers (e.g. driver_volume, not cost_pool)"
         )
     out = dict(inputs)
     t = inputs[driver]
@@ -198,6 +215,10 @@ def run_reversal(model: str, payload, driver: str, metric: str, threshold: float
         if t is None or not t.is_known():
             raise SystemExit(f"driver '{driver}' is unknown — cannot solve a "
                              "reversal on an input that has no current value")
+        if not isinstance(t.value, (int, float)) or isinstance(t.value, bool):
+            raise SystemExit(
+                f"driver '{driver}' is not numeric — scenarios and reversals can "
+                "only vary numeric drivers (e.g. driver_volume, not cost_pool)")
         current = float(t.value)
         if lo is None or hi is None:
             if current <= 0:

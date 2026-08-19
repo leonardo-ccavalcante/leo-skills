@@ -221,6 +221,17 @@ def test_scenarios():
     check("scen reversal churn = 0.03333", approx(rv(r, "reversal_value"), 0.033333, 1e-3))
     check("scen base ratio = 5.0", approx(rv(r, "base_ltv_cac_ratio"), 5.0))
 
+    # ops model: pool 120000 / volume, unit_cost crosses 38 at volume = 3157.8947
+    ops_inputs = parse_inputs({
+        "cost_pool": {"salaries": 100000, "overhead_allocation": 20000},
+        "driver_volume": 3200, "driver_name": "ticket"})
+    r2 = Result(script="scenarios")
+    run_reversal("ops-unit-cost", ops_inputs, "driver_volume",
+                 "unit_cost", 38.0, None, None, r2)
+    r2.finalize()
+    check("scen ops reversal volume = 3157.89",
+          approx(rv(r2, "reversal_value"), 3157.8947, 1e-3))
+
 
 def test_cli_exit_codes():
     here = os.path.dirname(os.path.abspath(__file__))
