@@ -1,7 +1,8 @@
 # Company Analysis — statement ratios, DuPont, trends
 
 Domain 2: analyzing a real company from its income statement and balance sheet.
-The script is `ratios` (`scripts/ratios.py`); stress-testing reuses `scenarios`.
+The script is `ratios` (`scripts/ratios.py`); reversal thresholds use scratch
+Python (see Trend analysis — `fa.sh scenarios` has no statement model, on purpose).
 This reference carries the thinking; every number comes from the script.
 
 ## When NOT to use
@@ -179,9 +180,20 @@ an escalate. Where prior is zero, `delta_pct` is null and the class reads
 
 Any explanation you attach to a variance ("revenue fell because of churn") is
 an `assumption` until the user confirms it — the statements show *that* a line
-moved, never *why*. For the 2–3 deltas driving the verdict, run
-`fa.sh scenarios` reversal solving to find where the trend, continued, flips
-the verdict, and feed that into the kill-assumptions table.
+moved, never *why*.
+
+**Reversal thresholds for statements — scratch Python, not `fa.sh scenarios`.**
+The scenarios engine deliberately has no `ratios` model: statement lines are
+bound by accounting identities the engine cannot know (mutate `revenue` while
+`gross_profit` stays stated and the implied COGS goes negative — arithmetic
+that computes cleanly and means nothing). Partial mutation of a statement
+produces exactly the plausible-but-wrong numbers this skill exists to prevent.
+Instead, for the 2–3 deltas driving the verdict, solve the reversal in a small
+scratch Python script run via Bash, over the *identity in question* — closed
+form when it exists (e.g. the opex growth rate `g` where
+`opex_prior × (1+g) = gross_profit_current` is the operating break-even), or
+`finmath.bisect_solve` when it doesn't — saving the outputs as JSON like any
+other script run. Feed the thresholds into the kill-assumptions table.
 
 ## Worked examples
 

@@ -63,7 +63,7 @@ the analysis name and date. Delete it when the retrospective (Step 7) completes.
 | The user is asking about... | Domain | Read | Primary scripts |
 |---|---|---|---|
 | An idea or startup: "is this viable", pricing, projections, runway, break-even | Viability | `references/viability.md` | `unit-economics`, `projection`, `scenarios` |
-| A real company's statements: ratios, margins, financial health, DuPont | Company analysis | `references/company-analysis.md` | `ratios`, `scenarios` |
+| A real company's statements: ratios, margins, financial health, DuPont | Company analysis | `references/company-analysis.md` | `ratios` (reversals via scratch Python — see reference) |
 | ARR/MRR, churn, NRR, cohorts, SaaS health check | SaaS metrics | `references/saas-metrics.md` | `saas`, `unit-economics`, `scenarios` |
 | Cost per ticket/project, cost-to-serve, capacity, headcount, business case, budget variance | Operational finance | `references/operational-finance.md` | `ops`, `scenarios` |
 
@@ -101,8 +101,13 @@ partial answers. Then tag every number:
 - `assumption` — a visible working hypothesis, with its basis stated
 - `unknown` — missing and not safely estimable (value stays null)
 
-A plausible guess is still an `assumption`. Show the user the tagged input table
-**before** computing, so they can correct tags and values while it's cheap. For
+A plausible guess is still an `assumption`. When the load-bearing inputs are
+**user-supplied** (their numbers, their files), show the tagged input table
+**before** computing — their corrections are the whole point and they're cheapest
+before results exist. When inputs are **sourced by you** (`public` with URLs, e.g.
+filings), show the table **alongside** the results instead, flagging every mapping
+decision the user can override — recompute is one command, and blocking a live
+analysis to confirm published figures adds friction without information. For
 multi-input analyses, save the tagged inputs as `<analysis-name>.fa.json` in the
 working directory (validate with `fa.sh validate <file>`) — this makes the analysis
 resumable and auditable.
