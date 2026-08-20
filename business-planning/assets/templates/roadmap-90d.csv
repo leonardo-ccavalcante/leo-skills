@@ -1,0 +1,2 @@
+week,workstream,action,owner,evidence_target,depends_on
+EXAMPLE-DELETE-ME: 1,validation,Run 10 problem interviews with ICP candidates from the first-ten list,<founder>,10 completed interviews with notes in bp_<slug>/decisions/,

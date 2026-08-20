@@ -1,0 +1,26 @@
+{
+  "_comment": "business-planning skill hooks. NEVER auto-installed — merge the 'hooks' object below into ~/.claude/settings.json by hand (create the file if absent, or extend existing PostToolUse/Stop arrays; the /update-config skill can do the merge). Both hooks are optional hardening: validation, lint, and the retrospective already run as workflow steps inside the skill. To uninstall, remove these two entries from ~/.claude/settings.json.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/skills/business-planning/hooks/validate_hook.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/.claude/skills/business-planning/hooks/retro_hook.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

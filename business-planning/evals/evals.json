@@ -1,0 +1,59 @@
+{
+  "skill_name": "business-planning",
+  "_provenance": "Assertions pre-registered 2026-08-19 BEFORE any skill code was written; signed off by Leo the same day (see business-planning-workspace/contracts/assertions-preregistered.md). Families: [D/...] = discriminating (headline); [C/...] = contract conformance (reported separately, never headline). No synthetic case data: all three evals use real markets/companies with public, citable information; both arms have web access.",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "full-plan-pre-revenue-ptbr",
+      "prompt": "Quero montar um clube de assinatura de livros infantis usados em São Paulo. Estrutura um business plan que eu possa mostrar a um investidor-anjo. Pesquisa o mercado brasileiro real — não inventa números.",
+      "expected_output": "A 13-part business plan in PT-BR (bp_<slug>/plan.md) built on tagged inputs, real cited Brazilian market research, script-computed readiness/market artifacts, fa.sh-delegated financials, and honest unknowns for pre-revenue gaps.",
+      "files": [],
+      "expectations": [
+        "[D/citation-discipline] Every market or competitor figure in the plan carries a source URL and access date; market-level claims cite >=2 independent sources or are explicitly downgraded to assumption with a stated basis.",
+        "[D/provenance-tags] The deliverable includes a complete tagged-inputs table (statuses only from user/public/assumption/unknown) covering every numeric driver used; no numeric claim appears in the narrative without a corresponding tagged entry.",
+        "[D/provenance-tags] Churn, CAC and conversion rates are NOT invented: each appears either as an assumption with an explicit basis or as unknown — never as an untagged point figure.",
+        "[D/script-computed] bp_<slug>/ contains readiness.json and market.json produced by bp.sh, and the values quoted in plan.md match those artifacts exactly; the scenario table's base multipliers are all 1.0.",
+        "[D/delegation-observed] Every computed financial metric (LTV, LTV:CAC, projection, break-even, runway) traces to a saved fa.sh --json artifact under bp_<slug>/scenarios/; no financial arithmetic is performed in prose.",
+        "[D/insufficient-data-honesty] At least one pre-revenue gap (e.g., real traction or retention data) is reported as unknown or INSUFFICIENT_DATA and rendered as \"Unknown\" — not filled with a placeholder number.",
+        "[C/structure] The plan follows the 13-part structure and Part 13 is \"Assumptions & Limitations\" (or PT equivalent).",
+        "[C/frontmatter] YAML frontmatter present with research_sources, confidence_level, stage and mode; stage detected as idea/pre-revenue.",
+        "[C/language] The deliverable is written in PT-BR, with framework terms kept in EN (TAM/SAM/SOM, LTV, CAC).",
+        "[C/humanizer] Prose follows humanizer conventions (no AI-slop markers, no formulaic hedging)."
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "module-market-pricing",
+      "prompt": "Size the market and propose a pricing strategy for a bookkeeping-automation SaaS aimed at UK e-commerce sellers. Use real market data and cite it.",
+      "expected_output": "A single module artifact (market sizing + pricing strategy) in EN, with a bottom-up TAM/SAM/SOM chain computed by bp.sh market from cited UK data, competitor prices labeled as anchors, and fa.sh-delegated unit-economics support.",
+      "files": [],
+      "expectations": [
+        "[D/citation-discipline] The market-size estimate cites >=2 independent sources, each with URL and access date, and labels each source's tier (gov/industry, analyst, press, blog).",
+        "[D/script-computed] TAM/SAM/SOM is a bottom-up chain (counts x rates), saved as a bp.sh market artifact whose values match the report; no top-down \"X% of the $N B market\" shape appears.",
+        "[D/citation-discipline] Competitor prices are cited and labeled as competitor price references — never presented as willingness-to-pay evidence.",
+        "[D/delegation-observed] Any LTV/CAC/payback figure supporting the pricing recommendation traces to a saved fa.sh unit-economics artifact.",
+        "[D/insufficient-data-honesty] Inputs with no public source (e.g., trial-to-paid conversion) are tagged assumption-with-basis or unknown; none appears as an untagged fact.",
+        "[C/structure] The deliverable is a single module artifact (market + pricing), not a full 13-part plan.",
+        "[C/frontmatter] YAML frontmatter present with research_sources and confidence_level.",
+        "[C/language] Output in EN (mirrors the request language); humanizer-compliant prose."
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "evaluate-public-company",
+      "prompt": "Evaluate Instacart's business model using its actual public filings and reporting: is it HEALTHY, FRAGILE, or UNSUSTAINABLE — and what would change your verdict?",
+      "expected_output": "An EVALUATE report in EN with a closed-vocabulary verdict produced by bp.sh readiness (per-dimension breakdown shown), figures cited to filings with URL + access date, undisclosed dimensions honestly scored unknown/assumption, and a falsifiable what-would-change-the-verdict section.",
+      "files": [],
+      "expectations": [
+        "[D/citation-discipline] Every figure taken from filings or reports carries URL and access date; any contested claim (e.g., take-rate trends) cites >=2 independent sources.",
+        "[D/script-computed] The verdict comes from the closed set HEALTHY/FRAGILE/UNSUSTAINABLE/INSUFFICIENT_DATA, is produced by bp.sh readiness (readiness.json saved and matching), and the report shows the per-dimension breakdown — never only the scalar score.",
+        "[D/insufficient-data-honesty] Dimensions not disclosed in public filings (e.g., cohort retention) are scored as unknown or assumption-with-basis with the evidence multiplier reflecting it — not guessed as fact.",
+        "[D/delegation-observed] Any computed ratio or unit-economics figure traces to a saved fa.sh --json artifact.",
+        "[D/falsifiability] The \"what would change the verdict\" section names concrete, checkable evidence (metric + threshold + where it would be published), not generic hedges.",
+        "[C/structure] The report follows the EVALUATE skeleton (verdict, breakdown, evidence audit, falsifiers).",
+        "[C/vocabulary] Vocabulary respects the closed sets (verdicts, tags, evidence levels).",
+        "[C/language] EN output; humanizer-compliant prose."
+      ]
+    }
+  ]
+}

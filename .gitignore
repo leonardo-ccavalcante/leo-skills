@@ -36,3 +36,12 @@ __pycache__/
 # financial-analysis: analysis state files carry real business inputs — never commit
 *.fa.json
 .fa-session
+
+# business-planning: user business data never enters this repo. bp_<slug>/
+# workspaces and .bp.json state files are written into the USER's cwd; these
+# entries stop them if that cwd is ever this repo, and keep the build workspace
+# (real eval outputs, dogfood material) out of a `git add -A`.
+bp_*/
+*.bp.json
+.bp-session
+business-planning-workspace/
