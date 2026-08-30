@@ -2,7 +2,9 @@
 
 My personal [Claude Code](https://claude.com/claude-code) skills library — versioned live from `~/.claude/skills`.
 
-Every folder here is a skill: a `SKILL.md` with YAML frontmatter (`name` + `description`) that Claude Code loads on demand, plus optional `references/`, `scripts/`, and `evals/`. All 60+ committed skills pass frontmatter validation.
+Every top-level folder here is a skill: a `SKILL.md` with YAML frontmatter (`name` + `description`) that Claude Code loads on demand, plus optional `references/`, `scripts/`, and `evals/`. All 60+ committed skills pass frontmatter validation.
+
+The one exception is [`agents/`](agents/), which holds **subagent bundles** — these install into `~/.claude/agents/`, not `~/.claude/skills/`, and each ships its own installer.
 
 ---
 
@@ -50,9 +52,23 @@ Symlinked suites are listed in `.gitignore`; clone them from upstream if you wan
 
 ---
 
+## Agent bundles
+
+Multi-agent systems that install into `~/.claude/agents/` instead of `~/.claude/skills/`. They ship as self-contained folders with their own `install.sh`.
+
+| Bundle | What it does |
+|---|---|
+| [`agents/comunicacao-executiva`](agents/comunicacao-executiva) | **Evidence-based executive communication** — a 13-agent orchestrator for structuring decks, memos and board packs. Interrogates your raw material, dispatches one specialist per evidence front (structure, argument, narrative, slide design, uncertainty, attention, credibility, audience cognition, board reporting, cross-cultural), then runs a clean-context SAT critic and a consolidator. Every recommendation ships tagged with its evidence strength. Grounded in two evidence-review reports (~70 peer-reviewed sources); the bundle carries the full distilled base, so it needs no external files. Notable finding: the consulting doctrines everyone teaches (BLUF, Minto, MECE, action titles) are **weak-to-untested** in real executive audiences — the strong evidence is elsewhere. |
+
+Install: `cd agents/<bundle> && ./install.sh`, then ask Claude to use the agent by name.
+
+---
+
 ## Usage
 
 Drop any skill folder into `~/.claude/skills/` (user-level) or `.claude/skills/` inside a project, then invoke it in Claude Code with `/<skill-name>` — or let Claude activate it automatically when the task matches the skill's description.
+
+Agent bundles under `agents/` install differently — see the section above.
 
 ---
 
