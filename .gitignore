@@ -45,3 +45,12 @@ bp_*/
 *.bp.json
 .bp-session
 business-planning-workspace/
+
+# comunicacao-executiva: N2 memory holds real audience profiles (named executives,
+# their objections, internal decisions) and presentation outcomes. This repo is
+# PUBLIC — that data must never enter it. Only the contract README is committed;
+# the memory files themselves are written locally and stay local.
+agents/comunicacao-executiva/agents/ce-memoria/audiencias/
+agents/comunicacao-executiva/agents/ce-memoria/padroes-leo.md
+agents/comunicacao-executiva/agents/ce-memoria/resultados.md
+agents/comunicacao-executiva/agents/ce-memoria/calibracao.md
