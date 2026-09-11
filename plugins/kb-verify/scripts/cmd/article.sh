@@ -254,7 +254,7 @@ kbv_cmd_next_bug_id() {
 #   data: {article, article_path, diff_path, base_sha256, header, diff, claims, hunks}
 # ---------------------------------------------------------------------------
 kbv_cmd_diff_check() {
-  local run='' name='' article diff claims_csv claims_json sha tmpd copy difff out header hunks body data
+  local run='' name='' article diff claims_csv claims_json sha tmpd copy difff out header hunks failed body data
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) [ $# -ge 2 ] || { kbv_err INVALID_INPUT "--run needs a value"; return 0; }; run="$2"; shift 2 ;;
@@ -307,13 +307,20 @@ kbv_cmd_diff_check() {
   # Drop a header line the caller may already have prepended; keep the rest byte for byte.
   printf '%s\n' "$diff" | LC_ALL=C sed -e '1{/^# kb-verify /d;}' > "$difff"
   out="$tmpd/patch.out"
+  hunks=$(LC_ALL=C grep -c '^@@' "$difff" || true)
   if ! /usr/bin/patch --dry-run -u -s "$copy" < "$difff" > "$out" 2>&1; then
     body=$(LC_ALL=C head -c 300 "$out" | tr '\n' ' ' | kbv_redact)
     body="${body//"$copy"/<temporary copy>}"
-    kbv_err DIFF_APPLY_FAILED "patch --dry-run failed on a copy of $article: $body"
+    # BSD patch says "1 out of 1 hunks failed", GNU says "1 out of 1 hunk FAILED".
+    # Never echo another tool's wording as our contract: count it ourselves and
+    # keep patch's text only as context for the human.
+    failed=$(LC_ALL=C grep -io '[0-9][0-9]* out of [0-9][0-9]* hunks* *fail' "$out" \
+      | head -1 | awk '{print $1}')
+    [ -n "$failed" ] || failed=$hunks
+    kbv_err DIFF_APPLY_FAILED \
+      "patch --dry-run failed on a copy of $article: $failed of $hunks hunks failed; $body"
     return 0
   fi
-  hunks=$(LC_ALL=C grep -c '^@@' "$difff" || true)
   body=$(cat "$difff")
   data=$("$KBV_JQ" -c -n --arg article "$(kbv_relpath "$article" "$KBV_KB_ROOT")" --arg ap "$article" \
     --arg dp "${article%.md}.kb-verify.diff" --arg sha "$sha" --arg header "$header" --arg body "$body" \
