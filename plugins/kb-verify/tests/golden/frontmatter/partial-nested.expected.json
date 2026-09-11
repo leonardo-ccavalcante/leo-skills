@@ -1,0 +1,24 @@
+{
+  "has_frontmatter": true,
+  "title": "Solicitar reembolso",
+  "title_source": "frontmatter",
+  "tags": ["billing"],
+  "topic": null,
+  "status": "published",
+  "topic_override": null,
+  "raw": {
+    "titulo": "Solicitar reembolso",
+    "etiquetas": ["billing"],
+    "kb_verify": null,
+    "estado": "published"
+  },
+  "notes": [
+    "frontmatter partially parsed",
+    "unsupported: nested mapping or continued value at line 6",
+    "unsupported: block scalar for key 'descricao' at line 7",
+    "unsupported: nested mapping or continued value at line 8",
+    "unsupported: nested mapping or continued value at line 9"
+  ],
+  "verify": false,
+  "body": {"lines": 4, "steps": 2, "conditions": 1, "numbers": 2}
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "kb_root": "/abs/kb",
+  "articles_dir": "articles",
+  "triage_dir": "kb-verify/triage/bugs",
+  "gh": {
+    "repo": "org/monorepo"
+  },
+  "budgets": {
+    "search_calls_per_article": 15,
+    "fetch_calls_per_article": 40,
+    "index_i18n_files": 20
+  },
+  "integration": {
+    "article_glob": "articles/**/*.md",
+    "locales": ["en", "pt-BR"],
+    "frontmatter_map": {
+      "title": "titulo",
+      "tags": "etiquetas",
+      "topic": "politica",
+      "status": "estado"
+    },
+    "verify_when": {
+      "status_in": ["draft", "review"]
+    },
+    "bug_template": "docs/agents/issue-tracker.md",
+    "triage_labels": ["needs-triage", "needs-info", "ready-for-agent", "ready-for-human", "wontfix"]
+  }
+}

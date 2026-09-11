@@ -1,0 +1,62 @@
+{
+  "common": {
+    "settings": "Configurações",
+    "billing": "Faturamento",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "back": "Voltar"
+  },
+  "billing": {
+    "tabs": {
+      "subscription": "Assinatura",
+      "invoices": "Faturas",
+      "refunds": "Reembolsos"
+    },
+    "cancel": {
+      "button": "Cancelar assinatura",
+      "title": "Cancelar assinatura?",
+      "body": "Você continuará com acesso até o fim do período atual. Nenhuma cobrança adicional será feita.",
+      "confirm": "Confirmar cancelamento",
+      "keep": "Manter assinatura",
+      "ok": "Sua assinatura foi cancelada. O acesso continua até o fim do período atual.",
+      "forbidden_hint": "Somente donos e administradores podem cancelar a assinatura."
+    },
+    "refund": {
+      "button": "Solicitar reembolso",
+      "hint": "Reembolsos podem ser solicitados em até {{days}} dias após a cobrança.",
+      "reason_label": "Motivo (opcional)",
+      "ok": "Pedido de reembolso recebido. O valor volta ao método de pagamento original em até {{days}} dias úteis."
+    },
+    "invoices": {
+      "download": "Baixar faturas (CSV)",
+      "range_label": "Período",
+      "range_months": "Últimos {{months}} meses",
+      "empty": "Nenhuma fatura no período selecionado.",
+      "ok": "Download iniciado."
+    },
+    "plan": {
+      "change": "Alterar plano",
+      "current": "Plano atual: {{plan}}",
+      "seats": "{{used}} de {{limit}} assentos em uso",
+      "confirm": "Confirmar mudança de plano",
+      "prorated": "A mudança vale imediatamente. A diferença é cobrada ou creditada proporcionalmente.",
+      "ok": "Plano alterado com sucesso.",
+      "names": {
+        "starter": "Starter",
+        "team": "Team",
+        "business": "Business"
+      }
+    },
+    "errors": {
+      "FORBIDDEN": "Você não tem permissão para esta ação.",
+      "SUB_NOT_FOUND": "Assinatura não encontrada.",
+      "SUB_ALREADY_CANCELLED": "Esta assinatura já foi cancelada.",
+      "CHARGE_NOT_FOUND": "Cobrança não encontrada.",
+      "REFUND_WINDOW_EXPIRED": "O prazo para solicitar o reembolso desta cobrança já terminou.",
+      "REFUND_ALREADY_REQUESTED": "Já existe um pedido de reembolso para esta cobrança.",
+      "PLAN_UNKNOWN": "Plano desconhecido.",
+      "PLAN_SEAT_LIMIT_EXCEEDED": "Remova membros antes de reduzir o plano: o novo plano tem menos assentos do que os em uso."
+    }
+  }
+}

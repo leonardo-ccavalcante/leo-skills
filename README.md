@@ -4,6 +4,15 @@ My personal [Claude Code](https://claude.com/claude-code) skills library — ver
 
 Every folder here is a skill: a `SKILL.md` with YAML frontmatter (`name` + `description`) that Claude Code loads on demand, plus optional `references/`, `scripts/`, and `evals/`. All 60+ committed skills pass frontmatter validation.
 
+
+## Plugins
+
+Besides skills, this repository is also a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`). Plugins live under `plugins/` and bundle skills, agents and hooks together.
+
+| Plugin | What it does | Install |
+|---|---|---|
+| `plugins/kb-verify` | Verifies support KB articles against a private monorepo through the GitHub API, read-only enforced by hooks; emits `CORRECT \| DOC_OUTDATED \| CODE_BUG \| INCONCLUSIVE` with `file:line@commit` evidence, bug reports for triage and proposed doc diffs | `/plugin marketplace add leonardo-ccavalcante/leo-skills` then `claude plugin install kb-verify@leo-skills` — enable it only in the KB project (see `plugins/kb-verify/README.md`) |
+
 ---
 
 ## Skills I authored

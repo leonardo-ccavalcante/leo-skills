@@ -1,0 +1,52 @@
+# kb-verify plugin CI: the whole test suite on macOS (bash 3.2) and Ubuntu (bash 5).
+# Lives at the repository root because GitHub Actions only reads .github/workflows/
+# from there; the suite itself runs inside plugins/kb-verify.
+# No secrets, no network beyond checkout and apt: the scripts run under
+# KB_VERIFY_GH_MOCK (set by the tests themselves) and never call the real GitHub API.
+name: kb-verify tests
+
+on:
+  push:
+    paths:
+      - 'plugins/kb-verify/**'
+      - '.github/workflows/kb-verify-tests.yml'
+  pull_request:
+    paths:
+      - 'plugins/kb-verify/**'
+      - '.github/workflows/kb-verify-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: run-all (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: plugins/kb-verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq (Ubuntu, only if missing)
+        if: runner.os == 'Linux'
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends jq
+          fi
+
+      - name: Show toolchain
+        run: |
+          /bin/bash --version | head -1
+          jq --version
+          command -v realpath && realpath --version 2>/dev/null | head -1 || true
+          /usr/bin/patch --version | head -1
+          shasum --version
+
+      - name: Run all test suites
+        run: /bin/bash tests/run-all.sh

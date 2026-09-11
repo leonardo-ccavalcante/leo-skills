@@ -1,0 +1,16 @@
+{
+  "has_frontmatter": false,
+  "title": "unclosed",
+  "title_source": "filename",
+  "tags": [],
+  "topic": null,
+  "status": null,
+  "topic_override": null,
+  "raw": {},
+  "notes": [
+    "frontmatter partially parsed",
+    "unsupported: frontmatter block opened at line 1 but never closed"
+  ],
+  "verify": true,
+  "body": {"lines": 6, "steps": 1, "conditions": 1, "numbers": 1}
+}

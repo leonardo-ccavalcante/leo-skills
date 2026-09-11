@@ -1,0 +1,195 @@
+# kb-verify guard matrix. Tab-separated, 11 columns, "-" = absent/none.
+# group	name	tool	field1	value1	field2	value2	cwd	env	expect	reason-substring
+# Placeholders: @HOME@ @KB@ @PLUGIN@ @DATA@ @TMP@ (temp root), @A65@ (65 x "a"),
+#   @NL@ newline, @TAB@ tab, @EMPTY@ empty string (field present but empty).
+# env flags (comma-separated): JQMISSING NOREALPATH CRASH NODECISION NOPLUGINROOT
+#   ENVCFG=<path> (KB_VERIFY_CONFIG) RAWSTDIN=<text> (replaces the built payload).
+# expect: allow (empty stdout, exit 0) | deny (one line of JSON, reason starts with "kb-verify:").
+# reason-substring: case-insensitive substring the deny reason must contain, or "-".
+
+# ---- group 1: writes -------------------------------------------------------
+writes	inbox-valid	Write	file_path	@DATA@/runs/r1/inbox/claims-abc123.json	-	-	@KB@	-	allow	-
+writes	inbox-edit-valid	Edit	file_path	@DATA@/runs/r1/inbox/claims-abc123.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-unknown-run-dir	Write	file_path	@DATA@/runs/r9/inbox/v1.json	-	-	@KB@	-	allow	-
+writes	inbox-dotdot-existing-prefix	Write	file_path	@DATA@/runs/r1/inbox/../x.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-dotdot-in-rest	Write	file_path	@DATA@/runs/r1/inbox/nope/../x.json	-	-	@KB@	-	deny	'..'
+writes	inbox-uppercase	Write	file_path	@DATA@/runs/r1/inbox/V1.JSON	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-bad-stem	Write	file_path	@DATA@/runs/r1/inbox/-bad.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-too-long	Write	file_path	@DATA@/runs/r1/inbox/@A65@.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-cache-not-inbox	Write	file_path	@DATA@/runs/r1/cache/x.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-nested	Write	file_path	@DATA@/runs/r1/inbox/sub/x.json	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-run-json	Write	file_path	@DATA@/runs/r1/run.json	-	-	@KB@	-	deny	not an allowed target
+writes	triage-new	Write	file_path	@KB@/kb-verify/triage/bugs/0002-refund-window.md	-	-	@KB@	-	allow	-
+writes	triage-existing	Write	file_path	@KB@/kb-verify/triage/bugs/0001-existing.md	-	-	@KB@	-	deny	not an allowed target
+writes	triage-edit-existing	Edit	file_path	@KB@/kb-verify/triage/bugs/0001-existing.md	-	-	@KB@	-	deny	not an allowed target
+writes	triage-short-id	Write	file_path	@KB@/kb-verify/triage/bugs/7-slug.md	-	-	@KB@	-	deny	not an allowed target
+writes	triage-txt	Write	file_path	@KB@/kb-verify/triage/bugs/notas.txt	-	-	@KB@	-	deny	not an allowed target
+writes	triage-bad-slug	Write	file_path	@KB@/kb-verify/triage/bugs/0003-Bad_Slug.md	-	-	@KB@	-	deny	not an allowed target
+writes	triage-nested	Write	file_path	@KB@/kb-verify/triage/bugs/sub/0004-x.md	-	-	@KB@	-	deny	not an allowed target
+writes	triage-feedback-is-human	Write	file_path	@KB@/kb-verify/triage/bugs/feedback.md	-	-	@KB@	-	deny	not an allowed target
+writes	diff-beside-md	Write	file_path	@KB@/articles/billing/cancelar-assinatura.kb-verify.diff	-	-	@KB@	-	allow	-
+writes	diff-edit-beside-md	Edit	file_path	@KB@/articles/billing/cancelar-assinatura.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	diff-nested-dir	Write	file_path	@KB@/articles/billing/deep/nested.kb-verify.diff	-	-	@KB@	-	allow	-
+writes	diff-no-md	Write	file_path	@KB@/articles/billing/ghost.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	diff-empty-stem	Write	file_path	@KB@/articles/billing/.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	diff-outside-articles-dir	Write	file_path	@KB@/rootnote.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	article-write	Write	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@KB@	-	deny	not an allowed target
+writes	article-edit	Edit	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@KB@	-	deny	not an allowed target
+writes	article-new	Write	file_path	@KB@/articles/billing/new.md	-	-	@KB@	-	deny	not an allowed target
+writes	relative-resolved-by-payload-cwd	Write	file_path	articles/billing/cancelar-assinatura.kb-verify.diff	-	-	@KB@	-	allow	-
+writes	relative-wrong-payload-cwd	Write	file_path	articles/billing/cancelar-assinatura.kb-verify.diff	-	-	@KB@/articles	-	deny	not an allowed target
+writes	relative-from-article-dir	Write	file_path	cancelar-assinatura.kb-verify.diff	-	-	@KB@/articles/billing	-	allow	-
+writes	symlink-to-outside	Write	file_path	@KB@/articles/link/x.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	symlink-dangling	Write	file_path	@KB@/articles/billing/evil.kb-verify.diff	-	-	@KB@	-	deny	dangling
+writes	dotdot-in-rest	Write	file_path	@KB@/articles/billing/new/../cancelar-assinatura.kb-verify.diff	-	-	@KB@	-	deny	'..'
+writes	state-dir	Write	file_path	@KB@/.kb-verify/mapping.json	-	-	@KB@	-	deny	.kb-verify
+writes	config-file	Write	file_path	@KB@/kb-verify.config.json	-	-	@KB@	-	deny	config
+writes	claude-settings	Write	file_path	~/.claude/settings.json	-	-	@KB@	-	deny	not an allowed target
+writes	git-hooks	Write	file_path	@KB@/.git/hooks/pre-commit	-	-	@KB@	-	deny	.git
+writes	tmp-file	Write	file_path	/tmp/x	-	-	@KB@	-	deny	not an allowed target
+writes	plugin-dir	Write	file_path	@PLUGIN@/hooks/guard-main.sh	-	-	@KB@	-	deny	not an allowed target
+writes	missing-file-path	Write	-	-	-	-	@KB@	-	deny	missing file_path
+writes	empty-file-path	Write	file_path	@EMPTY@	-	-	@KB@	-	deny	missing file_path
+writes	newline-in-path	Write	file_path	@DATA@/runs/r1/inbox/v1.json@NL@	-	-	@KB@	-	deny	control
+writes	multiedit	MultiEdit	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@KB@	-	deny	MultiEdit
+writes	notebookedit	NotebookEdit	notebook_path	@KB@/x.ipynb	-	-	@KB@	-	deny	NotebookEdit
+# Edit is never one of the three allow branches (they are Write-only), and a
+# path ending in "/" names a directory, so the guard decides on the same
+# byte string the tool would act on.
+writes	inbox-edit-new	Edit	file_path	@DATA@/runs/r1/inbox/brand-new.json	-	-	@KB@	-	deny	not an allowed target
+writes	triage-edit-new	Edit	file_path	@KB@/kb-verify/triage/bugs/0042-invented-by-edit.md	-	-	@KB@	-	deny	not an allowed target
+writes	diff-edit-new-beside-md	Edit	file_path	@KB@/articles/billing/deep/nested.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+writes	inbox-trailing-slash	Write	file_path	@DATA@/runs/r1/inbox/v1.json/	-	-	@KB@	-	deny	names a directory
+writes	triage-trailing-slash	Write	file_path	@KB@/kb-verify/triage/bugs/0043-trailing.md/	-	-	@KB@	-	deny	names a directory
+writes	diff-trailing-slash	Write	file_path	@KB@/articles/billing/cancelar-assinatura.kb-verify.diff/	-	-	@KB@	-	deny	names a directory
+writes	diff-md-case-mismatch	Write	file_path	@KB@/articles/billing/CANCELAR-ASSINATURA.kb-verify.diff	-	-	@KB@	-	deny	not an allowed target
+
+# ---- group 2: bash allowed -------------------------------------------------
+bash-allow	kbv-gh-fetch	Bash	command	bash @PLUGIN@/scripts/kbv.sh gh-fetch --run r1 --article a apps/a.ts	-	-	@KB@	-	allow	-
+bash-allow	gh-auth-status	Bash	command	gh auth status	-	-	@KB@	-	allow	-
+bash-allow	kbv-armed	Bash	command	bash @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	-	allow	-
+bash-allow	kbv-append-verdict	Bash	command	bash @PLUGIN@/scripts/kbv.sh append-verdict --run r1 verdict-abc123	-	-	@KB@	-	allow	-
+bash-allow	kbv-config-init	Bash	command	bash @PLUGIN@/scripts/kbv.sh config-init /abs/kb	-	-	@KB@	-	allow	-
+bash-allow	kbv-gh-search-with-flags	Bash	command	bash @PLUGIN@/scripts/kbv.sh gh-search --run r1 --article 0123456789ab --claim c1 --path apps/billing	-	-	@KB@	-	allow	-
+bash-allow	kbv-relative-from-plugin-cwd	Bash	command	bash scripts/kbv.sh armed	-	-	@PLUGIN@	-	allow	-
+bash-deny	tab-is-control-char	Bash	command	bash@TAB@@PLUGIN@/scripts/kbv.sh@TAB@armed	-	-	@KB@	-	deny	control
+bash-allow	kbv-plugin-root-derived	Bash	command	bash @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	NOPLUGINROOT	allow	-
+
+# ---- group 3: bash denied --------------------------------------------------
+bash-deny	gh-api	Bash	command	gh api repos/org/monorepo/contents/x	-	-	@KB@	-	deny	'gh'
+bash-deny	gh-version	Bash	command	gh --version	-	-	@KB@	-	deny	'gh'
+bash-deny	gh-auth-status-trailing-space	Bash	command	gh auth status 	-	-	@KB@	-	deny	'gh'
+bash-deny	gh-auth-status-extra-flag	Bash	command	gh auth status --show-token	-	-	@KB@	-	deny	'gh'
+bash-deny	bash-tmp-script	Bash	command	bash /tmp/x.sh armed	-	-	@KB@	-	deny	not the plugin
+bash-deny	bash-guard-itself	Bash	command	bash @PLUGIN@/hooks/kb-guard.sh	-	-	@KB@	-	deny	not the plugin
+bash-deny	bash-dash-c	Bash	command	bash -c ls	-	-	@KB@	-	deny	not the plugin
+bash-deny	bash-option-before-script	Bash	command	bash -x @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	-	deny	not the plugin
+bash-deny	bash-only	Bash	command	bash	-	-	@KB@	-	deny	missing script path
+bash-deny	kbv-relative-wrong-cwd	Bash	command	bash scripts/kbv.sh armed	-	-	@KB@	-	deny	not the plugin
+bash-deny	kbv-arg-dotdot	Bash	command	bash @PLUGIN@/scripts/kbv.sh gh-fetch --run r1 --article a ../etc/passwd	-	-	@KB@	-	deny	argument
+bash-deny	kbv-arg-hash	Bash	command	bash @PLUGIN@/scripts/kbv.sh armed #x	-	-	@KB@	-	deny	argument
+bash-deny	kbv-metachar-in-quotes	Bash	command	bash @PLUGIN@/scripts/kbv.sh "gh-fetch; rm -rf x"	-	-	@KB@	-	deny	metacharacter
+bash-deny	kbv-unknown-sub	Bash	command	bash @PLUGIN@/scripts/kbv.sh evil	-	-	@KB@	-	deny	unknown kbv.sh subcommand
+bash-deny	kbv-missing-sub	Bash	command	bash @PLUGIN@/scripts/kbv.sh	-	-	@KB@	-	deny	missing kbv.sh subcommand
+bash-deny	kbv-question-mark	Bash	command	bash @PLUGIN@/scripts/kbv.sh armed --x=1?	-	-	@KB@	-	deny	metacharacter '?'
+bash-deny	ls	Bash	command	ls	-	-	@KB@	-	deny	'ls'
+bash-deny	cat	Bash	command	cat /etc/passwd	-	-	@KB@	-	deny	'cat'
+bash-deny	jq	Bash	command	jq . x.json	-	-	@KB@	-	deny	'jq'
+bash-deny	git	Bash	command	git status	-	-	@KB@	-	deny	'git'
+bash-deny	curl	Bash	command	curl http://example.com	-	-	@KB@	-	deny	'curl'
+bash-deny	python3	Bash	command	python3 -c 1	-	-	@KB@	-	deny	'python3'
+bash-deny	sh-c	Bash	command	sh -c ls	-	-	@KB@	-	deny	'sh'
+bash-deny	redirect	Bash	command	cat a > b	-	-	@KB@	-	deny	metacharacter '>'
+bash-deny	pipe	Bash	command	ls | head	-	-	@KB@	-	deny	metacharacter '|'
+bash-deny	semicolon	Bash	command	ls; rm x	-	-	@KB@	-	deny	metacharacter ';'
+bash-deny	subshell	Bash	command	ls $(x)	-	-	@KB@	-	deny	metacharacter
+bash-deny	background	Bash	command	ls &	-	-	@KB@	-	deny	metacharacter '&'
+bash-deny	tilde	Bash	command	ls ~	-	-	@KB@	-	deny	metacharacter '~'
+bash-deny	glob	Bash	command	ls *	-	-	@KB@	-	deny	metacharacter '*'
+bash-deny	backtick	Bash	command	ls `id`	-	-	@KB@	-	deny	metacharacter '`'
+bash-deny	backslash	Bash	command	gh auth\ status	-	-	@KB@	-	deny	metacharacter '\'
+bash-deny	braces	Bash	command	ls {a,b}	-	-	@KB@	-	deny	metacharacter
+bash-deny	env-bash	Bash	command	env bash @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	-	deny	'env'
+bash-deny	timeout-bash	Bash	command	timeout 5 bash @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	-	deny	'timeout'
+bash-deny	path-prefix	Bash	command	PATH=/evil bash @PLUGIN@/scripts/kbv.sh armed	-	-	@KB@	-	deny	'PATH=/evil'
+bash-deny	unbalanced-quote	Bash	command	bash @PLUGIN@/scripts/kbv.sh armed "x	-	-	@KB@	-	deny	metacharacter '"'
+bash-deny	single-quote	Bash	command	bash @PLUGIN@/scripts/kbv.sh 'armed'	-	-	@KB@	-	deny	metacharacter
+bash-deny	empty-command	Bash	command	@EMPTY@	-	-	@KB@	-	deny	empty command
+bash-deny	whitespace-command	Bash	command	   	-	-	@KB@	-	deny	empty command
+bash-deny	missing-command	Bash	-	-	-	-	@KB@	-	deny	missing command
+bash-deny	newline	Bash	command	gh auth status@NL@rm -rf x	-	-	@KB@	-	deny	newline
+bash-deny	gh-auth-status-inner-space	Bash	command	gh  auth  status	-	-	@KB@	-	deny	exact command
+bash-deny	kbv-script-trailing-slash	Bash	command	bash @PLUGIN@/scripts/kbv.sh/ armed	-	-	@KB@	-	deny	names a directory
+
+# ---- group 4: read and network --------------------------------------------
+read-net	read-ssh-tilde	Read	file_path	~/.ssh/id_rsa	-	-	@KB@	-	deny	protected
+read-net	read-ssh-abs	Read	file_path	@HOME@/.ssh/id_rsa	-	-	@KB@	-	deny	protected
+read-net	read-ssh-dir	Read	file_path	~/.ssh	-	-	@KB@	-	deny	protected
+read-net	read-gh-config	Read	file_path	@HOME@/.config/gh/hosts.yml	-	-	@KB@	-	deny	protected
+read-net	read-credentials	Read	file_path	~/.claude/.credentials.json	-	-	@KB@	-	deny	protected
+read-net	read-settings	Read	file_path	~/.claude/settings.json	-	-	@KB@	-	deny	protected
+read-net	read-settings-local	Read	file_path	~/.claude/settings.local.json	-	-	@KB@	-	deny	protected
+read-net	read-path-field	Read	path	~/.ssh/known_hosts	-	-	@KB@	-	deny	protected
+read-net	read-relative-from-home	Read	file_path	.ssh/id_rsa	-	-	@HOME@	ENVCFG=@KB@/kb-verify.config.json	deny	protected
+read-net	read-dotdot-through-existing	Read	file_path	@HOME@/.claude/../.ssh/id_rsa	-	-	@KB@	-	deny	protected
+read-net	grep-ssh	Grep	pattern	BEGIN	path	~/.ssh	@KB@	-	deny	protected
+read-net	grep-home-contains-ssh	Grep	pattern	BEGIN	path	~	@KB@	-	deny	would search
+read-net	grep-claude-dir	Grep	pattern	token	path	~/.claude	@KB@	-	deny	would search
+read-net	grep-no-path-cwd-kb	Grep	pattern	x	-	-	@KB@	-	allow	-
+read-net	grep-no-path-cwd-home	Grep	pattern	x	-	-	@HOME@	ENVCFG=@KB@/kb-verify.config.json	deny	would search
+read-net	grep-kb	Grep	pattern	x	path	@KB@/articles	@KB@	-	allow	-
+read-net	glob-gh-pattern	Glob	pattern	~/.config/gh/*	-	-	@KB@	-	deny	protected
+read-net	glob-gh-via-path	Glob	pattern	*.yml	path	~/.config/gh	@KB@	-	deny	protected
+read-net	glob-settings-pattern	Glob	pattern	~/.claude/settings*.json	-	-	@KB@	-	deny	protected
+read-net	glob-relative-pattern-home-base	Glob	pattern	.ssh/*	path	@HOME@	@KB@	-	deny	would search
+read-net	glob-projects	Glob	pattern	~/.claude/projects/**	-	-	@KB@	-	allow	-
+read-net	glob-kb	Glob	pattern	**/*.md	path	@KB@	@KB@	-	allow	-
+read-net	glob-no-path-cwd-kb	Glob	pattern	**/*.md	-	-	@KB@	-	allow	-
+read-net	read-cache	Read	file_path	@DATA@/runs/r1/cache/x.ts	-	-	@KB@	-	allow	-
+read-net	read-config	Read	file_path	@KB@/kb-verify.config.json	-	-	@KB@	-	allow	-
+read-net	read-references	Read	file_path	@PLUGIN@/skills/kb-verify/references/editing-contract.md	-	-	@KB@	-	allow	-
+read-net	read-projects	Read	file_path	~/.claude/projects/p/x.jsonl	-	-	@KB@	-	allow	-
+read-net	read-plans	Read	file_path	~/.claude/plans/x.md	-	-	@KB@	-	allow	-
+read-net	read-article	Read	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@KB@	-	allow	-
+read-net	read-state	Read	file_path	@KB@/.kb-verify/mapping.json	-	-	@KB@	-	allow	-
+read-net	read-without-field	Read	-	-	-	-	@KB@	-	allow	-
+read-net	read-newline-in-path	Read	file_path	@KB@/articles/x.md@NL@	-	-	@KB@	-	deny	control
+read-net	webfetch-armed	WebFetch	url	https://example.com	-	-	@KB@	-	deny	WebFetch
+read-net	websearch-armed	WebSearch	query	x	-	-	@KB@	-	deny	WebSearch
+read-net	mcp-armed	mcp__github__get_file_contents	path	x	-	-	@KB@	-	deny	mcp__
+read-net	webfetch-disarmed	WebFetch	url	https://example.com	-	-	@TMP@/nokb	-	allow	-
+read-net	websearch-disarmed	WebSearch	query	x	-	-	@TMP@/nokb	-	allow	-
+read-net	mcp-disarmed	mcp__github__get_file_contents	path	x	-	-	@TMP@/nokb	-	allow	-
+
+# ---- group 5: arming and failures -----------------------------------------
+arming	disarmed-write	Write	file_path	/tmp/x	-	-	@TMP@/nokb	-	allow	-
+arming	disarmed-bash	Bash	command	rm -rf /	-	-	@TMP@/nokb	-	allow	-
+arming	disarmed-read-ssh	Read	file_path	~/.ssh/id_rsa	-	-	@TMP@/nokb	-	allow	-
+arming	disarmed-cwd-missing	Write	file_path	/tmp/x	-	-	@TMP@/does-not-exist	-	allow	-
+arming	config-bad-json	Write	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@TMP@/badjson	-	deny	config invalid (json)
+arming	config-no-triage-dir	Read	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@TMP@/notriage	-	deny	config invalid (triage_dir)
+arming	config-kb-root-missing	Bash	command	gh auth status	-	-	@TMP@/nokbroot	-	deny	config invalid (kb_root)
+arming	envcfg-arms-outside-cwd	Write	file_path	/tmp/x	-	-	@TMP@/nokb	ENVCFG=@KB@/kb-verify.config.json	deny	not an allowed target
+arming	envcfg-missing-file	Write	file_path	/tmp/x	-	-	@TMP@/nokb	ENVCFG=@TMP@/missing.json	deny	config invalid (file)
+arming	jq-missing-write	Write	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@KB@	JQMISSING	deny	jq
+arming	jq-missing-read	Read	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@KB@	JQMISSING	deny	jq
+arming	jq-missing-bash	Bash	command	gh auth status	-	-	@KB@	JQMISSING	deny	jq
+arming	realpath-missing-write	Write	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@KB@	NOREALPATH	deny	realpath
+arming	realpath-missing-read	Read	file_path	@KB@/articles/billing/cancelar-assinatura.md	-	-	@KB@	NOREALPATH	deny	realpath
+arming	realpath-missing-bash	Bash	command	gh auth status	-	-	@KB@	NOREALPATH	deny	realpath
+arming	crash-broken-lib	Write	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@KB@	CRASH	deny	guard crashed
+arming	crash-broken-lib-disarmed	Write	file_path	/tmp/x	-	-	@TMP@/nokb	CRASH	deny	guard crashed
+arming	no-decision	Write	file_path	@DATA@/runs/r1/inbox/v1.json	-	-	@KB@	NODECISION	deny	guard crashed
+arming	unmatched-tool-task	Task	prompt	x	-	-	@KB@	-	allow	-
+arming	unmatched-tool-todowrite	TodoWrite	todos	x	-	-	@KB@	-	allow	-
+arming	garbage-stdin	Write	-	-	-	-	@KB@	RAWSTDIN=not json at all	deny	invalid hook payload
+arming	empty-stdin	Write	-	-	-	-	@KB@	RAWSTDIN=@EMPTY@	deny	invalid hook payload
+
+# ---- group 6: unresolvable cwd cannot silently disarm (hardening probe F1) --
+# A deleted payload cwd falls back to the hook process's own directory; when the
+# session is still identifiably inside a KB (KB_VERIFY_CONFIG pins it) the guard
+# stays armed instead of failing open.
+arming	cwd-missing-still-armed-write	Write	file_path	/tmp/x	-	-	@TMP@/no-such-dir-xyz	ENVCFG=@KB@/kb-verify.config.json	deny	not an allowed target
+arming	cwd-missing-still-armed-read	Read	file_path	@HOME@/.ssh/id_ed25519	-	-	@TMP@/no-such-dir-xyz	ENVCFG=@KB@/kb-verify.config.json	deny	protected
+arming	cwd-missing-still-armed-webfetch	WebFetch	url	https://example.com	-	-	@TMP@/no-such-dir-xyz	ENVCFG=@KB@/kb-verify.config.json	deny	network
+arming	cwd-missing-still-armed-bash	Bash	command	rm -rf /	-	-	@TMP@/no-such-dir-xyz	ENVCFG=@KB@/kb-verify.config.json	deny	not allowed

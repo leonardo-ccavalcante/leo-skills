@@ -1,0 +1,18 @@
+{
+  "has_frontmatter": true,
+  "title": "Cancelar assinatura",
+  "title_source": "frontmatter",
+  "tags": ["billing", "cancelamento"],
+  "topic": "cancel-subscription",
+  "status": "review",
+  "topic_override": null,
+  "raw": {
+    "titulo": "Cancelar assinatura",
+    "etiquetas": ["billing", "cancelamento"],
+    "politica": "cancel-subscription",
+    "estado": "review"
+  },
+  "notes": [],
+  "verify": true,
+  "body": {"lines": 4, "steps": 2, "conditions": 1, "numbers": 2}
+}

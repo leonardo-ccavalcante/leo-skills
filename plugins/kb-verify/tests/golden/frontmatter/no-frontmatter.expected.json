@@ -1,0 +1,13 @@
+{
+  "has_frontmatter": false,
+  "title": "Exportar faturas",
+  "title_source": "h1",
+  "tags": [],
+  "topic": null,
+  "status": null,
+  "topic_override": null,
+  "raw": {},
+  "notes": [],
+  "verify": true,
+  "body": {"lines": 6, "steps": 2, "conditions": 1, "numbers": 1}
+}
