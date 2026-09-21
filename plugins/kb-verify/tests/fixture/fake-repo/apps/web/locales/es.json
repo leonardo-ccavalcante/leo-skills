@@ -1,0 +1,31 @@
+{
+  "common": {
+    "settings": "Configuración",
+    "billing": "Facturación",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "back": "Volver"
+  },
+  "billing": {
+    "tabs": {
+      "subscription": "Suscripción",
+      "invoices": "Facturas",
+      "refunds": "Reembolsos"
+    },
+    "cancel": {
+      "button": "Cancelar suscripción",
+      "title": "¿Cancelar suscripción?",
+      "body": "Mantendrás el acceso hasta el final del período actual. No se harán más cobros.",
+      "confirm": "Confirmar cancelación",
+      "keep": "Mantener suscripción",
+      "ok": "Tu suscripción fue cancelada. El acceso continúa hasta el final del período actual.",
+      "forbidden_hint": "Solo dueños y administradores pueden cancelar la suscripción."
+    },
+    "errors": {
+      "FORBIDDEN": "No tienes permiso para realizar esta acción.",
+      "SUB_NOT_FOUND": "Suscripción no encontrada.",
+      "SUB_ALREADY_CANCELLED": "Esta suscripción ya fue cancelada."
+    }
+  }
+}

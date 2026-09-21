@@ -1,0 +1,11 @@
+# Runtime artifacts created by tests/fixture/setup.sh and by running the plugin
+# against the fixture KB. None of these belong in the repository.
+tests/fixture/.data/
+tests/fixture/outside-kb/
+tests/fixture/kb/articles/trap-link
+tests/fixture/kb/.kb-verify/verdicts.jsonl
+tests/fixture/kb/kb-verify/triage/bugs/[0-9][0-9][0-9][0-9]-*.md
+tests/fixture/kb/articles/*.kb-verify.diff
+
+# setup.sh rewrites kb_root to an absolute path; keep the committed copy pristine
+# by restoring it with: git checkout -- tests/fixture/kb/kb-verify.config.json
