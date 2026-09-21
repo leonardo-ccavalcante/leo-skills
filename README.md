@@ -25,6 +25,11 @@ The one exception is [`agents/`](agents/), which holds **subagent bundles** — 
 |---|---|
 | `financial-analysis` | Interactive financial analysis where all math runs in bundled Python scripts (tagged evidence, INSUFFICIENT_DATA gating, reversal-threshold solver) and all reasoning stays in conversation — covers startup viability, statement ratios, SaaS metrics, and ops finance (cost per ticket, capacity, ROI, variance). Ships eval suite, self-tests, and optional validation/retrospective hooks |
 
+### Customer support
+| Skill | What it does |
+|---|---|
+| `intercom-inbox-coach` | Inbox review, ticket coaching and shift handoff for Intercom support teams, through the Intercom MCP — sizes and prioritizes the workload with structured problem solving (issue trees, quick wins vs needs-evaluation, assumption checks), gives each ticket a verdict, coaches the human side of hard tickets with Carnegie's principles plus reply drafts, and writes the end-of-shift handoff for Slack, email and internal notes. Metrics run in a bundled Python script; ships a one-time Setup flow that bakes the workspace config into a team-wide `.skill` package |
+
 ### Prompt engineering toolkit (9 skills)
 `prompt-engineering-router` plus eight specialized skills: `prompt-foundations`, `prompt-reasoning`, `prompt-role-and-context`, `prompt-orchestration`, `prompt-output-control`, `prompt-reliability`, `prompt-security`, `prompt-task-patterns`. A meta-router dispatches to the right one based on the actual failure mode or task.
 

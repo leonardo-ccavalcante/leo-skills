@@ -54,3 +54,8 @@ agents/comunicacao-executiva/agents/ce-memoria/audiencias/
 agents/comunicacao-executiva/agents/ce-memoria/padroes-leo.md
 agents/comunicacao-executiva/agents/ce-memoria/resultados.md
 agents/comunicacao-executiva/agents/ce-memoria/calibracao.md
+
+# intercom-inbox-coach: the committed workspace-config.md ships NOT_CONFIGURED.
+# Baked packages carry a real roster (names, admin IDs) and inbox map — keep them out.
+intercom-inbox-coach/dist/
+intercom-inbox-coach/*.skill
