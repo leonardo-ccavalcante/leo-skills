@@ -52,14 +52,14 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 | Situação | Consequência | Fonte |
 |---|---|---|
 | Contexto > 200K tokens | exclui Haiku 4.5 | MO |
-| Precisa de conhecimento de 2026 sem ferramenta de busca | Haiku 4.5 (fev/2025) e Sonnet 5 (jan/2026) têm corte anterior | MO |
+| Precisa de fatos posteriores a jan/2026 sem ferramenta de busca | exclui Sonnet 5 (corte confiável jan/2026) e Haiku 4.5 (fev/2025); fatos posteriores a fev/2025 → exclui Haiku 4.5 | MO, "Compare models" |
 | Precisa de `temperature`/`top_p`/`top_k` não-default | 400 em Sonnet 5, Opus 4.7+, Opus 5/5.5, Fable 5/5.1 — mude a técnica, não o modelo (variedade via "proponha N direções") | Sonnet 5 guide; ver `restricoes-api.json` |
 | Precisa desligar thinking | impossível em Fable 5/5.1 e Opus 5.5; Opus 5 só em effort ≤ `high`; Sonnet 5 aceita | EF; guias por modelo |
-| Integração força ferramenta (`tool_choice` any/tool) | 400 em Fable 5.1, Mythos 5.1 e Opus 5.5 → `auto` + instrução + `strict: true`, ou structured outputs | CM; guia Fable 5.1 |
+| Integração força ferramenta (`tool_choice` any/tool) | 400 em Fable 5.1, Mythos 5.1 e Opus 5.5 → `auto` + instrução + `strict: true`, ou structured outputs | `whats-new-fable-5-1`, "Forced tool use is not supported"; `whats-new-opus-5-5`, "Forced tool use is not supported" |
 | Integração usa prefill no último turno do assistente | 400 a partir de Claude 4.6 | best-practices |
 | Retenção zero de dados (ZDR) | Fable 5.1, Mythos 5.1, Fable 5 e Mythos 5 (Covered Models) exigem retenção de 30 dias e não estão disponíveis sob ZDR salvo autorização expressa — o Fable 5 legado não é saída; o erro 400 está documentado só para o par 5.1 | `whats-new-fable-5-1`; `migration-guide-fable-5-1` (abertura) |
 | Domínio cyber (segurança ofensiva) | Fable 5/5.1, Opus 5.5, Opus 5 (classificadores só-cyber), Opus 4.7 em diante (salvaguardas cyber em tempo real introduzidas no 4.7) e Sonnet 5 (primeiro Sonnet com salvaguardas cyber; HTTP 200 com `stop_reason: "refusal"`) podem recusar; nenhum deles é alternativa livre de recusa — configure fallback | guias Fable 5, Fable 5.1, Opus 5.5; `migration-guide-fable-5-1`, "What changed"; `whats-new-sonnet-5`, "Cybersecurity safeguards"; `migration-guide-opus-5-5`, "Behavior changes" |
-| Domínio bio/ciências da vida ou extração de raciocínio | Fable 5/5.1 e Opus 5.5 podem responder `stop_reason: "refusal"`; configure fallback | guias Fable 5, Fable 5.1, Opus 5.5 |
+| Domínio bio/ciências da vida ou extração de raciocínio | Fable 5/5.1 e Opus 5.5 podem responder `stop_reason: "refusal"`; configure fallback | guias Fable 5, Opus 5.5; `migration-guide-fable-5-1`, "What changed" |
 | Latência de primeira resposta crítica em chat | Opus 5.5: remova instruções "pense com cuidado" do system; se os turnos de follow-up ficam lentos, adicione o snippet `opus-5-5.settled_answers` (fim do system); `low` é a partida documentada para integrações que rodavam com thinking desativado. Alternativa: Sonnet 5 em `low` | (`prompting-claude-opus-5-5`, "Thinking instructions in chat system prompts"); partida em `low`: (`prompting-claude-opus-5-5`, "Prompts written for thinking disabled"); EF |
 | Mensagens de sistema no meio da conversa (relógio, lembretes por turno) | Sonnet 5 não suporta; use bloco de texto após os `tool_result` | OC, "Show the model elapsed time" |
 
@@ -79,7 +79,7 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 
 Regras gerais (EF, "Best practices"; OC, "Tune effort"): defina effort explicitamente; `low` para tarefas simples e subagentes; varie effort **entre cargas**, não dentro de uma conversa com cache (mudar o effort de topo invalida o cache — use effort por mensagem onde houver); faça a varredura de 2–3 níveis em sessões separadas; considere effort dinâmico por complexidade da consulta (simples → `low`; código agêntico e raciocínio complexo → `high`) (EF, "Best practices"). Onde a tabela geral de níveis (as descrições genéricas de `low`…`max` nos arquivos de modelo) e a recomendação por modelo desta §6 divergem, vale a do modelo: "The per-model recommendations that follow override this table where they differ" (EF, "Effort levels").
 
-**Formato da curva por tipo de carga** (OC, "Tune effort"): em pesquisa e trabalho de conhecimento a curva acurácia × custo é quase plana — medida no Fable 5 e no Fable 5.1; meça no modelo que vai usar (`low` perdeu 1–3 pontos por um terço a metade do custo; `medium` igualou o default com 70–87% do custo). Em código de longo horizonte, effort compra acurácia de verdade (Opus 5.5 em SWE-bench Pro: `medium` ≈ −2,5 pontos por ~70% do custo de `high`; `low` ≈ −8 pontos por ~1/3; `xhigh` ≈ +1,4 ponto por 2,5× o custo). "The task description alone does not reveal which kind of workload you have" — por isso a recomendação sempre vem com varredura.
+**Formato da curva por tipo de carga** (OC, "Tune effort"): em pesquisa e trabalho de conhecimento a curva acurácia × custo é quase plana — medida no Fable 5 e no Fable 5.1; meça no modelo que vai usar (`low` perdeu 1–3 pontos com 1/3 a 1/2 a menos de custo por tarefa (medido no Fable 5); `medium` igualou o default com 70–87% do custo). Em código de longo horizonte, effort compra acurácia de verdade (Opus 5.5 em SWE-bench Pro: `medium` ≈ −2,5 pontos por ~70% do custo de `high`; `low` ≈ −8 pontos por ~1/3; `xhigh` ≈ +1,4 ponto por 2,5× o custo). "The task description alone does not reveal which kind of workload you have" — por isso a recomendação sempre vem com varredura.
 
 ## 7. Quando subir, descer ou combinar (OC, "Start here")
 
@@ -112,7 +112,7 @@ Trade-off medido: em DRACO, HLE e física, menos tempo e custo por tarefa, com e
 | Estratégia | Quem roda o loop | Serve para | Não serve quando |
 |---|---|---|---|
 | **Advisor** (executor barato consulta modelo de fronteira) | modelo menor | trabalho serial com poucos pontos difíceis: agente de código, computer use, pipelines de pesquisa | todo turno exige fronteira; nada a planejar (Q&A de um turno); executor já perto do advisor |
-| **Orquestrador** (fronteira planeja, workers baratos executam) | modelo de fronteira | partes realmente independentes, sobretudo > 1 janela de contexto; cauda de custo em tarefas rotineiras | uma cadeia dependente; cabe num contexto; um modelo em effort menor já atinge a meta |
+| **Orquestrador** (fronteira planeja, workers baratos executam) | modelo de fronteira | partes realmente independentes, sobretudo > 1 janela de contexto; cauda de custo em tarefas rotineiras | uma cadeia dependente; cabe num contexto e não tem cauda longa de custo em tarefas rotineiras; um modelo em effort menor já atinge a meta |
 
 Antes de construir qualquer um: (1) varra effort no modelo atual — "most workloads end there"; (2) se houver lacuna, precifique o modelo mais forte sozinho em `low`: é o número que a combinação precisa bater. O advisor depende da **taxa de consulta**: executor em effort baixo pode parar de perceber que travou e consultar quase nunca.
 

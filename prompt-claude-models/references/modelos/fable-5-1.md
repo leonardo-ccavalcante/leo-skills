@@ -233,7 +233,7 @@ Use the `get_weather` tool to answer
 ```
 
 ### Tempo do agente importa e uma pequena queda de score é aceitável
-**Onde:** início do system prompt de todo agente; a partir da 2ª request, mensagem de relógio `Elapsed time: <n> seconds` (Harness). As medições usaram exatamente este texto · **Não use quando:** perda de 1–2 pontos de score não é aceitável; no Managed Agents só o coordenador vê o relógio · **Fonte:** (optimizing-for-cost-and-intelligence, "Show the model elapsed time")
+**Onde:** início do system prompt de todo agente; a partir da 2ª request, mensagem de relógio `Elapsed time: <n> seconds` (Harness). As medições usaram exatamente este texto · **Não use quando:** perda de 1–2 pontos de score não é aceitável; no Managed Agents só o coordenador vê o relógio; sem o relógio: a segunda frase promete as mensagens de tempo e a instrução só foi medida junto com elas (em modelo sem mid-conversation system messages, ex.: Sonnet 5, ponha a mesma linha num bloco de texto após o último `tool_result` do turno `user`; só a forma de system message foi medida) · **Fonte:** (optimizing-for-cost-and-intelligence, "Show the model elapsed time")
 
 ```text verbatim fonte=optimizing-for-cost-and-intelligence id=fable-5-1.time_matters_snippet
 Time matters here: do not spend time that can be avoided, and the earlier a correct result is obtained, the better. The elapsed time so far is shown before each of your turns.
