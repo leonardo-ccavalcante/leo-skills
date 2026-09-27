@@ -38,7 +38,7 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 | Quando precisa de… | Comece com | Exemplos oficiais |
 |---|---|---|
 | A maior capacidade disponível | Fable 5.1 | sessões de agente de horas, pesquisa profunda em várias etapas, análise levada até documento, planilha ou deck finalizados |
-| Agente de código complexo e trabalho empresarial | Opus 5.5 | agentes de código autônomos de várias horas, refatoração em larga escala, engenharia de sistemas complexos, fluxos pesados em visão, computer use |
+| Agente de código complexo e trabalho empresarial | Opus 5.5 | agentes de código autônomos de várias horas, refatoração em larga escala, engenharia de sistemas complexos, fluxos pesados em visão, computer use (na Claude API e no Google Cloud, só com `computer_toolset_20260801`; ver §5) |
 | Velocidade e capacidade no dia a dia (código, agente, empresa) | Sonnet 5 | geração de código, análise de dados, criação de conteúdo, entendimento visual, uso agêntico de ferramentas |
 | Menor latência e preço, com extended thinking | Haiku 4.5 | tempo real, processamento inteligente em alto volume, implantações sensíveis a custo, tarefas de subagente |
 
@@ -57,6 +57,8 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 | Precisa desligar thinking | impossível em Fable 5/5.1 e Opus 5.5; Opus 5 só em effort ≤ `high`; Sonnet 5 aceita | EF; guias por modelo |
 | Integração força ferramenta (`tool_choice` any/tool) | 400 em Fable 5.1, Mythos 5.1 e Opus 5.5 → `auto` + instrução + `strict: true`, ou structured outputs | `whats-new-fable-5-1`, "Forced tool use is not supported"; `whats-new-opus-5-5`, "Forced tool use is not supported" |
 | Integração usa prefill no último turno do assistente | 400 a partir de Claude 4.6 | best-practices |
+| Integração declara `computer_20251124` ou `computer_20250124` na Claude API ou no Google Cloud | 400 no Opus 5.5 (`'claude-opus-5-5' does not support tool types: computer_20251124.`) → migre para o toolset `computer_toolset_20260801`; no Amazon Bedrock, `computer_20251124` segue aceito | `whats-new-opus-5-5`, "The `computer_20251124` computer use tool is not supported on the Claude API and Google Cloud"; `migration-guide-opus-5-5`, "What every request to Claude Opus 5.5 must satisfy" |
+| Harness reescreve `system`, `tools` ou turnos anteriores entre requests e reenvia os thinking blocks | 400 `The block is bound to a different conversation` no Fable 5.1 e no Opus 5.5 (por padrão em contas criadas a partir de 31/08/2026) → torne o histórico append-only ou use `prefix_mismatch_behavior: "drop_block"` (header `thinking-binding-controls-2026-08-01`); o Mythos 5.1 não roda a checagem. Detalhes em `modelos/fable-5-1.md` e `modelos/opus-5-5.md` | `whats-new-fable-5-1`, "Editing earlier turns invalidates thinking blocks"; `migration-guide-opus-5-5`, "Thinking blocks are tied to the model and the conversation" |
 | Retenção zero de dados (ZDR) | Fable 5.1, Mythos 5.1, Fable 5 e Mythos 5 (Covered Models) exigem retenção de 30 dias e não estão disponíveis sob ZDR salvo autorização expressa — o Fable 5 legado não é saída; o erro 400 está documentado só para o par 5.1 | `whats-new-fable-5-1`; `migration-guide-fable-5-1` (abertura) |
 | Domínio cyber (segurança ofensiva) | Fable 5/5.1, Opus 5.5, Opus 5 (classificadores só-cyber), Opus 4.7 em diante (salvaguardas cyber em tempo real introduzidas no 4.7) e Sonnet 5 (primeiro Sonnet com salvaguardas cyber; HTTP 200 com `stop_reason: "refusal"`) podem recusar; nenhum deles é alternativa livre de recusa — configure fallback | guias Fable 5, Fable 5.1, Opus 5.5; `migration-guide-fable-5-1`, "What changed"; `whats-new-sonnet-5`, "Cybersecurity safeguards"; `migration-guide-opus-5-5`, "Behavior changes" |
 | Domínio bio/ciências da vida ou extração de raciocínio | Fable 5/5.1 e Opus 5.5 podem responder `stop_reason: "refusal"`; configure fallback | guias Fable 5, Opus 5.5; `migration-guide-fable-5-1`, "What changed" |
@@ -132,7 +134,7 @@ Antes de construir qualquer um: (1) varra effort no modelo atual — "most workl
 10. **Effort menor** — trabalho de conhecimento: `medium` −13% a −31%, `low` −1/3 a −1/2; código longo: `medium` ~−30%, `low` ~−2/3 (sempre contra `high`). Custo: 1–3 pontos em conhecimento, 2–8 em código longo.
 11. **Re-rodar falhas em effort maior** — ~−40% contra tudo em `high`, mesma taxa ou pouco melhor; exige verificador (§7).
 12. **Task budget** — −44% a −58%, custando 3–6 pontos.
-13. **Pedir respostas curtas** — −39% dos tokens de saída, −14% do custo na triagem.
+13. **Pedir respostas curtas** — −39% dos tokens de saída, −14% do custo na triagem; texto medido: id `all.snippet_one_line_output` em `sobreposicao-toolkit.md` §2.1 (o "antes" é `all.snippet_two_line_output`).
 14. **Subir `max_tokens`** — nenhum custo a mais por tarefa resolvida, mas mais tarefas resolvidas: até +22 pontos no conjunto interno, nada no par público.
 15. **Advisor** e **orquestrador** (§8) — advisor depende da lacuna e da taxa de consulta; orquestrador ~metade do custo do modelo de fronteira, 10–12 pontos abaixo, muito mais rápido em inputs grandes.
 

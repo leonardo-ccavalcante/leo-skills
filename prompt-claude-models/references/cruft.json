@@ -276,7 +276,7 @@
    "padrao": "\\bonly (?:report|flag|mention|surface|include|list) (?:the )?(?:high[- ]severity|critical|important|major|serious)\\b|\\b(?:don't|do not) nitpick\\b|\\bbe conservative\\b(?=[^\\n]{0,80}\\b(?:report\\w*|flag\\w*|finding\\w*|issues?|bugs?|comments?|reviews?)\\b)|\\b(?:review\\w*|finding\\w*|report\\w*|flag\\w*|issues?|bugs?)\\b[^\\n]{0,80}\\bbe conservative\\b",
    "severidade": "soft",
    "motivo_pt": "Em review, 'only report high-severity issues', 'be conservative' ou 'don't nitpick' fazem o Opus 4.8 investigar igual mas omitir achados abaixo da barra: recall medido cai (efeito de harness, não regressão).",
-   "sugestao_pt": "Peça cobertura (reportar tudo, com confiança e severidade estimadas) e filtre numa etapa separada; se filtrar numa passada só, dê a barra concreta em vez de termos como 'important' (ids `opus-4-8.report_every_issue_snippet` e `opus-4-8.concrete_bar_snippet` em modelos/opus-4-8.md). Vale só para prompts de revisão de código: 'be conservative' em outro contexto (ex.: comandos destrutivos) não é o alvo.",
+   "sugestao_pt": "Peça cobertura (reportar tudo, com confiança e severidade estimadas) e filtre numa etapa separada; se filtrar numa passada só, dê a barra concreta em vez de termos como 'important' (ids `opus-4-8.report_every_issue_snippet` e `opus-4-8.concrete_bar` em modelos/opus-4-8.md). Vale só para prompts de revisão de código: 'be conservative' em outro contexto (ex.: comandos destrutivos) não é o alvo.",
    "fonte": {
     "page_id": "prompting-claude-opus-4-8",
     "section": "Code review harnesses"

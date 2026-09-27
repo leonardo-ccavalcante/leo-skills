@@ -275,14 +275,24 @@ Fora disso, prompts do Fable 5 seguem sem mudanças (prompting-claude-fable-5-1,
 ## Harness (fora do prompt)
 
 - **Display de progresso:** `thinking.display: "updates"` (header beta `thinking-display-updates-2026-08-18`) e renderize cada thinking block com texto não vazio como linha de status; `"summarized"` também os traz, misturados ao raciocínio resumido. Sem isso, updates chegam vazios e o turno parece silencioso (whats-new-fable-5-1, "Progress updates between tool calls (beta)"; prompting-claude-fable-5-1, "Ask for user-facing progress updates").
-- **System messages turn-scoped (beta):** `role: "system"` em `messages` com `clear_at: "next_user_message"`, só texto; autoridade de system prompt no turno atual, deixa de renderizar quando há um `user` posterior; fica no array, é reenviada verbatim, não custa input tokens depois de limpa; cache e thinking blocks seguintes continuam válidos. Header `mid-conversation-system-clear-at-2026-08-21`. Uma mensagem com `tool_addition` ou `tool_removal` não pode ser turn-scoped. Use para o nudge de batching, o aviso de saída oculta e lembretes por turno num tool loop (a fonte cita "check your inbox before running more code" e "the user can't see that tool output"), em vez de injetar texto no histórico e apagá-lo no request seguinte (whats-new-fable-5-1, "Turn-scoped system messages (beta)"; migration-guide-fable-5-1, "Recommended changes"; claude-prompting-best-practices, "Optimize parallel tool calling"). Forma:
+- **System messages turn-scoped (beta):** `role: "system"` em `messages` com `clear_at: "next_user_message"`, só texto; autoridade de system prompt no turno atual, deixa de renderizar quando há um `user` posterior; fica no array, é reenviada verbatim, não custa input tokens depois de limpa; cache e thinking blocks seguintes continuam válidos. Header `mid-conversation-system-clear-at-2026-08-21`. Uma mensagem com `tool_addition` ou `tool_removal` não pode ser turn-scoped. Use para o nudge de batching, o aviso de saída oculta e lembretes por turno num tool loop (a fonte cita "check your inbox before running more code" e "the user can't see that tool output"; blocos abaixo), em vez de injetar texto no histórico e apagá-lo no request seguinte (whats-new-fable-5-1, "Turn-scoped system messages (beta)"; migration-guide-fable-5-1, "Recommended changes"; claude-prompting-best-practices, "Optimize parallel tool calling"). Forma:
 
-```text verbatim fonte=whats-new-fable-5-1 id=fable-5-1.turn_scoped_system
+```text verbatim fonte=whats-new-fable-5-1 id=fable-5-1.turn_scoped_reminder_inbox
 {
   "role": "system",
   "clear_at": "next_user_message",
   "content": "Results have landed in your inbox. Check it before running more code."
 }
+```
+
+Os dois lembretes que a fonte cita, para o `content` de uma mensagem turn-scoped:
+
+```text verbatim fonte=whats-new-fable-5-1 id=fable-5-1.turn_scoped_reminder_check_inbox
+check your inbox before running more code
+```
+
+```text verbatim fonte=whats-new-fable-5-1 id=fable-5-1.turn_scoped_reminder_examples
+the user can't see that tool output
 ```
 
 - **Mudar instruções ou ferramentas no meio da sessão:** congele `system` e `tools` no início; anexe uma mensagem `role: "system"` (mid-conversation system messages não precisam de header beta e ficam no histórico como qualquer turno) e, para ferramentas, blocos `tool_addition`/`tool_removal` (header `inline-tools-2026-09-15` na Claude API). `tool_addition` pode nomear uma ferramenta declarada em `tools` no início ou trazer a definição completa; o header antigo `mid-conversation-tool-changes-2026-07-01` ainda funciona para mudanças por referência (Claude API, Amazon Bedrock, Google Cloud). Conteúdo referenciado entre turnos: suba uma vez pela Files API e use o `file_id`, ou base64 — uma URL que serve bytes diferentes invalida os blocos (URL assinada rotativa do mesmo arquivo é ok) (migration-guide-fable-5-1, "Breaking changes", "Recommended changes" e "Migration checklist").

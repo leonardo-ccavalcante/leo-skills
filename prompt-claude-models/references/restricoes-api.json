@@ -306,7 +306,8 @@
         "opus-5-5.thinking_disabled_error_use_lower_effort",
         "fable-5-1.adaptive_thinking_always_on_400",
         "fable-5-1.from_opus5_thinking_disabled_400",
-        "fable-5-1.thinking_enabled_disabled_400"
+        "fable-5-1.thinking_enabled_disabled_400",
+        "opus-5-5.no_thinking_disabled"
       ],
       "exemplo_request": {
         "model": "x",
@@ -1159,12 +1160,38 @@
       "fatos": [
         "fable-5-1.append_only_400",
         "opus-5-5.prefix_mismatch_400",
-        "opus-5-5.return_thinking_unmodified"
+        "opus-5-5.return_thinking_unmodified",
+        "fable-5-1.append_only_history",
+        "fable-5-1.editing_history_invalidates_thinking_400",
+        "fable-5-1.binding_check_enforcement_by_account_age",
+        "fable-5-1.token_counting_runs_binding_check",
+        "fable-5-1.prefix_edit_invalidates",
+        "fable-5-1.prefix_check_enforcement_date",
+        "fable-5-1.bound_error_drop_block",
+        "opus-5-5.append_only_enforcement"
       ],
       "fonte": {
         "page_id": "whats-new-opus-5-5",
         "section": "Thinking blocks are tied to the model and the conversation"
-      }
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "Thinking blocks are tied to the model and the conversation"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Breaking changes"
+        },
+        {
+          "page_id": "whats-new-fable-5-1",
+          "section": "Editing earlier turns invalidates thinking blocks"
+        },
+        {
+          "page_id": "claude-prompting-best-practices",
+          "section": "Migration considerations"
+        }
+      ]
     },
     {
       "tema": "retenção de dados de 30 dias (Fable 5.1 / Mythos 5.1)",
@@ -1228,6 +1255,29 @@
         "page_id": "optimizing-for-cost-and-intelligence",
         "section": "Show the model elapsed time"
       }
+    },
+    {
+      "tema": "fatos só de ponteiro ou de comportamento da resposta (Opus 5.5, Fable 5)",
+      "motivo_pt": "opus-5-5.four_breaking_changes e fable-5.api_changes_pointer só apontam para o guia de migração / a página de introdução; as restrições concretas que eles resumem estão nas regras (api.thinking_disabled, api.budget_tokens etc.) ou nas outras lacunas. fable-5.reasoning_extraction_no_fallback é comportamento da resposta: o fallback no servidor com fallbacks: \"default\" não refaz uma requisição recusada com reasoning_extraction, e essa recusa volta para você; nada no corpo do request permite checar isso.",
+      "fatos": [
+        "opus-5-5.four_breaking_changes",
+        "fable-5.api_changes_pointer",
+        "fable-5.reasoning_extraction_no_fallback"
+      ],
+      "fonte": {
+        "page_id": "prompting-claude-fable-5",
+        "section": "Recommended scaffolding changes"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "prompting-claude-opus-5-5",
+          "section": "Prompting Claude Opus 5.5"
+        },
+        {
+          "page_id": "prompting-claude-fable-5",
+          "section": "Prompting Claude Fable 5"
+        }
+      ]
     }
   ]
 }

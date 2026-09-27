@@ -1258,7 +1258,7 @@ def cmd_snippets(args) -> tuple[dict, int]:
     if modelo:
         out["filtro_modelo"] = modelo
     # "ok" contra um cache que não é a versão aprovada em fontes.json não prova que o snippet
-    # está na página sincronizada. No sync (passo 4 da Autoatualização) é esperado aparecerem
+    # está na página sincronizada. No sync (passo 4 de references/autoatualizacao.md) é esperado aparecerem
     # aqui as páginas revisadas; fora dele, é página mudada que ninguém leu.
     nao_aprovado = _cache_fora_de_fontes([f for f, c in cache_pag.items() if c is not None])
     if nao_aprovado:
@@ -2139,7 +2139,9 @@ def cmd_episodio(args) -> tuple[dict, int]:
         ep.update({"id": ep_id, "criado_em": agora.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
                    "pendente": True, "sinais": {}, "decisoes_editadas": [], "contribuicao": {}, "R": None})
         anexar_episodio(ep)
-    return {"id": ep_id}, EXIT_OK
+    # "estado" visível: export PCM_STATE_DIR não sobrevive entre chamadas de Bash e
+    # o fallback para ~/.claude/state era silencioso (eval gravava no placar real).
+    return {"id": ep_id, "estado": str(state_dir(criar=False))}, EXIT_OK
 
 
 def _novo_id_episodio() -> tuple[str, _dt.datetime]:
@@ -2506,7 +2508,8 @@ def _recompensa(args, novos: dict, editadas_arg: list[str] | None) -> tuple[dict
             anexar_episodio(ep)
         raise ErroUso("nenhum sinal de recompensa (use --nota/--eval/--iteracoes/--edicao/--rubrica)",
                       EXIT_INSUFICIENTE, {"id": ep["id"], "R": None, "fechado": bool(args.fechar),
-                                          "decisoes_editadas_gravadas": editadas_arg is not None})
+                                          "decisoes_editadas_gravadas": editadas_arg is not None,
+                                          "estado": str(state_dir(criar=False))})
     editadas = set(ep.get("decisoes_editadas") or [])
     nova = {d: (0.0 if d.strip() in editadas else R) for d in ep["decisoes"]}
     placar = ler_estado(caminho_placar(), {})
@@ -2520,7 +2523,8 @@ def _recompensa(args, novos: dict, editadas_arg: list[str] | None) -> tuple[dict
     escrever_json(caminho_placar(), placar)
     anexar_episodio(ep)
     caminho_journal().unlink()
-    return {"id": ep["id"], "R": R, "sinais": efetivos, "decisoes": nova}, EXIT_OK
+    return {"id": ep["id"], "R": R, "sinais": efetivos, "decisoes": nova,
+            "estado": str(state_dir(criar=False))}, EXIT_OK
 
 
 def _estat(placar: dict, k: str) -> tuple[float, float, int]:
@@ -3133,8 +3137,10 @@ def _st_memoria(st: _Selftest) -> None:
     out, code = st.run(["episodio", "-"], json.dumps(ep))
     ep_id = out.get("id", "")
     st.t("memória: episodio cria id", code == 0 and re.match(r"^ep-\d{8}T\d{6}-[0-9a-f]{4}$", ep_id or "") is not None, str(out))
+    st.t("memória: episodio diz o diretório de estado usado", out.get("estado") == str(state_dir(criar=False)), str(out))
     _o, code = st.run(["recompensa", "--id", ep_id])
     st.t("memória: sem sinal novo usa rubrica do episódio", code == 0 and abs(_o["R"] - 0.5) < 1e-9, str(_o))
+    st.t("memória: recompensa diz o diretório de estado usado", _o.get("estado") == str(state_dir(criar=False)), str(_o))
     ent = st.arq("entregue.txt", "abcdefghij")
     edi = st.arq("editado.txt", "abcdefghXY")
     ratio = difflib.SequenceMatcher(None, "abcdefghij", "abcdefghXY").ratio()

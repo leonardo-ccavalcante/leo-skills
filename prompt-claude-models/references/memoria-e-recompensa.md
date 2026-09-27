@@ -15,6 +15,8 @@ Padrões do repo reaproveitados: memória N2 do `comunicacao-executiva` (estado 
 | Lições promovidas, anonimizadas | `prompt-claude-models/MEMORY.md` | **sim, após aprovação** |
 | Histórico de syncs e promoções | `prompt-claude-models/CHANGELOG.md` | sim |
 
+`PCM_STATE_DIR` troca o diretório de estado; sem ele, o pcm.py usa `~/.claude/state/prompt-claude-models` sem avisar. Num harness em que cada comando roda num shell novo (Claude Code), `export` não passa de uma chamada para a outra: ponha `PCM_STATE_DIR=<caminho>` como prefixo de cada comando. `episodio` e `recompensa` devolvem `estado` no JSON, o diretório que gravaram; confira-o quando o estado tiver de ficar fora do real (evals).
+
 O episódio guarda **decisões e metadados, nunca o texto do prompt do usuário**. O repo é público. `pcm.py episodio` valida pela forma, não só pelo tamanho: `modo`, `tarefa`, `effort`, `superficie`, `patamar` e `origem_skill` só aceitam os valores fechados abaixo, cada id de decisão tem de seguir a "Gramática dos ids", são no máximo 30 decisões e nenhum texto passa de 80 caracteres. Um slug curto (`estrutura:<nome>`) ainda cabe na gramática: quem monta o episódio nunca põe ali nome, cliente ou trecho do usuário.
 
 ## Episódio
@@ -65,7 +67,7 @@ R = média ponderada **renormalizada sobre os sinais presentes**. Sinais chegam 
 
 **Onde fica o prompt colado:** para o sinal de edição, o prompt entregue e o que o usuário colou precisam estar em arquivo. Passe um deles por stdin (`-`) e grave o outro no scratchpad da sessão ou num `mktemp` **fora do checkout** da skill; apague-o depois da `recompensa`. Nunca grave dentro da pasta da skill: o commit do sync ou da promoção o levaria para o repo público. `pcm.py recompensa` recusa `--entregue`/`--editado` que apontem para dentro da pasta da skill.
 
-**Contagem de iterações:** depois de entregar, se o usuário voltar pedindo ajuste no prompt entregue ("muda o tom", "ficou longo", "faltou X"), isso é uma iteração — registre com `--iteracoes n` ao fechar. Pedido de coisa nova não conta.
+**Contagem de iterações:** depois de entregar, se o usuário voltar pedindo ajuste no prompt entregue ("muda o tom", "ficou longo", "faltou X"), isso é uma iteração — registre com `--iteracoes n` ao fechar, que é quando o usuário dá a nota da entrega (`--iteracoes 0` se não houve ajuste; `SKILL.md`, "Formato da entrega"). Pedido de coisa nova não conta.
 
 **Credit assignment:** decisões que o usuário editou ou removeu recebem 0 neste episódio; as demais recebem R. Isso ensina *qual* escolha falhou, não só que o episódio foi ruim.
 
@@ -90,7 +92,7 @@ Como a skill usa: aplica primeiro tudo que é duro e tudo que o diagnóstico exi
 4. Política local do placar
 5. Defaults da skill
 
-A memória decide **quais opcionais e em que ordem**. Nunca reintroduz algo que a API rejeita, nunca contradiz o guia vigente. Um sync de fontes **não invalida nada sozinho**: só os ids `snip:` recomeçam do zero (hash novo); as lições de `MEMORY.md` e as chaves `modelo=`, `effort=`, `cruft:`, `caminho=`, `estrutura:` e `api.` do placar continuam como estavam. Por isso a revisão é um passo explícito da Autoatualização (passo 2 do `SKILL.md`): Claude relê `MEMORY.md` contra o diff e lista ao usuário as lições que passaram a contradizer o guia; com aprovação, elas são apagadas no mesmo commit do sync. Até lá, e para decisões do placar que o guia novo contradiz, vale a hierarquia acima: o guia vigente prevalece e a decisão não é aplicada.
+A memória decide **quais opcionais e em que ordem**. Nunca reintroduz algo que a API rejeita, nunca contradiz o guia vigente. Um sync de fontes **não invalida nada sozinho**: só os ids `snip:` recomeçam do zero (hash novo); as lições de `MEMORY.md` e as chaves `modelo=`, `effort=`, `cruft:`, `caminho=`, `estrutura:` e `api.` do placar continuam como estavam. Por isso a revisão é um passo explícito da Autoatualização (passo 2 de `references/autoatualizacao.md`): Claude relê `MEMORY.md` contra o diff e lista ao usuário as lições que passaram a contradizer o guia; com aprovação, elas são apagadas no mesmo commit do sync. Até lá, e para decisões do placar que o guia novo contradiz, vale a hierarquia acima: o guia vigente prevalece e a decisão não é aplicada.
 
 ## Promoção para `MEMORY.md`
 
@@ -100,7 +102,7 @@ A memória decide **quais opcionais e em que ordem**. Nunca reintroduz algo que 
 - [2026-10-12 · opus-5-5 · agente-autonomo] snip:opus-5-5.unattended_standing@<hash8>: reforçar — Aplicar: <Claude redige a lição em uma frase>. Evidência: n=4, R̄=0,86
 ```
 
-Claude redige o "Aplicar", anonimizado (sem nomes, clientes, dados do usuário), mostra ao usuário, e só com aprovação grava em `MEMORY.md` (seção pela decisão: `effort=` e `caminho=` em "Calibração do diagnóstico", porque ajustam os passos 4–5 dentro do modelo já escolhido; as demais em "Reforçar" ou "Evitar" conforme a direção), registra em `CHANGELOG.md`, roda `pcm.py candidatos --marcar-promovido <chave>` e faz o commit só dos caminhos da skill; o push pede confirmação separada, com remote e branch à vista (regras no passo 5 da Autoatualização do `SKILL.md`). `MEMORY.md` é consolidado quando passar de ~150 linhas; lição que se mostrou errada é **apagada**, não acumulada.
+Claude redige o "Aplicar", anonimizado (sem nomes, clientes, dados do usuário), mostra ao usuário, e só com aprovação grava em `MEMORY.md` (seção pela decisão: `effort=` e `caminho=` em "Calibração do diagnóstico", porque ajustam os passos 4–5 dentro do modelo já escolhido; as demais em "Reforçar" ou "Evitar" conforme a direção), registra em `CHANGELOG.md`, roda `pcm.py candidatos --marcar-promovido <chave>` e faz o commit só dos caminhos da skill; o push pede confirmação separada, com remote e branch à vista (regras no passo 5 de `references/autoatualizacao.md`). `MEMORY.md` é consolidado quando passar de ~150 linhas; lição que se mostrou errada é **apagada**, não acumulada.
 
 ## Regras de segurança da memória
 

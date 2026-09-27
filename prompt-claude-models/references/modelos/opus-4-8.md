@@ -108,7 +108,7 @@ Report every issue you find, including ones you are uncertain about or consider 
 ### Code review que deve se auto-filtrar numa só passada
 **Onde:** prompt de review, no lugar de termos qualitativos como "important" — é o exemplo de barra concreta da página · **Não use quando:** há etapa de filtragem separada (use o snippet de cobertura); valide recall/F1 num subconjunto dos evals · **Fonte:** (prompting-claude-opus-4-8, "Code review harnesses")
 
-```text verbatim fonte=prompting-claude-opus-4-8 id=opus-4-8.concrete_bar_snippet
+```text verbatim fonte=prompting-claude-opus-4-8 id=opus-4-8.concrete_bar
 report any bugs that could cause incorrect behavior, a test failure, or a misleading result; only omit nits like pure style or naming preferences.
 ```
 

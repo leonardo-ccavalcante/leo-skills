@@ -180,7 +180,7 @@ Between tool calls, when you have content the user must read verbatim (a partial
 
 Definição da ferramenta (client-side: renderize o `message` na UI e devolva um acknowledgement simples como tool result; inputs de ferramenta nunca são resumidos):
 
-```text verbatim fonte=prompting-claude-fable-5 id=fable-5.send_to_user_tool
+```text verbatim fonte=prompting-claude-fable-5 id=fable-5.send_to_user_tool_def
 {
   "name": "send_to_user",
   "description": "Display a message directly to the user. Use this for progress updates, partial results, or content the user must see exactly as written before the task finishes.",

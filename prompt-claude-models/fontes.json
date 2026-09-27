@@ -132,6 +132,7 @@
         "references/matriz-modelos.md",
         "references/modelos/fable-5.md",
         "references/modelos/opus-4-8.md",
+        "references/restricoes-api.json",
         "references/sobreposicao-toolkit.md",
         "references/toolkit/prompt-foundations.md",
         "references/toolkit/prompt-orchestration.md",
