@@ -87,8 +87,11 @@ GRUPOS = {
 TIPOS_CHECAGEM = ("campo_presente", "valor_igual", "combinacao", "ultimo_role")
 SEVERIDADES = ("hard", "soft")
 
-# Pesos da recompensa: eval é o sinal mais objetivo, a rubrica o mais fraco.
-PESOS = {"eval": 0.30, "nota": 0.25, "iteracoes": 0.20, "edicao": 0.15, "rubrica": 0.10}
+# Pesos da recompensa: eval é o sinal mais objetivo, a rubrica o mais fraco. A rubrica é a
+# autoavaliação da skill (>= 0,75 para entregar), por isso pesa pouco: com 0,10 e as iterações
+# somando 1,0 quando o usuário não pedia ajuste, três notas 3 viravam "reforçar" e uma nota 1
+# nunca chegava a "evitar".
+PESOS = {"eval": 0.30, "nota": 0.25, "iteracoes": 0.20, "edicao": 0.15, "rubrica": 0.05}
 CAMPOS_EPISODIO = ("modo", "modelo", "effort", "superficie", "tarefa", "patamar",
                    "origem_skill", "decisoes", "lint", "rubrica")
 OBRIGATORIOS_EPISODIO = ("modo", "modelo", "tarefa", "decisoes")
@@ -148,7 +151,7 @@ MAX_TEXTO = 80
 MAX_PROFUNDIDADE = 32
 
 # Regex compiladas uma vez (heurísticas do lint e blocos verbatim).
-RE_CAPS = re.compile(r"\b(CRITICAL|MUST|NEVER|ALWAYS|IMPORTANT)\b")
+RE_CAPS = re.compile(r"\b(CRITICAL|MUST|NEVER|ALWAYS|IMPORTANT|CRÍTICO|IMPORTANTE|DEVE|NUNCA|SEMPRE)\b")
 RE_EXEMPLO = re.compile(r"<example(?:\s[^<>]*)?>")
 RE_TAG_ABRE = re.compile(r"<([a-z_]+)(\s[^<>]*)?>")
 RE_TAG_FECHA = re.compile(r"</([a-z_]+)\s*>")
@@ -2176,6 +2179,10 @@ def chave(modelo: str, tarefa: str, decisao: str) -> str:
 def calcular_R(sinais: dict) -> float | None:
     """Média ponderada renormalizada: sinais ausentes não puxam R para zero."""
     pres = {k: v for k, v in sinais.items() if k in PESOS and v is not None}
+    if "nota" in pres and "iteracoes" in pres:
+        # Iterações descontam a nota (já normalizadas em 1/(1+n)): nota 5 com 3 rodadas de ajuste
+        # não é uma entrega boa, e "zero ajustes" não pode valer como sinal positivo próprio.
+        pres["nota"] *= pres.pop("iteracoes")
     if not pres:
         return None
     return sum(PESOS[k] * v for k, v in pres.items()) / sum(PESOS[k] for k in pres)
@@ -2766,10 +2773,10 @@ def cmd_inicio(args) -> tuple[dict, int]:
         texto = mem.read_text(encoding="utf-8-sig")
         erros = validar_memoria(texto)
         ruins = {int(e.split(":")[0].split()[1]) for e in erros if e.startswith("linha ")}
-        for i, linha in enumerate(texto.splitlines(), 1):
-            if linha.startswith("- ["):
-                (ignoradas if i in ruins else licoes).append(linha.strip())
-        ignoradas += [e for e in erros if not e.startswith("linha ")]
+        # MEMORY.md está num repo público e é lido em todo uso: a linha inválida não volta para o
+        # contexto do modelo, só o erro do validador (antes voltava inteira em `ignoradas`).
+        licoes = [l.strip() for i, l in enumerate(texto.splitlines(), 1) if l.startswith("- [") and i not in ruins]
+        ignoradas = erros
     pend, _ = cmd_pendentes(argparse.Namespace(dias=args.dias))
     p0 = pend["pendentes"][0] if pend["pendentes"] else None
     stats, _ = cmd_stats(argparse.Namespace())
@@ -3186,7 +3193,8 @@ def _st_memoria(st: _Selftest) -> None:
     argv = ["recompensa", "--id", ep_id, "--nota", "4", "--eval", "0.8", "--iteracoes", "1",
             "--editado", edi, "--entregue", ent, "--rubrica", "0.6", "--decisoes-editadas", "estrutura:exemplos"]
     out, code = st.run(argv)
-    esperado = (0.30 * 0.8 + 0.25 * 0.75 + 0.20 * 0.5 + 0.15 * ratio + 0.10 * 0.6) / 1.0
+    # Nota 4 → 0,75, descontada por 1 iteração (1/(1+1)); iterações não entram como sinal próprio.
+    esperado = (0.30 * 0.8 + 0.25 * (0.75 * 0.5) + 0.15 * ratio + 0.05 * 0.6) / (0.30 + 0.25 + 0.15 + 0.05)
     st.t("memória: R com 5 sinais", code == 0 and abs(out["R"] - esperado) < 1e-9, f"{out.get('R')} vs {esperado}")
     st.t("memória: decisão editada recebe 0", out["decisoes"].get("estrutura:exemplos") == 0.0
          and abs(out["decisoes"]["estrutura:xml_tags"] - esperado) < 1e-9, str(out["decisoes"]))
@@ -3198,6 +3206,11 @@ def _st_memoria(st: _Selftest) -> None:
                                         and abs(placar1[x]["beta"] - placar2[x]["beta"]) < 1e-9 for x in placar1)
     st.t("memória: 2a chamada idempotente", idem and abs(placar2[k]["alfa"] - esperado) < 1e-9, str(placar2.get(k)))
     st.t("memória: agregada registrada", placar2.get(chave("opus-5-5", "*", "estrutura:xml_tags"), {}).get("n") == 1)
+    # Revisão sat D1: nota 3 sem ajustes não vira "reforçar"; nota 1 chega à faixa de "evitar".
+    r3 = calcular_R({"nota": 0.5, "iteracoes": 1.0, "rubrica": 0.9})
+    r1 = calcular_R({"nota": 0.0, "iteracoes": 1.0, "rubrica": 0.9})
+    st.t("memória: nota 3 fica abaixo de reforçar e nota 1 chega a evitar", r3 < 0.75 and r1 <= 0.25, f"{r3} {r1}")
+    st.t("lint: ênfase em caixa alta em português", len(RE_CAPS.findall("IMPORTANTE: você DEVE SEMPRE usar")) == 3)
     ep2 = dict(ep, decisoes=["estrutura:formato_saida"])
     ep2_id = st.run(["episodio", "-"], json.dumps({k2: v for k2, v in ep2.items() if k2 != "rubrica"}))[0]["id"]
     _o, code = st.run(["recompensa", "--id", ep2_id])

@@ -59,13 +59,15 @@ O `@<hash8>` amarra o snippet ao texto: quando um sync muda o texto oficial, o s
 |---|---|---|---|
 | Eval | usuário rodou o prompt contra casos/eval | score já em 0–1 | 0,30 |
 | Nota | pergunta de uma linha no fim da entrega: "De 1 a 5, quão bom ficou? (opcional)" | (n − 1) / 4 | 0,25 |
-| Iterações pós-entrega | a skill conta cada rodada em que o usuário pede correção sobre um prompt já entregue, na mesma conversa | 1 / (1 + n) | 0,20 |
+| Iterações pós-entrega | a skill conta cada rodada em que o usuário pede correção sobre um prompt já entregue, na mesma conversa | 1 / (1 + n); com nota presente, multiplica a nota em vez de entrar como sinal próprio | 0,20 (só sem nota) |
 | Edições | usuário cola o prompt que realmente usou; Claude aponta quais decisões ele mudou ou removeu | 1 − fração alterada; decisões editadas recebem 0 | 0,15 |
-| Rubrica | autoavaliação do passo 7 | nota 0–1 | 0,10 |
+| Rubrica | autoavaliação do passo 7 | nota 0–1 | 0,05 |
 
 R = média ponderada **renormalizada sobre os sinais presentes**. Sinais chegam em momentos diferentes (a nota agora, o eval dias depois): cada chamada de `pcm.py recompensa` recalcula R e o placar é corrigido de forma idempotente.
 
 **Onde fica o prompt colado:** para o sinal de edição, o prompt entregue e o que o usuário colou precisam estar em arquivo. Passe um deles por stdin (`-`) e grave o outro no scratchpad da sessão ou num `mktemp` **fora do checkout** da skill; apague-o depois da `recompensa`. Nunca grave dentro da pasta da skill: o commit do sync ou da promoção o levaria para o repo público. `pcm.py recompensa` recusa `--entregue`/`--editado` que apontem para dentro da pasta da skill.
+
+**Por que a rubrica pesa pouco e as iterações descontam a nota:** a rubrica é a autoavaliação da skill e só entrega com nota ≥ 0,75; com peso maior, e com "zero ajustes" contando como sinal positivo próprio, três notas 3 viravam "reforçar" e uma nota 1 nunca chegava a "evitar" (revisão `/sat`, 2026-09-27).
 
 **Contagem de iterações:** depois de entregar, se o usuário voltar pedindo ajuste no prompt entregue ("muda o tom", "ficou longo", "faltou X"), isso é uma iteração — registre com `--iteracoes n` ao fechar, que é quando o usuário dá a nota da entrega (`--iteracoes 0` se não houve ajuste; `SKILL.md`, "Formato da entrega"). Pedido de coisa nova não conta.
 

@@ -67,7 +67,7 @@ Na ordem: `[Invocada por …]` ou pedido de outra skill → **Guiar**; prompt ou
    - Delta do modelo: `PCM secao --modelo <m>` mostra o índice do arquivo do modelo; leia só "Restrições duras", "Defaults", "Tendências", "Remover ao migrar" e os "Sintoma → snippet" que a tarefa vai provocar. Aplique esses snippets verbatim, em inglês, na posição indicada.
    - Técnicas do set `prompt-*`: só a linha da técnica na tabela §2 de `references/sobreposicao-toolkit.md`. Princípios gerais: só as seções usadas de `references/principios-gerais.md`.
    - Idioma: o do usuário final; sem usuário final, o do pedido, declarado em `Suposições:`. Snippets ficam em inglês. Conteúdo de artefato de outra skill fica no idioma original.
-7. **Verificar e entregar.** `PCM lint --modelo <m> -` sobre o prompt e, em `api` ou `agente`, também sobre o request JSON completo. O lint aplica `references/cruft.json` e `references/restricoes-api.json`: corrija todo achado `hard`. Aplique a rubrica de `references/rubrica.md`; abaixo do limiar, corrija antes de mostrar.
+7. **Verificar e entregar.** `PCM lint --modelo <m> -` sobre o prompt e, em `api` ou `agente`, também sobre o request JSON completo. O lint aplica `references/cruft.json` e `references/restricoes-api.json`: corrija todo achado `hard`. As regras de texto reconhecem quase só inglês: num prompt em outro idioma, lint limpo não prova ausência de cruft, então revise à mão os itens de "Remover ao migrar" do modelo antes de dar nota 2 no critério 2 da rubrica. Aplique a rubrica de `references/rubrica.md`; abaixo do limiar, corrija antes de mostrar.
 
 ## Formato da entrega
 
@@ -90,7 +90,7 @@ Quando chegar a nota: `PCM recompensa --id <ep> --nota <n> --iteracoes <rodadas 
 
 1. `PCM lint --modelo <destino> -` sobre o prompt original e sobre o request refeito em JSON; `PCM lint --modelo <origem> -` também, para achar o que já era cruft na origem.
 2. Passos 1–3 em forma curta, com o sintoma relatado no centro. Passo 5 só se o usuário pediu ou o diagnóstico indicar outro modelo.
-3. No arquivo do destino (`PCM secao --modelo <destino>`), leia "Remover ao migrar", os "Sintoma → snippet" do sintoma e a subseção "Por modelo de origem". Se ela remeter a outro arquivo, leia desse só "Remover ao migrar" e rode também o lint desse modelo.
+3. No arquivo do destino (`PCM secao --modelo <destino>`), leia "Remover ao migrar", os "Sintoma → snippet" do sintoma e, se o índice tiver, a seção "modelo de origem". Peça um título por chamada de `PCM secao`: um título ausente faz a chamada inteira voltar só com o índice. Se a seção de origem remeter a outro arquivo, leia desse só "Remover ao migrar" e rode também o lint desse modelo.
 4. Entregue: DIAGNOSTICO curto; tabela `trecho original | ação | motivo | fonte`; o prompt novo inteiro; PARAMETROS que mudam, antes e depois; TESTES e COMO MEDIR se o patamar pedir.
 
 ## Modo Guiar (invocada por outra skill)

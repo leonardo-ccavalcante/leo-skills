@@ -173,7 +173,7 @@
         "Pede aprovação antes de gravar; no fim do turno MEMORY.md e CHANGELOG.md têm os mesmos sha256 do setup",
         "Não roda `PCM candidatos --marcar-promovido`, `git commit` nem `git push` neste turno"
       ],
-      "notes": "Promoção de lição, memoria-e-recompensa.md 'Promoção para MEMORY.md' e SKILL.md 'Memória e aprendizado': lição só entra em MEMORY.md (repo público) depois do 'sim'."
+      "notes": "Promoção de lição, memoria-e-recompensa.md 'Promoção para MEMORY.md' e SKILL.md 'Autoatualização e promoção de lições': lição só entra em MEMORY.md (repo público) depois do 'sim'."
     },
     {
       "id": 16,
