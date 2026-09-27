@@ -75,7 +75,7 @@
       "expectations": [
         "O problem statement vira o objetivo do prompt sem reescrita de sentido; as ramas de prioridade alta e média viram passos de análise e a rama descartada vira 'fora de escopo' com o motivo dado",
         "O formato de saída pedido segue a pirâmide (Governing Thought em 1 linha + exatamente 3 Key Lines) e o princípio 'lead with the outcome'",
-        "Trata as planilhas pela regra \"Planilhas para calcular\" de integracao-skills.md e diz o motivo: superfície API com code execution → Files API + code execution, sem colar; superfície não declarada ou sem essa ferramenta → planilhas no topo em <documents>, instrução no fim e citações/valores extraídos em <quotes> antes da análise, com a superfície assumida declarada em Suposições",
+        "Não cola as planilhas inteiras no prompt quando elas servem para calcular: com superfície API e code execution, usa Files API + code execution; sem essa informação, declara a suposição sobre como as planilhas chegam ao modelo",
         "Aplica delta do Fable 5.1 pertinente a relatório longo (por exemplo, instrução sobre densidade de escrita ou sobre não rascunhar o entregável inteiro no thinking em xhigh/max) e não aplica snippets de agente sem cabimento",
         "Não inventa números nem causas além do que o usuário deu"
       ],
@@ -90,7 +90,8 @@
       "expectations": [
         "A resposta é apenas o bloco fixo (DIAGNOSTICO, MODELO, ALERTAS, APLICAR, REMOVER, PARAMETROS, VERIFICAR, FONTES), sem cerca externa, sem preâmbulo, sem perguntas de volta e sem recomendar skills",
         "REMOVER inclui 'show your reasoning' (reasoning_extraction), o CAPS 'YOU MUST ALWAYS' (linguagem normal) e 'keep progress updates brief' (o Fable 5.1 já escreve menos updates), cada um com fonte",
-        "Incertezas sobre o que não está no texto aparecem como [UNSURE — verificar] em vez de perguntas (inline no item de APLICAR/REMOVER a que se ligam; as demais em VERIFICAR)", "MODELO mantém o effort recomendado com fonte e diz 'não documentado nas fontes' só para o mecanismo de definir modelo/effort no Claude Code",
+        "Incertezas sobre o que não está no texto aparecem como [UNSURE — verificar] em vez de perguntas (inline no item de APLICAR/REMOVER a que se ligam; as demais em VERIFICAR)",
+        "MODELO mantém o effort recomendado com fonte e diz 'não documentado nas fontes' só para o mecanismo de definir modelo/effort no Claude Code",
         "Não registra episódio de recompensa nem pede nota"
       ],
       "notes": "Contrato do modo Guiar, espelho da entrada (c) do sat."

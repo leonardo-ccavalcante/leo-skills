@@ -95,7 +95,7 @@ Quando chegar a nota: `PCM recompensa --id <ep> --nota <n> --iteracoes <rodadas 
 
 ## Modo Guiar (invocada por outra skill)
 
-Não interativo: nenhuma pergunta de volta, nem de nota, e nenhum episódio. O que não dá para verificar vira `[UNSURE — verificar]`. Quem chama não lê as references desta skill, então o bloco precisa ser autossuficiente. Entregue só este bloco, sem preâmbulo, com cada snippet em seu próprio bloco ```text```:
+Não interativo: nenhuma pergunta de volta, nem de nota, e nenhum episódio. O que não dá para verificar vira `[UNSURE — verificar]`. Quem chama não lê as references desta skill, então o bloco precisa ser autossuficiente. Entregue só este bloco, sem preâmbulo e sem cerca de código em volta dele (a cerca abaixo só delimita o molde), com cada snippet em seu próprio bloco ```text```:
 
 ```
 DIAGNOSTICO: Tarefa · Superfície · Patamar · Caminho · Suposições
