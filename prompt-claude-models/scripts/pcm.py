@@ -483,7 +483,10 @@ def trava_fontes():
         yield  # sem como abrir o diretório: carregar_fontes dará o erro certo
         return
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        except OSError as e:  # sistema de arquivos sem flock (alguns NFS): segue sem trava
+            diag(f"sem trava em {skill_dir()}: {e.strerror or e}")
         yield
     finally:
         os.close(fd)  # fechar o fd solta a trava
@@ -2325,6 +2328,183 @@ def _st_robustez(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
          (c1, c2) == (3, 3) and caminho_placar().read_text(encoding="utf-8") == "corrompido", f"{c1} {c2}")
 
 
+def _st_correcoes(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
+    """Defeitos da 7ª rodada de revisão: um teste por defeito reproduzido."""
+    os.environ["PCM_STATE_DIR"] = str(st.tmp / "state-correcoes")
+    refs = sk / "references"
+    fj = sk / "fontes.json"
+    # sha provisório ("...") não bloqueia: mudou sem baseline, e fontes-aplicar o preenche.
+    (fetch_dir / "pg-prov.md").write_text("v1\n", encoding="utf-8")
+    prov = dict(_pagina("pg-prov", "v1\n"), sha256="...", bytes=0)
+    fj.write_text(json.dumps({"dominio_permitido": "platform.claude.com", "paginas": [prov]}), encoding="utf-8")
+    out, code = st.run(["fontes-check"])
+    pp = (out.get("paginas") or [{}])[0]
+    st.t("fontes: sha provisório → mudou sem baseline (não exit 3)",
+         code == 0 and pp.get("status") == "mudou" and "sem baseline" in (pp.get("nota") or ""), str(out))
+    out, code = st.run(["fontes-aplicar", "--ids", "pg-prov"])
+    nf = json.loads(fj.read_text(encoding="utf-8"))
+    st.t("fontes-aplicar: preenche sha provisório", code == 0 and nf["paginas"][0]["sha256"] == sha256_bytes(b"v1\n"),
+         str(out))
+    # Página muda duas vezes antes do fontes-aplicar: a baseline registrada fica em .anterior.
+    for v in ("v2\n", "v3\n"):
+        (fetch_dir / "pg-prov.md").write_text(v, encoding="utf-8")
+        st.run(["fontes-check"])
+    out, _ = st.run(["fontes-check"])
+    pp = out["paginas"][0]
+    st.t("fontes: baseline sobrevive a duas mudanças", pp["status"] == "mudou" and bool(pp["diff"])
+         and "-v1" in Path(pp["diff"]).read_text(encoding="utf-8"), str(pp))
+    # CRLF preservado; timeout inválido é uso errado, não rede fora.
+    fj.write_bytes(json.dumps(nf, indent=2).replace("\n", "\r\n").encode("utf-8") + b"\r\n")
+    _o, code = st.run(["fontes-aplicar", "--ids", "pg-prov"])
+    b = fj.read_bytes()
+    st.t("fontes-aplicar: mantém CRLF", code == 0 and b.count(b"\n") == b.count(b"\r\n") > 1, repr(b[:60]))
+    _o, c1 = st.run(["fontes-check", "--timeout", "-1"])
+    _o, c2 = st.run(["fontes-check", "--timeout", "nan"])
+    st.t("fontes: --timeout <= 0 ou nan → exit 3", (c1, c2) == (3, 3), f"{c1} {c2}")
+    # Descoberta com grupo opcional que não casa não vira id None.
+    fj.write_text(json.dumps({"dominio_permitido": "platform.claude.com",
+                              "descoberta": {"pagina": "pg-prov", "padrao": "(x)?v"},
+                              "paginas": [_pagina("pg-prov", "v3\n")]}), encoding="utf-8")
+    out, _ = st.run(["fontes-check"])
+    st.t("fontes: descoberta ignora grupo vazio", out.get("novas") == [], str(out.get("novas")))
+    # Trava de fontes.json: com ela tomada, outro flock no diretório não passa.
+    if fcntl is not None:
+        with trava_fontes():
+            fd = os.open(str(sk), os.O_RDONLY)
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                travou = False
+            except OSError:
+                travou = True
+            finally:
+                os.close(fd)
+        st.t("fontes-aplicar: trava exclusiva do SKILL_DIR", travou)
+    # Snippets: cerca externa esconde a sintaxe; "``` text verbatim" e ~~~ contam.
+    sn = refs / "correcoes"
+    sn.mkdir(parents=True, exist_ok=True)
+    escrever_atomico(caminho_cache("pg-sn"), b"real page text\n")
+    (sn / "a.md").write_text("````markdown\n```text verbatim fonte=pg-sn id=c.exemplo\n<conteudo>\n```\n````\n\n"
+                             "~~~\n```text verbatim fonte=pg-sn id=c.til\n<outro>\n```\n~~~\n\n"
+                             "``` text verbatim fonte=pg-sn id=c.espaco\nTEXTO INVENTADO\n```\n\n"
+                             "~~~text verbatim fonte=pg-sn id=c.tilde\nreal page text\n~~~\n", encoding="utf-8")
+    out, code = st.run(["snippets-verificar"])
+    meus = {k for k in out.get("ids", {}) if k.startswith("c.")}
+    st.t("snippets: bloco dentro de outra cerca é exemplo, não citação", meus == {"c.espaco", "c.tilde"}, str(meus))
+    st.t("snippets: '``` text verbatim' verificado e ~~~ aceito",
+         code == 3 and [f["id"] for f in out["falhas"]] == ["c.espaco"] and out["ok"] == 1, str(out))
+    shutil.rmtree(sn)
+    # Regras malformadas: validação (exit 3), nunca exceção (exit 1); leitura igual em todo lugar.
+    cruft_ok, restr_ok = (refs / "cruft.json").read_bytes(), (refs / "restricoes-api.json").read_bytes()
+    try:
+        r_campos = json.loads(json.dumps(FIX_RESTR))
+        r_campos["regras"][0]["checagem"]["campos"] = [1]
+        r_mods = json.loads(json.dumps(FIX_CRUFT))
+        r_mods["regras"][0]["modelos"] = [["opus-5-5"]]
+        st.t("regras: campos não texto e modelos aninhados são inválidos",
+             bool(validar_restricoes(r_campos)) and bool(validar_cruft(r_mods)))
+        (refs / "restricoes-api.json").write_text(json.dumps(r_campos), encoding="utf-8")
+        _o, c1 = st.run(["lint", "--modelo", "opus-5-5", "-"], '{"messages": [{"role": "user", "content": "hi"}]}')
+        (refs / "restricoes-api.json").write_bytes(restr_ok)
+        (refs / "cruft.json").write_text(json.dumps(r_mods), encoding="utf-8")
+        _o, c2 = st.run(["lint", "--modelo", "opus-5-5", "-"], "hi")
+        dr, _dc = st.run(["doctor"])
+        ck = {c["nome"]: c for c in dr.get("checks", [])}
+        st.t("regras: lint → exit 3 e doctor acusa", (c1, c2) == (3, 3) and ck.get("cruft.json", {}).get("ok") is False,
+             f"{c1} {c2} {ck.get('cruft.json')}")
+        (refs / "cruft.json").write_bytes(b"\xef\xbb\xbf" + json.dumps(FIX_CRUFT).encode("utf-8"))
+        d, erros = validar_arquivo_regras(refs / "cruft.json", validar_cruft)
+        st.t("regras: BOM aceito na leitura comum", d is not None and not erros, str(erros))
+        (refs / "cruft.json").write_bytes(b'{"regras": [], "x": "a\xe7\xe3o"}')
+        _o, c1 = st.run(["lint", "--modelo", "opus-5-5", "-"], "hi")
+        dr, c2 = st.run(["doctor"])
+        ck = {c["nome"]: c for c in dr.get("checks", [])}
+        st.t("regras: cruft.json não UTF-8 → lint 3, doctor 2", (c1, c2) == (3, 2)
+             and ck.get("cruft.json", {}).get("ok") is False, f"{c1} {c2}")
+    finally:
+        (refs / "cruft.json").write_bytes(cruft_ok)
+        (refs / "restricoes-api.json").write_bytes(restr_ok)
+
+    # Lint: code span duplo, ordem das tags, tempo linear, entrada patológica.
+    def regras(texto):
+        return {a["regra"] for a in st.run(["lint", "--modelo", "opus-5-5", st.arq("c.txt", texto)])[0]["achados"]}
+
+    st.t("heur c: tag em ``code span`` duplo ignorada", "heur.tag_sem_fechamento" not in regras("Use ``<answer>`` tags."))
+    st.t("heur c: </foo> antes de <foo> não fecha", "heur.tag_sem_fechamento" in regras("</foo> intro\n<foo> body"))
+    st.t("heur c: aninhada fechada ok", "heur.tag_sem_fechamento" not in regras("<a><a>x</a></a>"))
+    t0 = time.monotonic()
+    out, _ = st.run(["lint", "--modelo", "opus-5-5", st.arq("grande.txt", "Think step by step.\n" * 40000)])
+    dt = time.monotonic() - t0
+    st.t("lint: muitos casamentos em tempo linear", dt < 3 and len(out["achados"]) == 40000
+         and out["achados"][-1]["linha"] == 40000, f"{dt:.1f}s")
+    out, c1 = st.run(["lint", "--modelo", "opus-5-5", "-"], "[" * 1000 + " ok")
+    _o, c2 = st.run(["episodio", "-"], "[" * 1000)
+    st.t("lint/episodio: '[' aninhado demais → texto / exit 3", (c1, out.get("entrada"), c2) == (0, "texto", 3),
+         f"{c1} {c2}")
+    velho_in = sys.stdin
+    sys.stdin = None
+    try:
+        with contextlib.redirect_stderr(io.StringIO()):
+            _o, code = despachar(["lint", "--modelo", "opus-5-5"])
+    finally:
+        sys.stdin = velho_in
+    st.t("lint: stdin fechado → exit 2", code == EXIT_INSUFICIENTE, str(code))
+    # Saída que o stdout não codifica (surrogate, cp1252) cai para \\uXXXX.
+    buf = io.BytesIO()
+    velho_out, w = sys.stdout, io.TextIOWrapper(buf, encoding="cp1252")
+    sys.stdout = w
+    try:
+        imprimir_json({"linha": "R̄ → \ud800"})
+        w.flush()
+    finally:
+        sys.stdout = velho_out
+        w.detach()  # sem detach, o wrapper coletado fecharia o buffer
+    st.t("saída: stdout cp1252 e surrogate não derrubam",
+         json.loads(buf.getvalue().decode("cp1252")) == {"linha": "R̄ → \ud800"}, repr(buf.getvalue()[:80]))
+    # Memória.
+    base = {"modo": "criar", "modelo": "opus-5-5", "tarefa": "codigo", "decisoes": ["a ", "b"]}
+    _o, code = st.run(["episodio", "-"], '{"modo": "\\ud800", "modelo": "opus-5-5", "tarefa": "t", "decisoes": ["a"]}')
+    st.t("episodio: surrogate solto → exit 3", code == 3, str(code))
+    ep_id = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
+    _o, c1 = st.run(["recompensa", "--id", ep_id, "--editado", "-", "--entregue", "-"], "igual")
+    _o, c2 = st.run(["recompensa", "--id", ep_id, "--nota", "5", "--decisoes-editadas", "c"])
+    st.t("recompensa: '-' duplo e decisão editada desconhecida → exit 3", (c1, c2) == (3, 3), f"{c1} {c2}")
+    _o, code = st.run(["recompensa", "--id", ep_id, "--decisoes-editadas", "a"])
+    out, _ = st.run(["recompensa", "--id", ep_id, "--nota", "5"])
+    st.t("recompensa: editadas gravadas mesmo sem sinal; id com espaço casa",
+         code == 2 and out.get("decisoes") == {"a": 0.0, "b": 1.0}, str(out))
+    real_hex = secrets.token_hex
+    sorteio = iter(["abcd", "abcd", "beef"])
+    secrets.token_hex = lambda _n: next(sorteio)
+    try:
+        e1 = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
+        e2 = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
+    finally:
+        secrets.token_hex = real_hex
+    st.t("episodio: id nunca repete um existente", e1 != e2 and e1.endswith("abcd"), f"{e1} {e2}")
+    criados = [st.run(["episodio", "-"], json.dumps(base))[0]["id"] for _ in range(3)]
+    out, _ = st.run(["pendentes"])
+    ids = [p["id"] for p in out["pendentes"]]
+    st.t("pendentes: mesmo segundo sai do mais novo", ids[:3] == criados[::-1], str(ids))
+    with caminho_episodios().open("a", encoding="utf-8") as f:
+        f.write('{"id": ["x"], "modo": "c"}\n')
+        f.write('{"id": "ep-naive", "criado_em": "2099-01-01T10:00:00", "pendente": true}\n')
+    out, c1 = st.run(["pendentes"])
+    _o, c2 = st.run(["stats"])
+    st.t("memória: id não texto ignorado e data sem fuso vale UTC", (c1, c2) == (0, 0)
+         and "ep-naive" in [p["id"] for p in out.get("pendentes", [])], f"{c1} {c2}")
+    placar = ler_json(caminho_placar(), {})
+    placar[chave("opus-5-5", "codigo", "b")] = {"alfa": None, "beta": 0, "n": "x"}
+    escrever_json(caminho_placar(), placar)
+    _o, code = st.run(["recompensa", "--id", e1, "--nota", "4"])
+    st.t("memória: entrada do placar corrompida → exit 3", code == 3, str(code))
+    # --help: toda opção de todo subcomando explicada.
+    sem_ajuda = []
+    for acao in construir_parser()._subparsers._group_actions:
+        for nome, sp in acao.choices.items():
+            sem_ajuda += [f"{nome} {a.option_strings or a.dest}" for a in sp._actions if a.help is None]
+    st.t("cli: toda opção tem --help", not sem_ajuda, str(sem_ajuda))
+
+
 def _st_dados_reais(st: _Selftest, real: Path) -> None:
     """Valida os arquivos reais da skill, quando existem (outros agentes os geram)."""
     # Mesma leitura (utf-8-sig) e mesma validação do lint/doctor: o veredicto tem de bater.
@@ -2358,7 +2538,8 @@ def cmd_selftest(args) -> tuple[dict, int]:
         for nome, fn in (("fontes", lambda: _st_fontes(st, sk, fetch_dir)), ("snippets", lambda: _st_snippets(st, sk)),
                          ("lint", lambda: _st_lint(st, sk)), ("memória", lambda: _st_memoria(st)),
                          ("rede", lambda: _st_rede(st)),
-                         ("robustez", lambda: _st_robustez(st, sk, fetch_dir))):
+                         ("robustez", lambda: _st_robustez(st, sk, fetch_dir)),
+                         ("correções", lambda: _st_correcoes(st, sk, fetch_dir))):
             try:
                 fn()
             except Exception as e:  # um bloco quebrado não pode esconder os outros
