@@ -1,0 +1,239 @@
+{
+  "_nota": "Páginas oficiais rastreadas pela autoatualização (pcm.py fontes-check). sha256 = conteúdo integral do .md na última sincronização aprovada. 'descoberta' = página cujos links prompting-claude-* revelam modelos novos.",
+  "dominio_permitido": "platform.claude.com",
+  "descoberta": {
+    "pagina": "claude-prompting-best-practices",
+    "padrao": "/docs/en/build-with-claude/prompt-engineering/(prompting-claude-[a-z0-9-]+)"
+  },
+  "paginas": [
+    {
+      "id": "claude-prompting-best-practices",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md",
+      "sha256": "d8da822f28a9df98f90c206466a5e808a561a3c6e9f948c3a44f27998f54cf12",
+      "bytes": 65061,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "all-current"
+      ],
+      "alimenta": [
+        "references/principios-gerais.md",
+        "references/cruft.json",
+        "references/matriz-modelos.md",
+        "references/modelos/legado.md",
+        "references/sobreposicao-toolkit.md"
+      ]
+    },
+    {
+      "id": "prompting-claude-fable-5-1",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1.md",
+      "sha256": "26221728e1acfce699d973c7cf9667a4ae6c5a9ab26a3134a357768e86cf3553",
+      "bytes": 54502,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1"
+      ],
+      "alimenta": [
+        "references/modelos/fable-5-1.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "prompting-claude-sonnet-5",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md",
+      "sha256": "07e7db846f96915a1d533fe6f62f7812790a966361b9982b6522557e74d08127",
+      "bytes": 16479,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "sonnet-5"
+      ],
+      "alimenta": [
+        "references/modelos/sonnet-5.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "prompting-claude-fable-5",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5.md",
+      "sha256": "44732ba550fc55f13c061d47f755169246f9b4872a7f51fe63a6c9985503313e",
+      "bytes": 19155,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "fable-5",
+        "mythos-5"
+      ],
+      "alimenta": [
+        "references/modelos/fable-5.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "prompting-claude-opus-5-5",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md",
+      "sha256": "38355a519405b71173408c5c5f126c428eab61105eb92f38d950bf699ac5c215",
+      "bytes": 28306,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "opus-5-5"
+      ],
+      "alimenta": [
+        "references/modelos/opus-5-5.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "prompting-claude-opus-5",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md",
+      "sha256": "643499b80e34139a5007226a31908d64a65a2d64f08275d502e64ccd43a8413e",
+      "bytes": 12108,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "opus-5"
+      ],
+      "alimenta": [
+        "references/modelos/opus-5.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "prompting-claude-opus-4-8",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8.md",
+      "sha256": "9f67fae4a2a5037da7517cdab7691c61b6c85760dc089146160475579a243b3a",
+      "bytes": 16514,
+      "verificado_em": "2026-09-27",
+      "tipo": "prompting",
+      "modelos": [
+        "opus-4-8"
+      ],
+      "alimenta": [
+        "references/modelos/opus-4-8.md",
+        "references/matriz-modelos.md",
+        "references/cruft.json"
+      ]
+    },
+    {
+      "id": "choosing-a-model",
+      "url": "https://platform.claude.com/docs/en/about-claude/models/choosing-a-model.md",
+      "sha256": "ea49c7303d6fd33864630229a0a1b5f5f16b5db8cb08c06a936fddb24725d300",
+      "bytes": 8344,
+      "verificado_em": "2026-09-27",
+      "tipo": "selecao",
+      "modelos": [
+        "all-current"
+      ],
+      "alimenta": [
+        "references/selecao-modelo.md"
+      ]
+    },
+    {
+      "id": "models-overview",
+      "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+      "sha256": "404372e69b13defcb4598bb8a8cfbc359c0c31384d809daf53d75c3ca9316bc3",
+      "bytes": 17052,
+      "verificado_em": "2026-09-27",
+      "tipo": "selecao",
+      "modelos": [
+        "all-current"
+      ],
+      "alimenta": [
+        "references/selecao-modelo.md",
+        "references/matriz-modelos.md",
+        "references/restricoes-api.json"
+      ]
+    },
+    {
+      "id": "effort",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+      "sha256": "ab7a176aa3927fb96a3f2f5433b82e23a6e44950cd5eb5ca91d5f0bc7746f3d7",
+      "bytes": 36866,
+      "verificado_em": "2026-09-27",
+      "tipo": "selecao",
+      "modelos": [
+        "all-current"
+      ],
+      "alimenta": [
+        "references/selecao-modelo.md",
+        "references/diagnostico.md",
+        "references/matriz-modelos.md"
+      ]
+    },
+    {
+      "id": "optimizing-for-cost-and-intelligence",
+      "url": "https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence.md",
+      "sha256": "10b96ff8a05229d58fc49a817ead8a1c8654d5a90d386122834f70f78759d0d4",
+      "bytes": 156473,
+      "verificado_em": "2026-09-27",
+      "tipo": "selecao",
+      "modelos": [
+        "all-current"
+      ],
+      "alimenta": [
+        "references/selecao-modelo.md",
+        "references/diagnostico.md"
+      ]
+    },
+    {
+      "id": "whats-new-fable-5-1",
+      "url": "https://platform.claude.com/docs/en/models/fable-5-1/whats-new-fable-5-1.md",
+      "sha256": "d0865b3a3f03c114ebbb5922f66ae2b058f0fa9658617600ad2ffb018e3945f1",
+      "bytes": 37935,
+      "verificado_em": "2026-09-27",
+      "tipo": "api",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1"
+      ],
+      "alimenta": [
+        "references/restricoes-api.json",
+        "references/matriz-modelos.md",
+        "references/modelos/fable-5-1.md",
+        "references/selecao-modelo.md"
+      ]
+    },
+    {
+      "id": "whats-new-opus-5-5",
+      "url": "https://platform.claude.com/docs/en/models/opus-5-5/whats-new-opus-5-5.md",
+      "sha256": "6ba1ff350b0ced73d0eeba0330b37f14cd516a7100f3eb404410f82e6826d546",
+      "bytes": 21800,
+      "verificado_em": "2026-09-27",
+      "tipo": "api",
+      "modelos": [
+        "opus-5-5"
+      ],
+      "alimenta": [
+        "references/restricoes-api.json",
+        "references/matriz-modelos.md",
+        "references/modelos/opus-5-5.md",
+        "references/selecao-modelo.md"
+      ]
+    },
+    {
+      "id": "whats-new-sonnet-5",
+      "url": "https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5.md",
+      "sha256": "02f0df53f8780f93ca88c9691f530f07032ebd5d41c88ec838fc0f9aa85007db",
+      "bytes": 13195,
+      "verificado_em": "2026-09-27",
+      "tipo": "api",
+      "modelos": [
+        "sonnet-5"
+      ],
+      "alimenta": [
+        "references/restricoes-api.json",
+        "references/matriz-modelos.md",
+        "references/modelos/sonnet-5.md",
+        "references/selecao-modelo.md"
+      ]
+    }
+  ]
+}
