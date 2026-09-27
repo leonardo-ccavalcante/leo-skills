@@ -420,6 +420,7 @@
         "references/modelos/opus-5-5.md",
         "references/modelos/opus-5.md",
         "references/restricoes-api.json",
+        "references/selecao-modelo.md",
         "references/sobreposicao-toolkit.md",
         "references/toolkit/prompt-engineering-router.md",
         "references/toolkit/prompt-output-control.md",

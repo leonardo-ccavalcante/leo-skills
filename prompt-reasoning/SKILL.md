@@ -7,7 +7,7 @@ description: Techniques that elicit deeper reasoning from an LLM — Chain-of-Th
 
 When a model gets the wrong answer on a problem that requires more than one mental step, the fix is almost never "tell it harder" — it's to make the reasoning visible and verifiable. This skill is the catalog of techniques for doing that.
 
-> **Claude target?** Claude targets: apply `prompt-claude-models` first — raise effort before adding CoT phrases, never send non-default temperature/top_p/top_k (400; do self-consistency without it), and don't ask for reasoning in the response text or `Thought:` lines (reasoning_extraction refusal on Fable 5/Opus 5.5; read thinking blocks instead).
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
 
 ## When this skill is the right call
 

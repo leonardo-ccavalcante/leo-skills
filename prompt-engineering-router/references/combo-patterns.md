@@ -66,7 +66,7 @@ The rule of thumb: **start with the skill that frames the system; layer in the o
 
 **The trick**: ask for the reasoning trace first, then a marker like `Final answer:` followed by the JSON. Models reliably follow this two-zone pattern. Extracting JSON from the tail is easier than from a mixed-format blob.
 
-> **Claude target?** Don't use the two-zone trick on Fable 5, Fable 5.1 or Opus 5.5: asking the model to write its reasoning into the response can trigger the `reasoning_extraction` refusal. Let adaptive thinking do the reasoning (raise `effort` if needed) and get the JSON through Structured Outputs — see `prompt-claude-models`.
+> **Claude target?** Check this combo with `prompt-claude-models` first: some current Claude models refuse requests to write the reasoning into the response.
 
 ## Combo 6 — Persona-driven assistant with refusals
 

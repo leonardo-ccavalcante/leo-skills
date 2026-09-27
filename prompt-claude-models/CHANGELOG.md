@@ -2,6 +2,14 @@
 
 Cada sincronização de fonte (páginas oficiais em `fontes.json`) e cada lição promovida para `MEMORY.md` entra aqui, mais recente primeiro.
 
+## 2026-09-27 — cortes depois da auditoria de superengenharia
+
+- `SKILL.md` de 27 KB para 12 KB: uma sequência por modo, sem regras que o `pcm.py` já aplica e explica nas próprias mensagens de erro.
+- `pcm.py inicio` junta checagem de fontes, lições do `MEMORY.md`, episódio pendente e modelos com dados no placar: a memória custa duas chamadas por uso (`inicio` e `episodio`) em vez de sete.
+- `fontes.json`: `alimenta` corrigido para `whats-new-opus-5-5`; `selftest` e `doctor` voltam a passar.
+- As outras skills do repo guardam só um ponteiro para esta; os fatos de modelo ficam aqui, onde a autoatualização os alcança.
+- Rodadas automáticas de revisão encerradas. Mantidos por decisão do usuário: aprendizado com política, as 12 integrações e os testes dentro do script.
+
 ## 2026-09-27 — versão inicial
 
 - Espinha diagnóstico → patamar → caminho → modelo/effort → prompt → verificação: o esforço e a barra de qualidade da tarefa são diagnosticados antes de escolher o modelo Claude e o effort (`references/diagnostico.md`, `references/selecao-modelo.md`), e o prompt é montado sobre `assets/esqueleto-prompt.md` com o delta do modelo-alvo (`references/modelos/`: Fable 5.1, Fable 5, Opus 5.5, Opus 5, Opus 4.8, Sonnet 5 e `legado.md`).

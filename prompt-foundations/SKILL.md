@@ -19,7 +19,7 @@ If the user wants a multi-step pipeline → `prompt-orchestration`.
 If the user wants JSON/structured output → `prompt-output-control`.
 If the user is doing classification, summarization, extraction, code-gen, etc. → `prompt-task-patterns`.
 
-> **Claude target?** If the target model is Claude, also load `prompt-claude-models`: use 3–5 examples wrapped in `<example>` tags, put long documents above the query, and never prefill the assistant turn (400 on Claude 4.6+).
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
 
 ## Anatomy of a prompt
 

@@ -145,7 +145,7 @@ Verdict: primary = `prompt-orchestration` (the *system* is the headline), second
 
 ### Step 4 — Model check (cross-cutting)
 
-If the target model is Claude, or the user names Opus / Sonnet / Haiku / Fable / Mythos, `effort`, or reports a 400 / `stop_reason: "refusal"`, append `prompt-claude-models` to the route. It runs after the technique skills and overrides them where the model's documentation says so — three examples that change routes above: raise `effort` before adding "think step by step" (thinking is adaptive on current models); no non-default `temperature`/`top_p`/`top_k` on Sonnet 5, Opus 4.7+, Opus 5.5 or Fable 5.1 (400) — so "self-consistency via temperature" is not available; and never ask for the reasoning trace in the response text on Fable 5, Fable 5.1 or Opus 5.5 (`reasoning_extraction` refusal). If the question is only "which Claude model or effort should I use?", route straight to `prompt-claude-models`.
+If the target model is Claude, or the user names Opus / Sonnet / Haiku / Fable / Mythos, `effort`, or reports a 400 / `stop_reason: "refusal"`, append `prompt-claude-models` to the route. It runs after the technique skills and overrides them where the target model's documentation says so. If the question is only "which Claude model or effort should I use?", route straight to `prompt-claude-models`.
 
 ## Common misroutes (Devil's Advocacy)
 
@@ -193,7 +193,7 @@ When the router fires, return a structured recommendation following Pyramid Prin
 - Start with: `{primary skill}` — focuses on {its specialty for this query}.
 - {If combo:} Then layer in `{secondary skill}` for {its specialty for this query}.
 - {If watch-out:} If you also see {signal X}, swap/add `{tertiary}`.
-- {If the target is Claude:} Apply `prompt-claude-models` for {model}: {the 1–2 model rules that change this route}.
+- {If the target is Claude:} Finish with `prompt-claude-models` for {model}.
 ```
 
 Keep it to ~10 lines. The user wants to be routed, not lectured.

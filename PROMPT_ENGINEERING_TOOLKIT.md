@@ -12,7 +12,7 @@ Eight specialized skills + 1 meta-router, mutually exclusive and collectively ex
 
 ## Cross-cutting layer: `prompt-claude-models`
 
-[`prompt-claude-models`](prompt-claude-models/SKILL.md) sits on top of the eight skills rather than beside them. When the target is a Claude model it diagnoses the task's effort and quality bar, picks the model and `effort`, and then applies that model's documented rules from Anthropic's prompting guides — the API parameters that return 400 (non-default `temperature` on Sonnet 5 / Opus 4.7+ / Fable 5.1, prefill on 4.6+, forced `tool_choice` on Opus 5.5 / Fable 5.1), the instructions to remove, and the snippets to add. The router appends it in "Step 4 — Model check"; each of the eight skills carries a one-line pointer to it. The eight remain model-agnostic.
+[`prompt-claude-models`](prompt-claude-models/SKILL.md) sits on top of the eight skills rather than beside them. When the target is a Claude model it diagnoses the task's effort and quality bar, picks the model and `effort`, and applies that model's documented rules from Anthropic's guides, which it re-checks on every run. The router appends it in "Step 4 — Model check"; each of the eight skills carries a one-line pointer to it. The eight remain model-agnostic.
 
 ## The eight specialized skills
 

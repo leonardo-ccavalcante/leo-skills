@@ -2742,6 +2742,45 @@ def cmd_stats(args) -> tuple[dict, int]:
     }, EXIT_OK
 
 
+def cmd_inicio(args) -> tuple[dict, int]:
+    """Passo 0 num comando só: fontes, lições do MEMORY.md, episódio pendente e modelos com dados no
+    placar. Antes eram quatro chamadas e ~5 KB de saída por uso, mesmo quando nada tinha mudado."""
+    f, _ = cmd_fontes_check(argparse.Namespace(timeout=args.timeout, so=None))
+    mudou = [p["id"] for p in f["paginas"] if p["status"] == "mudou"]
+    erro = [p["id"] for p in f["paginas"] if p["status"] == "erro"]
+    novas = [n["id"] for n in f["novas"]]
+    if f.get("offline"):
+        estado = "sem_rede"
+    elif mudou or novas:
+        estado = "pendente"
+    else:
+        estado = "em_dia"
+    fontes = {"estado": estado, "mudou": mudou, "novas": novas, "erro": erro,
+              "diffs": {p["id"]: p["diff"] for p in f["paginas"] if p["status"] == "mudou" and p.get("diff")}}
+    if f.get("simulado"):
+        fontes["aviso"] = ("rede simulada (PCM_FETCH_DIR): o conteúdo não veio das páginas oficiais; "
+                           "fontes-aplicar recusa este cache")
+    licoes, ignoradas = [], []
+    mem = skill_dir() / "MEMORY.md"
+    if mem.exists():
+        texto = mem.read_text(encoding="utf-8-sig")
+        erros = validar_memoria(texto)
+        ruins = {int(e.split(":")[0].split()[1]) for e in erros if e.startswith("linha ")}
+        for i, linha in enumerate(texto.splitlines(), 1):
+            if linha.startswith("- ["):
+                (ignoradas if i in ruins else licoes).append(linha.strip())
+        ignoradas += [e for e in erros if not e.startswith("linha ")]
+    pend, _ = cmd_pendentes(argparse.Namespace(dias=args.dias))
+    p0 = pend["pendentes"][0] if pend["pendentes"] else None
+    stats, _ = cmd_stats(argparse.Namespace())
+    return {
+        "fontes": fontes,
+        "memoria": {"licoes": licoes, "ignoradas": ignoradas},
+        "pendente": {k: p0[k] for k in ("id", "modo", "modelo", "criado_em")} if p0 else None,
+        "modelos_com_dados": sorted(stats["R_medio_por_modelo"]),
+    }, EXIT_OK
+
+
 # ---------------------------------------------------------------------------
 # doctor
 # ---------------------------------------------------------------------------
@@ -4101,6 +4140,25 @@ def _st_secao(st: _Selftest, sk: Path) -> None:
     st.t("secao: recusa caminho fora da pasta da skill", code != EXIT_OK, str(out))
 
 
+def _st_inicio(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
+    (fetch_dir / "claude-prompting-best-practices.md").write_text(FIX_INDICE, encoding="utf-8")
+    (fetch_dir / "prompting-claude-x.md").write_text(FIX_X, encoding="utf-8")
+    fontes = {"dominio_permitido": "platform.claude.com",
+              "descoberta": {"pagina": "claude-prompting-best-practices", "padrao": "(nada-casa)"},
+              "paginas": [_pagina("claude-prompting-best-practices", FIX_INDICE), _pagina("prompting-claude-x", FIX_X)]}
+    (sk / "fontes.json").write_text(json.dumps(fontes), encoding="utf-8")
+    out, code = st.run(["inicio"])
+    pend, _ = st.run(["pendentes", "--dias", "14"])
+    esperado = pend["pendentes"][0]["id"] if pend["pendentes"] else None
+    st.t("inicio: em dia, pendente = o mais novo de `pendentes`, aviso de rede simulada",
+         code == EXIT_OK and out["fontes"]["estado"] == "em_dia" and (out["pendente"] or {}).get("id") == esperado
+         and "aviso" in out["fontes"], str(out))
+    (fetch_dir / "prompting-claude-x.md").write_text(FIX_X + "\nmudou\n", encoding="utf-8")
+    out, _ = st.run(["inicio"])
+    st.t("inicio: página mudada → pendente", out["fontes"]["estado"] == "pendente"
+         and out["fontes"]["mudou"] == ["prompting-claude-x"], str(out["fontes"]))
+
+
 def cmd_selftest(args) -> tuple[dict, int]:
     real = skill_dir()
     st = _Selftest()
@@ -4122,7 +4180,8 @@ def cmd_selftest(args) -> tuple[dict, int]:
                          ("revisão 8", lambda: _st_revisao8(st, sk, fetch_dir)),
                          ("alimenta", lambda: _st_alimenta(st)),
                          ("MEMORY.md", lambda: _st_memoria_md(st)),
-                         ("secao", lambda: _st_secao(st, sk))):
+                         ("secao", lambda: _st_secao(st, sk)),
+                         ("inicio", lambda: _st_inicio(st, sk, fetch_dir))):
             try:
                 fn()
             except Exception as e:  # um bloco quebrado não pode esconder os outros
@@ -4354,6 +4413,10 @@ def construir_parser() -> argparse.ArgumentParser:
                    help="trecho do título (sem caixa); repetível; sem ele sai só o índice com linhas e bytes")
 
     add("stats", "resumo da memória: episódios, R médio, melhores e piores decisões", cmd_stats)
+    p = add("inicio", "passo 0 num comando: estado das fontes, lições do MEMORY.md, episódio pendente e "
+            "modelos com dados no placar", cmd_inicio)
+    p.add_argument("--timeout", type=float, default=15.0, help="prazo por página em segundos (padrão 15)")
+    p.add_argument("--dias", type=int, default=14, help="janela do episódio pendente em dias (padrão 14)")
     add("selftest", "testes embutidos em diretórios temporários + validação dos dados reais", cmd_selftest)
     add("doctor", "verifica ambiente, arquivos de dados e rede", cmd_doctor)
     return ap

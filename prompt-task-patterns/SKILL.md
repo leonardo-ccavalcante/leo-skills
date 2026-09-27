@@ -19,7 +19,7 @@ Not the right call if:
 - The user has a multi-step pipeline → `prompt-orchestration`.
 - The user wants structured/JSON output → `prompt-output-control`.
 
-> **Claude target?** If the target model is Claude, also load `prompt-claude-models`: never ask for "show your work" in the reply (`reasoning_extraction` refusal on Fable 5 and Opus 5.5), never end a template with a prefilled assistant turn like `Category:` (400 on Claude 4.6+; use Structured Outputs enums), and put long documents above the instructions and question.
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
 
 ## The task families covered
 
