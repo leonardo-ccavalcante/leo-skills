@@ -1,0 +1,718 @@
+{
+ "regras": [
+  {
+   "id": "all.never_sem_motivo",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "^[ \\t]*(?:[-*•]\\s+|\\d+[.)]\\s+)?(?-i:NEVER)\\b(?![^\\n]*\\b(?:because|since|so that|so the|otherwise|to avoid|in order to)\\b)[^\\n.;:]{1,60}[.!]?[ \\t]*$",
+   "severidade": "soft",
+   "motivo_pt": "Regra proibitiva em caixa alta sem motivo é a forma que o guia mostra como menos eficaz; dar o porquê ajuda o modelo a generalizar.",
+   "sugestao_pt": "Reescreva dizendo o motivo (ex.: 'a resposta será lida por um motor de voz, então nunca use reticências, porque ele não sabe pronunciá-las').",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Add context to improve performance"
+   },
+   "exemplo": "NEVER use ellipses",
+   "contra_exemplo": "NEVER use ellipses, since the text-to-speech engine will not know how to pronounce them."
+  },
+  {
+   "id": "all.markdown_negativo",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "\\b(?:do not|don't|never)\\s+use\\s+(?:any\\s+)?markdown\\b|\\bno markdown\\b",
+   "severidade": "soft",
+   "motivo_pt": "Instrução negativa de formato ('Do not use markdown in your response') é a forma menos eficaz de controlar a formatação.",
+   "sugestao_pt": "Diga o formato desejado (ex.: 'Your response should be composed of smoothly flowing prose paragraphs.') ou use um indicador em XML.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Control the format of responses"
+   },
+   "exemplo": "Do not use markdown in your response.",
+   "contra_exemplo": "Your response should be composed of smoothly flowing prose paragraphs."
+  },
+  {
+   "id": "all.exemplos_sem_tags",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "^[ \\t]*(?:Examples?|Example \\d+)[ \\t]*:[ \\t]*$(?!\\s*<examples?\\b)",
+   "severidade": "soft",
+   "motivo_pt": "Exemplos soltos sob um rótulo 'Examples:' se confundem com instruções; o guia pede exemplos dentro de <example> (vários em <examples>).",
+   "sugestao_pt": "Envolva cada exemplo em <example> e o conjunto em <examples>; mire 3–5 exemplos diversos.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Use examples effectively"
+   },
+   "exemplo": "Examples:\nQ: Is this tweet about sports?\nA: yes",
+   "contra_exemplo": "Examples:\n<examples>\n<example>Q: Is this tweet about sports? A: yes</example>\n</examples>"
+  },
+  {
+   "id": "all.instrucoes_superespecificas",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "\\bverify (?:everything |each \\w+ |it |this )?twice\\b|\\bbe maximally thorough\\b|\\binvestigate fully\\b",
+   "severidade": "soft",
+   "motivo_pt": "Instruções superespecíficas herdadas de modelos antigos ('verify twice', 'be maximally thorough', 'investigate fully') são seguidas à risca por modelos novos: mais rodadas de ferramentas e mais texto, conta maior sem ganho de acurácia. No Opus 5, remover 'verify twice' cortou em um terço o custo por ticket, e remover 'be maximally thorough' quase o mesmo.",
+   "sugestao_pt": "Remova a instrução ou troque por um critério concreto e único (ex.: 're-fetch the order and confirm every figure matches the fresh lookup').",
+   "fonte": {
+    "page_id": "optimizing-for-cost-and-intelligence",
+    "section": "Audit prompts against the current model"
+   },
+   "exemplo": "After any refund, verify twice before submitting and be maximally thorough.",
+   "contra_exemplo": "Before submitting a refund, re-fetch the order and confirm every figure matches the fresh lookup."
+  },
+  {
+   "id": "all.scratchpad_manual",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "<scratchpad>",
+   "severidade": "soft",
+   "motivo_pt": "Um scratchpad de raciocínio feito à mão conflita com o thinking do próprio modelo; no Opus 5, removê-lo recuperou de 7 a 11 pontos de acurácia.",
+   "sugestao_pt": "Com thinking ligado, remova o scratchpad e regule o raciocínio pelo effort; CoT manual (<thinking>/<answer>) só como fallback quando o thinking está desligado.",
+   "fonte": {
+    "page_id": "optimizing-for-cost-and-intelligence",
+    "section": "Audit prompts against the current model"
+   },
+   "exemplo": "Reason inside <scratchpad> tags before replying.",
+   "contra_exemplo": "Put the final reply inside <answer> tags."
+  },
+  {
+   "id": "all.prefixo_dinamico",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "\\A\\s*(?:(?:current|today's) (?:date|time)|date|time|timestamp|now|queue position|today is)\\s*[:=]|\\A\\s*\\{\\{?\\s*(?:now|date|time|timestamp|today|current_(?:date|time))\\s*\\}?\\}",
+   "severidade": "soft",
+   "motivo_pt": "Texto que muda a cada requisição (data, hora, posição na fila) antes do prefixo estável transforma toda requisição numa escrita completa de cache; uma linha de status de 25 tokens no início do system prompt custou US$ 4,24 por execução em vez de US$ 0,59.",
+   "sugestao_pt": "Mova o texto por requisição para o turno de usuário mais novo e mantenha o início do system prompt estável.",
+   "fonte": {
+    "page_id": "optimizing-for-cost-and-intelligence",
+    "section": "What breaks the cache"
+   },
+   "exemplo": "Current time: 2026-09-27T10:15:00Z\nYou are a support agent.",
+   "contra_exemplo": "You are a support agent.\nThe current time is given in the latest user message."
+  },
+  {
+   "id": "all.beta_headers_legados",
+   "modelos": [
+    "all-current"
+   ],
+   "padrao": "\\btoken-efficient-tools-2025-02-19\\b|\\boutput-128k-2025-02-19\\b",
+   "severidade": "soft",
+   "motivo_pt": "Todos os modelos Claude 4 e posteriores têm token-efficient tool use embutido; esses beta headers não têm efeito.",
+   "sugestao_pt": "Remova `token-efficient-tools-2025-02-19` e `output-128k-2025-02-19` das requisições.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Additional recommended changes"
+   },
+   "exemplo": "betas=[\"token-efficient-tools-2025-02-19\"]",
+   "contra_exemplo": "betas=[\"mid-conversation-system-clear-at-2026-08-21\"]"
+  },
+  {
+   "id": "all-4-6-plus.anti_preguica",
+   "modelos": [
+    "all-4-6-plus"
+   ],
+   "padrao": "\\buse (?:the |your |all (?:the |available )?)?tools? (?:aggressively|as much as possible|whenever possible)\\b|\\bbe (?:as |extremely |very |exhaustively |more )?thorough(?: as possible)?\\b",
+   "severidade": "soft",
+   "motivo_pt": "Prompts que empurravam minúcia ou uso agressivo de ferramentas foram escritos para modelos anteriores; os modelos 4.6 em diante são mais proativos e podem sobreacionar.",
+   "sugestao_pt": "Reduza a orientação: descreva quando usar a ferramenta ('Use [tool] when it would enhance your understanding of the problem') em vez de pedir minúcia genérica.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Migration considerations"
+   },
+   "exemplo": "Be thorough and use tools aggressively.",
+   "contra_exemplo": "The previous review was thorough and caught every issue."
+  },
+  {
+   "id": "opus-4-5.linguagem_agressiva_ferramenta",
+   "modelos": [
+    "opus-4-5",
+    "opus-4-6"
+   ],
+   "padrao": "(?-i:\\bCRITICAL\\b)\\s*:?\\s*(?-i:You MUST)\\b|(?-i:\\b(?:You MUST|MUST|ALWAYS)\\b)\\s+(?:use|call|invoke)\\b[^.\\n]{0,40}\\b(?:tool|skill)s?\\b",
+   "severidade": "soft",
+   "motivo_pt": "Opus 4.5 e Opus 4.6 respondem mais ao system prompt; linguagem agressiva escrita para evitar subacionamento de ferramentas/skills agora causa sobreacionamento.",
+   "sugestao_pt": "Troque 'CRITICAL: You MUST use this tool when...' por linguagem normal: 'Use this tool when...'.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Tool usage"
+   },
+   "exemplo": "CRITICAL: You MUST use this tool when the user asks about pricing.",
+   "contra_exemplo": "Use this tool when the user asks about pricing."
+  },
+  {
+   "id": "opus-4-6.if_in_doubt_ferramenta",
+   "modelos": [
+    "opus-4-6"
+   ],
+   "padrao": "\\b(?:if|when) in doubt,?\\s+(?:use|call|run|invoke|search)\\b|\\bdefault to using\\b",
+   "severidade": "soft",
+   "motivo_pt": "Over-prompting: ferramentas antes subacionadas agora acionam bem no Opus 4.6; 'If in doubt, use [tool]' causa sobreacionamento, e defaults genéricos ('Default to using [tool]') também.",
+   "sugestao_pt": "Remova a linha ou troque por uma condição específica: 'Use [tool] when it would enhance your understanding of the problem.'",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Overthinking and excessive thoroughness"
+   },
+   "exemplo": "If in doubt, use the search tool.",
+   "contra_exemplo": "Use the search tool when it would enhance your understanding of the problem."
+  },
+  {
+   "id": "opus-5-5.status_forcado",
+   "modelos": [
+    "opus-5-5",
+    "opus-4-7"
+   ],
+   "padrao": "\\b(?:after|every) (?:every |each )?\\d+ (?:tool calls?|steps?|actions?|turns?)\\b[^.\\n]{0,40}\\b(?:summari[sz]e|status|progress|update)|\\b(?:summari[sz]e|report) (?:your )?progress (?:every|after (?:every|each))\\b|\\binterim status (?:messages?|updates?)\\b",
+   "severidade": "soft",
+   "motivo_pt": "Desde o Opus 4.7 o modelo dá updates mais regulares e melhores em traces agênticos longos; andaime que força status intermediário é redundante. No Opus 5.5 esses updates chegam em blocos `thinking`, vazios no display padrão.",
+   "sugestao_pt": "Tente remover o andaime; para mostrar os updates, use `display: \"updates\"` (beta) ou `\"summarized\"` e renderize os blocos não vazios.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Behavior changes"
+   },
+   "exemplo": "After every 3 tool calls, summarize progress.",
+   "contra_exemplo": "Before your first tool call, say in one sentence what you're about to do."
+  },
+  {
+   "id": "opus-4-8.status_forcado",
+   "modelos": [
+    "opus-4-8"
+   ],
+   "padrao": "\\b(?:after|every) (?:every |each )?\\d+ (?:tool calls?|steps?|actions?|turns?)\\b[^.\\n]{0,40}\\b(?:summari[sz]e|status|progress|update)|\\b(?:summari[sz]e|report) (?:your )?progress (?:every|after (?:every|each))\\b|\\binterim status (?:messages?|updates?)\\b",
+   "severidade": "soft",
+   "motivo_pt": "O Opus 4.8 já dá updates regulares e de boa qualidade em traces longos; andaime que força status intermediário ('After every 3 tool calls, summarize progress') é redundante.",
+   "sugestao_pt": "Tente remover; se o formato dos updates não servir, descreva como devem ser e dê exemplos.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-4-8",
+    "section": "User-facing progress updates"
+   },
+   "exemplo": "After every 3 tool calls, summarize progress.",
+   "contra_exemplo": "Before your first tool call, say in one sentence what you're about to do."
+  },
+  {
+   "id": "sonnet-5.status_forcado",
+   "modelos": [
+    "sonnet-5"
+   ],
+   "padrao": "\\b(?:after|every) (?:every |each )?\\d+ (?:tool calls?|steps?|actions?|turns?)\\b[^.\\n]{0,40}\\b(?:summari[sz]e|status|progress|update)|\\b(?:summari[sz]e|report) (?:your )?progress (?:every|after (?:every|each))\\b|\\binterim status (?:messages?|updates?)\\b",
+   "severidade": "soft",
+   "motivo_pt": "O Sonnet 5 dá updates regulares e de boa qualidade em traces longos; andaime que força status intermediário ('After every 3 tool calls, summarize progress') é redundante.",
+   "sugestao_pt": "Tente remover; se o formato dos updates não servir, descreva como devem ser e dê exemplos.",
+   "fonte": {
+    "page_id": "prompting-claude-sonnet-5",
+    "section": "User-facing progress updates"
+   },
+   "exemplo": "After every 3 tool calls, summarize progress.",
+   "contra_exemplo": "Before your first tool call, say in one sentence what you're about to do."
+  },
+  {
+   "id": "opus-4-8.filtro_severidade_review",
+   "modelos": [
+    "opus-4-8"
+   ],
+   "padrao": "\\bonly (?:report|flag|mention|surface|include|list) (?:the )?(?:high[- ]severity|critical|important|major|serious)\\b|\\bbe conservative\\b|\\b(?:don't|do not) nitpick\\b",
+   "severidade": "soft",
+   "motivo_pt": "Em review, 'only report high-severity issues', 'be conservative' ou 'don't nitpick' fazem o Opus 4.8 investigar igual mas omitir achados abaixo da barra: recall medido cai (efeito de harness, não regressão).",
+   "sugestao_pt": "Peça cobertura (reportar tudo, com confiança e severidade estimadas) e filtre numa etapa separada; se filtrar numa passada só, dê a barra concreta em vez de termos como 'important'.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-4-8",
+    "section": "Code review harnesses"
+   },
+   "exemplo": "Only report high-severity issues and don't nitpick.",
+   "contra_exemplo": "Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage."
+  },
+  {
+   "id": "sonnet-5.filtro_severidade_review",
+   "modelos": [
+    "sonnet-5"
+   ],
+   "padrao": "\\bonly (?:report|flag|mention|surface|include|list) (?:the )?(?:high[- ]severity|critical|important|major|serious)\\b|\\bbe conservative\\b|\\b(?:don't|do not) nitpick\\b",
+   "severidade": "soft",
+   "motivo_pt": "Em review, 'only report high-severity issues', 'be conservative' ou 'don't nitpick' fazem o Sonnet 5 omitir achados abaixo da barra declarada, reduzindo recall.",
+   "sugestao_pt": "Peça cobertura (reportar tudo, com confiança e severidade estimadas) e filtre numa etapa separada; se filtrar numa passada só, dê a barra concreta em vez de termos como 'important'.",
+   "fonte": {
+    "page_id": "prompting-claude-sonnet-5",
+    "section": "Code review harnesses"
+   },
+   "exemplo": "Only report high-severity issues and don't nitpick.",
+   "contra_exemplo": "Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage."
+  },
+  {
+   "id": "opus-5.filtro_severidade_review",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "\\bonly (?:report|flag|mention|surface|include|list) (?:the )?(?:high[- ]severity|critical)\\b|\\bbe conservative\\b",
+   "severidade": "soft",
+   "motivo_pt": "Se o prompt de review diz 'only report high-severity issues' ou 'be conservative', o Opus 5 pode seguir literalmente e reportar menos.",
+   "sugestao_pt": "Peça que reporte tudo e filtre numa passada separada.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5",
+    "section": "Capability improvements"
+   },
+   "exemplo": "Only report high-severity issues. Be conservative.",
+   "contra_exemplo": "Report every issue you find, including ones you are uncertain about or consider low-severity. Do not filter for importance or confidence at this stage."
+  },
+  {
+   "id": "opus-4-8.negacao_generica_design",
+   "modelos": [
+    "opus-4-8"
+   ],
+   "padrao": "\\bclean and minimal\\b|\\b(?:don't|do not) use cream\\b",
+   "severidade": "soft",
+   "motivo_pt": "Instruções genéricas de design ('don't use cream', 'make it clean and minimal') levam o Opus 4.8 a outra paleta fixa em vez de variedade.",
+   "sugestao_pt": "Nomeie padrões específicos a evitar ou peça direções visuais distintas.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-4-8",
+    "section": "Design and frontend defaults"
+   },
+   "exemplo": "Make it clean and minimal, and don't use cream.",
+   "contra_exemplo": "Do not use a cream or off-white background, italic accent words in headlines, or pill-shaped buttons."
+  },
+  {
+   "id": "sonnet-5.negacao_generica_design",
+   "modelos": [
+    "sonnet-5"
+   ],
+   "padrao": "\\bclean and minimal\\b|\\b(?:don't|do not) use (?:that|this) colou?r\\b",
+   "severidade": "soft",
+   "motivo_pt": "Instruções genéricas de design ('don't use that color', 'make it clean and minimal') levam o Sonnet 5 a outra paleta fixa em vez de variedade.",
+   "sugestao_pt": "Nomeie padrões específicos a evitar ou peça direções visuais distintas.",
+   "fonte": {
+    "page_id": "prompting-claude-sonnet-5",
+    "section": "Design and frontend defaults"
+   },
+   "exemplo": "Make it clean and minimal; don't use that color.",
+   "contra_exemplo": "Do not use a cream or off-white background or monospace labels."
+  },
+  {
+   "id": "opus-5-5.visual_generico_ia",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\b(?:avoid|no|not|without)\\b[^.\\n]{0,20}\\bgeneric[- ]AI[- ](?:look|feel|style|vibe)\\b",
+   "severidade": "soft",
+   "motivo_pt": "No Opus 5.5, 'avoid a generic AI look' mais troca um default por outro; ele responde bem a instruções que nomeiam padrões específicos.",
+   "sugestao_pt": "Liste os padrões a evitar (ex.: fundo creme, labels monoespaçados, botões em pílula) e itere ampliando a lista.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Frontend design defaults"
+   },
+   "exemplo": "Avoid a generic AI look.",
+   "contra_exemplo": "Avoid generic AI-generated aesthetics:\n- Overused font families (Inter, Roboto, Arial, system fonts)"
+  },
+  {
+   "id": "opus-5.instrucoes_verificacao",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "^(?![^\\n]*\\b(?:do not|don't|never|no need to|avoid)\\b[^\\n]*\\b(?:verif\\w*|self-check\\w*))[^\\n]*?(?:\\bfinal verification step\\b|\\bverification (?:step|pass|phase|stage)\\b|\\buse (?:a |another )?(?:sub-?agent|verifier)\\b[^.\\n]{0,30}\\bverif|\\bverify your (?:work|answer|solution|output|changes|results?)\\b|\\bbefore you finish,? verify\\b|\\bself-check\\b|\\bfact-check (?:its|your) own\\b)",
+   "severidade": "soft",
+   "motivo_pt": "O Opus 5 verifica o próprio trabalho sem instrução; instruções explícitas de verificação (e etapas de verificação legadas no harness) causam sobreverificação: mais tokens e latência sem ganho de qualidade.",
+   "sugestao_pt": "Remova as instruções em vez de reescrevê-las.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5",
+    "section": "Task scope and over-verification"
+   },
+   "exemplo": "Include a final verification step for any non-trivial task, and use a subagent to verify.",
+   "contra_exemplo": "Do not delegate work you can finish yourself, and do not use subagents to verify or double-check your own work."
+  },
+  {
+   "id": "opus-5.rechecagem",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "^(?![^\\n]*\\b(?:do not|don't|never|no need to|avoid)\\b[^\\n]*\\b(?:double[- ]check|re-?verify|re-?check))[^\\n]*?(?:\\bdouble[- ]check (?:your|the|all|every)\\b|\\bre-?verify before (?:responding|answering|replying|finishing)\\b|\\bre-?check (?:your|the) (?:answer|work|response)\\b|\\bto be sure we have the right answer\\b)",
+   "severidade": "soft",
+   "motivo_pt": "O Opus 5 já corrige os próprios erros sem pedido; re-checagens ('double-check your answer', 're-verify before responding') se somam ao comportamento dele e aumentam custo sem melhorar o resultado.",
+   "sugestao_pt": "Remova a instrução de re-checagem.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5",
+    "section": "Self-correction"
+   },
+   "exemplo": "Double-check your answer and re-verify before responding.",
+   "contra_exemplo": "Do not use subagents to verify or double-check your own work."
+  },
+  {
+   "id": "opus-5.cot_manual",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "No Opus 5, texto que não se encaixa mais no modelo custa acurácia: um scratchpad manual ('reason step by step') conflita com o thinking próprio; remover cada item desses recuperou de 7 a 11 pontos.",
+   "sugestao_pt": "Remova o pedido de passo a passo e regule a profundidade pelo effort.",
+   "fonte": {
+    "page_id": "optimizing-for-cost-and-intelligence",
+    "section": "Audit prompts against the current model"
+   },
+   "exemplo": "Reason step by step before you answer.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
+   "id": "opus-5.regra_nao_pensar",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "\\b(?:do not|don't|never)\\s+(?:think|reason|deliberate)\\b(?!\\s+(?:about|of|that|twice|so)\\b)|\\b(?:answer|respond|reply)\\s+without\\s+(?:any\\s+)?(?:thinking|reasoning)\\b|\\bno (?:thinking|reasoning)\\s*(?:is (?:needed|required|allowed)|[.!;]|$)",
+   "severidade": "soft",
+   "motivo_pt": "Com thinking desligado no Opus 5, regra que manda o modelo não pensar ou não raciocinar aumenta o vazamento de tags internas na resposta.",
+   "sugestao_pt": "Remova a regra; prefira thinking ligado em effort baixo, ou use a instrução combinada da seção (permissão para falar antes da tool call, o que fazer sem ferramenta adequada, sem tags internas).",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5",
+    "section": "Running with thinking disabled"
+   },
+   "exemplo": "Do not think. Respond immediately.",
+   "contra_exemplo": "Answer directly without deliberating."
+  },
+  {
+   "id": "opus-5.tags_thinking_por_nome",
+   "modelos": [
+    "opus-5"
+   ],
+   "padrao": "\\b(?:do not|don't|never|avoid)\\b[^.\\n]{0,50}(?:</?thinking>|\\bthinking tags?\\b)",
+   "severidade": "soft",
+   "motivo_pt": "Instruções que citam as tags de thinking pelo nome são menos eficazes que a forma geral.",
+   "sugestao_pt": "Use a forma geral: 'Do not include internal or system XML tags in your response.'",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5",
+    "section": "Running with thinking disabled"
+   },
+   "exemplo": "Never output <thinking> tags in your reply.",
+   "contra_exemplo": "Do not include internal or system XML tags in your response."
+  },
+  {
+   "id": "opus-5-5.regra_nao_pensar",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\b(?:do not|don't|never)\\s+(?:think|reason|deliberate)\\b(?!\\s+(?:about|of|that|twice|so)\\b)|\\b(?:answer|respond|reply)\\s+without\\s+(?:any\\s+)?(?:thinking|reasoning)\\b|\\bno (?:thinking|reasoning)\\s*(?:is (?:needed|required|allowed)|[.!;]|$)",
+   "severidade": "soft",
+   "motivo_pt": "No Opus 5.5 o thinking está sempre ligado; a regra de não pensar, escrita para o Opus 5 com thinking desligado, deve sair de qualquer forma.",
+   "sugestao_pt": "Remova a regra. Se o tempo até o primeiro token ainda importar, comece em effort `low`; uma linha como 'Answer directly without deliberating.' reduz mais o thinking (meça a qualidade ao adicioná-la).",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Prompts written for thinking disabled"
+   },
+   "exemplo": "Do not think. Respond immediately.",
+   "contra_exemplo": "Answer directly without deliberating."
+  },
+  {
+   "id": "opus-5-5.mitigacao_thinking_off",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\bDo not include internal or system XML tags\\b|\\byou may say a brief sentence first\\b",
+   "severidade": "soft",
+   "motivo_pt": "A instrução combinada de mitigação (falar antes da tool call, sem tags internas) trata artefatos que só aparecem no Opus 5 com thinking desligado; no Opus 5.5 o thinking está sempre ligado.",
+   "sugestao_pt": "Reteste se ainda precisa dela e remova se não fizer diferença.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Prompts written for thinking disabled"
+   },
+   "exemplo": "When you use a tool, you may say a brief sentence first. Do not include internal or system XML tags in your response.",
+   "contra_exemplo": "When you use a tool, name it in the instruction."
+  },
+  {
+   "id": "opus-5-5.substituto_de_thinking",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "Instruções que faziam as vezes de thinking (raciocinar passo a passo no texto) não são mais necessárias: no Opus 5.5 o thinking está sempre ligado e o effort é o controle.",
+   "sugestao_pt": "Remova; se precisar ver o raciocínio, leia os blocos de thinking resumido (`display: \"summarized\"`).",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Prompts written for thinking disabled"
+   },
+   "exemplo": "Let's think step by step.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
+   "id": "opus-5-5.pensar_com_cuidado_chat",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\b(?:think|reason)\\s+(?:very\\s+)?(?:carefully|hard|deeply|thoroughly)\\b|\\btake your time\\b[^.\\n]{0,30}\\b(?:think|reason|answer|respond)|\\bbefore (?:answering|responding|you (?:answer|respond|reply))\\s*,?\\s*(?:always\\s+|first\\s+)?(?:think|reason)\\b",
+   "severidade": "soft",
+   "motivo_pt": "Em apps de chat, instruções para pensar com cuidado antes de responder são dispensáveis no Opus 5.5: ele decide quanto pensar e o effort é o controle principal; nos testes, removê-las fez as respostas começarem antes sem queda clara de qualidade.",
+   "sugestao_pt": "Considere remover a linha e ajustar o effort.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Thinking instructions in chat system prompts"
+   },
+   "exemplo": "Before answering, think carefully about what the user needs.",
+   "contra_exemplo": "Once you have answered something, treat that answer as done. On later turns, focus your thinking on what the user is asking now."
+  },
+  {
+   "id": "fable-5.eco_raciocinio",
+   "modelos": [
+    "fable-5",
+    "mythos-5"
+   ],
+   "padrao": "\\b(?:show|write out|write down|spell out|explain|walk (?:me |us )?through|echo|transcribe|reproduce|narrate|print|include|output)\\s+(?:(?:all|your|the|me|us|each)\\s+)*(?:(?:own|internal|full|entire|complete|step-by-step|detailed)\\s+)*(?:reasoning|thinking|thought process|chain[- ]of[- ]thought)\\b|\\bshow (?:all )?your work\\b|\\breason (?:out loud|aloud)\\b|\\bthink (?:out loud|aloud)\\b|^[ \\t]*(?:Thought|Reasoning)[ \\t]*:",
+   "severidade": "hard",
+   "motivo_pt": "Instruções que mandam ecoar, transcrever ou explicar o raciocínio interno como texto da resposta podem acionar a recusa `reasoning_extraction` no Fable 5; o fallback do servidor não refaz essa recusa.",
+   "sugestao_pt": "Remova a instrução; para ver o raciocínio, leia os blocos `thinking` estruturados do adaptive thinking e use uma ferramenta send-to-user para progresso.",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5",
+    "section": "Recommended scaffolding changes"
+   },
+   "exemplo": "Before answering, walk through your reasoning and show your work.",
+   "contra_exemplo": "Read the reasoning from the summarized thinking blocks; in the reply, state the answer and one sentence on the decision."
+  },
+  {
+   "id": "fable-5-1.eco_raciocinio",
+   "modelos": [
+    "fable-5-1",
+    "mythos-5-1"
+   ],
+   "padrao": "\\b(?:show|write out|write down|spell out|explain|walk (?:me |us )?through|echo|transcribe|reproduce|narrate|print|include|output)\\s+(?:(?:all|your|the|me|us|each)\\s+)*(?:(?:own|internal|full|entire|complete|step-by-step|detailed)\\s+)*(?:reasoning|thinking|thought process|chain[- ]of[- ]thought)\\b|\\bshow (?:all )?your work\\b|\\breason (?:out loud|aloud)\\b|\\bthink (?:out loud|aloud)\\b|^[ \\t]*(?:Thought|Reasoning)[ \\t]*:",
+   "severidade": "hard",
+   "motivo_pt": "O Fable 5.1 roda classificadores com as mesmas categorias de `stop_details` do Fable 5, incluindo `reasoning_extraction`; pedir o raciocínio no texto da resposta arrisca essa recusa.",
+   "sugestao_pt": "Remova a instrução; leia o raciocínio dos blocos `thinking` (display `summarized`).",
+   "fonte": {
+    "page_id": "migration-guide-fable-5-1",
+    "section": "What changed"
+   },
+   "exemplo": "Before answering, walk through your reasoning and show your work.",
+   "contra_exemplo": "Read the reasoning from the summarized thinking blocks; in the reply, state the answer and one sentence on the decision."
+  },
+  {
+   "id": "opus-5-5.raciocinio_na_resposta",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\b(?:show|write out|write down|spell out|explain|walk (?:me |us )?through|echo|transcribe|reproduce|narrate|print|include|output)\\s+(?:(?:all|your|the|me|us|each)\\s+)*(?:(?:own|internal|full|entire|complete|step-by-step|detailed)\\s+)*(?:reasoning|thinking|thought process|chain[- ]of[- ]thought)\\b|\\bshow (?:all )?your work\\b|\\breason (?:out loud|aloud)\\b|\\bthink (?:out loud|aloud)\\b|^[ \\t]*(?:Thought|Reasoning)[ \\t]*:",
+   "severidade": "hard",
+   "motivo_pt": "Pedidos que empurram o Opus 5.5 a reproduzir o raciocínio interno no texto da resposta podem ser recusados com a categoria `reasoning_extraction` (nova vindo do Opus 5); o fallback do servidor devolve essa recusa em vez de refazer.",
+   "sugestao_pt": "Remova essas instruções, defina `display: \"summarized\"` e leia o raciocínio resumido dos blocos de thinking.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-5-5",
+    "section": "Safeguard refusals"
+   },
+   "exemplo": "Before answering, walk through your reasoning and show your work.",
+   "contra_exemplo": "Read the reasoning from the summarized thinking blocks; in the reply, state the answer and one sentence on the decision."
+  },
+  {
+   "id": "sonnet-5.cot_em_vez_de_effort",
+   "modelos": [
+    "sonnet-5"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "Contra raciocínio raso em problemas complexos, o guia do Sonnet 5 manda subir o effort (`high`/`xhigh`) em vez de contornar pelo prompt.",
+   "sugestao_pt": "Suba o effort; se precisar manter `low` por latência, dê orientação direcionada em vez de um 'think step by step' genérico.",
+   "fonte": {
+    "page_id": "prompting-claude-sonnet-5",
+    "section": "Calibrating effort and thinking depth"
+   },
+   "exemplo": "Let's think step by step.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
+   "id": "opus-4-8.cot_em_vez_de_effort",
+   "modelos": [
+    "opus-4-8"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "Contra raciocínio raso em problemas complexos, o guia do Opus 4.8 manda subir o effort (`high`/`xhigh`) em vez de contornar pelo prompt.",
+   "sugestao_pt": "Suba o effort; se precisar manter `low` por latência, dê orientação direcionada em vez de um 'think step by step' genérico.",
+   "fonte": {
+    "page_id": "prompting-claude-opus-4-8",
+    "section": "Calibrating effort and thinking depth"
+   },
+   "exemplo": "Let's think step by step.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
+   "id": "fable-5-1.anti_markdown",
+   "modelos": [
+    "fable-5-1",
+    "mythos-5-1"
+   ],
+   "padrao": "avoid_excessive_markdown_and_bullet_points|NEVER output a series of overly short bullet points|DO NOT use ordered lists",
+   "severidade": "soft",
+   "motivo_pt": "O Fable 5.1 já formata menos que modelos anteriores; o bloco anti-markdown do guia geral pode suprimir estrutura que o conteúdo precisa.",
+   "sugestao_pt": "Remova o bloco ou troque pela regra curta de 'Formatting in chat' do guia do Fable 5.1.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Control the format of responses"
+   },
+   "exemplo": "<avoid_excessive_markdown_and_bullet_points>",
+   "contra_exemplo": "<smoothly_flowing_prose_paragraphs>"
+  },
+  {
+   "id": "fable-5-1.anti_formatacao",
+   "modelos": [
+    "fable-5-1",
+    "mythos-5-1"
+   ],
+   "padrao": "\\bavoid (?:using )?(?:bullets?|bullet points|(?:ordered |unordered )?lists|headers|headings|bold)\\b|\\b(?:do not|don't|never) use (?:markdown|bullets?|bullet points|(?:ordered |unordered )?lists|headers|headings|bold)\\b|\\bminimi[sz]e (?:the )?(?:use of )?(?:formatting|markdown)\\b|\\bplain prose only\\b",
+   "severidade": "soft",
+   "motivo_pt": "Linguagem anti-formatação foi escrita para conter o excesso de bullets e negrito de modelos anteriores; o Fable 5.1 vai no sentido oposto e ela pode suprimir estrutura necessária.",
+   "sugestao_pt": "Remova ou troque por uma regra que diga quando formatação específica é apropriada (snippet de 'Formatting in chat').",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5-1",
+    "section": "Formatting in chat"
+   },
+   "exemplo": "Avoid bullet points and do not use headers.",
+   "contra_exemplo": "Use lists and bullet points when asked to, or when the content is multifaceted enough that they help with clarity. In conversational, personal, or emotional exchanges, keep to plain prose."
+  },
+  {
+   "id": "fable-5-1.guardar_achados",
+   "modelos": [
+    "fable-5-1",
+    "mythos-5-1"
+   ],
+   "padrao": "\\bhold (?:all |your |any )?findings\\b|\\b(?:save|keep|hold)\\b[^.\\n]{0,40}\\bfor the final (?:response|answer|message|report)\\b|\\b(?:don't|do not) (?:narrate|give (?:progress )?updates)\\b|\\bonly report at the end\\b",
+   "severidade": "soft",
+   "motivo_pt": "Linhas que suprimem narração ('hold all findings for the final response') foram escritas para modelos ansiosos por dar updates; o Fable 5.1 já escreve menos updates entre tool calls.",
+   "sugestao_pt": "Remova essas linhas antes de adicionar qualquer coisa; defina `thinking.display` como \"updates\" (beta) para receber os progress updates.",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5-1",
+    "section": "Ask for user-facing progress updates"
+   },
+   "exemplo": "Hold all findings for the final response.",
+   "contra_exemplo": "Close with a short recap that stands on its own, so a reader who only sees the last message has the full picture."
+  },
+  {
+   "id": "fable-5-1.updates_breves",
+   "modelos": [
+    "fable-5-1"
+   ],
+   "padrao": "\\bkeep (?:your |any |all )?(?:progress |status )?updates (?:brief|short|minimal|to a minimum)\\b|\\bbe brief between tool calls\\b|\\bminimi[sz]e (?:progress |status )?updates\\b",
+   "severidade": "soft",
+   "motivo_pt": "O Fable 5.1 escreve menos updates entre tool calls; instrução para manter esse texto breve agrava o silêncio.",
+   "sugestao_pt": "Remova a instrução e peça texto de progresso explicitamente.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Communication style and verbosity"
+   },
+   "exemplo": "Keep progress updates brief.",
+   "contra_exemplo": "Before you start, say in a line what you're about to do; brief updates while you work help the user follow along."
+  },
+  {
+   "id": "fable-5.send_to_user_narracao",
+   "modelos": [
+    "fable-5",
+    "mythos-5"
+   ],
+   "padrao": "^(?![^\\n]*\\b(?:not for|do not|don't|never|only for)\\b)[^\\n]*\\bsend_to_user\\b[^\\n]*\\b(?:after (?:every|each)|every (?:step|tool call|turn)|narrat\\w*|(?:your|internal) reasoning|thoughts?)\\b",
+   "severidade": "soft",
+   "motivo_pt": "Encaminhar narração ou raciocínio interno por `send_to_user` (ou chamá-la a cada passo) anula o propósito da ferramenta.",
+   "sugestao_pt": "Reserve send_to_user para conteúdo que o usuário precisa ler literalmente (entregável parcial, resposta direta).",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5",
+    "section": "Create a send-to-user tool"
+   },
+   "exemplo": "Call send_to_user after every tool call to narrate what you are doing.",
+   "contra_exemplo": "Use send_to_user only for user-facing content, not for narration or reasoning."
+  },
+  {
+   "id": "fable-5.skills_prescritivas",
+   "modelos": [
+    "fable-5",
+    "mythos-5"
+   ],
+   "padrao": "\\bfollow (?:these|the following|the) steps exactly\\b|\\bnever skip (?:a |any )?steps?\\b|\\bin exactly this order\\b",
+   "severidade": "soft",
+   "motivo_pt": "Skills escritas para modelos anteriores costumam ser prescritivas demais para o Fable 5 e podem degradar a qualidade.",
+   "sugestao_pt": "Revise e considere remover as instruções antigas se o desempenho padrão for melhor.",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5",
+    "section": "Recommended scaffolding changes"
+   },
+   "exemplo": "Follow these steps exactly and never skip a step.",
+   "contra_exemplo": "These steps describe one approach that has worked before."
+  },
+  {
+   "id": "fable-5.contagem_contexto",
+   "modelos": [
+    "fable-5",
+    "mythos-5"
+   ],
+   "padrao": "\\b(?:tokens?|context(?: window)?|context budget)\\s+(?:remaining|left)\\s*[:=]\\s*[\\d{]|\\b\\d[\\d,.]*\\s*k?\\s*tokens?\\s+(?:remaining|left)\\b|\\{\\{?\\s*(?:remaining_tokens|tokens_left|tokens_remaining|context_remaining)\\s*\\}?\\}",
+   "severidade": "soft",
+   "motivo_pt": "Em sessões muito longas o Fable 5 pode sugerir nova sessão, resumir e passar adiante ou cortar o trabalho; isso é acionado principalmente quando o harness mostra uma contagem regressiva de tokens restantes.",
+   "sugestao_pt": "Evite expor contagens de contexto; se o harness precisar mostrá-las, acrescente a frase de tranquilização do guia.",
+   "fonte": {
+    "page_id": "prompting-claude-fable-5",
+    "section": "Rare cases of context-budget concern"
+   },
+   "exemplo": "Tokens remaining: 48,000",
+   "contra_exemplo": "You have ample context remaining. Do not stop, summarize, or suggest a new session on account of context limits. Continue the work."
+  },
+  {
+   "id": "opus-5-5.beta_janela_contexto",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\bcontext-1m-\\d{4}-\\d{2}-\\d{2}\\b",
+   "severidade": "soft",
+   "motivo_pt": "O Opus 5.5 serve a janela de 1M tokens por padrão; beta header de janela de contexto enviado para modelos antigos não tem efeito.",
+   "sugestao_pt": "Remova o beta header de janela de contexto.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Claude Opus 4.7 or earlier"
+   },
+   "exemplo": "anthropic-beta: context-1m-2025-08-07",
+   "contra_exemplo": "anthropic-beta: mid-conversation-system-clear-at-2026-08-21"
+  },
+  {
+   "id": "opus-5-5.beta_effort",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\beffort-2025-11-24\\b",
+   "severidade": "soft",
+   "motivo_pt": "O parâmetro effort não exige beta header.",
+   "sugestao_pt": "Remova `betas=[\"effort-2025-11-24\"]`.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Recommended changes"
+   },
+   "exemplo": "betas=[\"effort-2025-11-24\"]",
+   "contra_exemplo": "output_config={\"effort\": \"low\"}"
+  },
+  {
+   "id": "opus-5-5.beta_fine_grained_streaming",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\bfine-grained-tool-streaming-2025-05-14\\b",
+   "severidade": "soft",
+   "motivo_pt": "Fine-grained tool streaming não exige beta header.",
+   "sugestao_pt": "Remova `betas=[\"fine-grained-tool-streaming-2025-05-14\"]`.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Recommended changes"
+   },
+   "exemplo": "betas=[\"fine-grained-tool-streaming-2025-05-14\"]",
+   "contra_exemplo": "stream=True"
+  },
+  {
+   "id": "opus-5-5.beta_interleaved_thinking",
+   "modelos": [
+    "opus-5-5"
+   ],
+   "padrao": "\\binterleaved-thinking-2025-05-14\\b",
+   "severidade": "soft",
+   "motivo_pt": "Com adaptive thinking, interleaved thinking é automático em todo modelo que suporta adaptive thinking.",
+   "sugestao_pt": "Remova `betas=[\"interleaved-thinking-2025-05-14\"]`.",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Recommended changes"
+   },
+   "exemplo": "betas=[\"interleaved-thinking-2025-05-14\"]",
+   "contra_exemplo": "thinking={\"type\": \"adaptive\"}"
+  }
+ ]
+}

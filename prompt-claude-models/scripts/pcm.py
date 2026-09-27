@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import collections
 import concurrent.futures
 import contextlib
 import datetime as _dt
@@ -108,16 +109,19 @@ RE_SHA = re.compile(r"^[0-9a-f]{64}$")
 # Id de página vira nome de arquivo no cache: sem '/' nem '.' inicial, nada de
 # '../../x' escrevendo fora de STATE_DIR/cache.
 RE_ID_PAGINA = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
-RE_TOKEN = re.compile(r"\S+\s*|\s+")
+# Token da similaridade: palavra (letras latinas, dígitos, _) com o espaço que a
+# segue, ou um caractere qualquer. Com \S+ um texto sem espaço era um token só.
+RE_TOKEN = re.compile(r"[0-9A-Za-z_À-ɏ]+\s*|\S\s*|\s+")
+RE_PALAVRA_LONGA = re.compile(r"[0-9A-Za-z_À-ɏ]{101,}")
 
 # Limites de rede: --timeout é prazo total por página (não só por leitura de
 # socket) e uma página maior que isso não é documentação.
 MAX_PAGINA = 20 * 1024 * 1024
 MAX_TIMEOUT = 3600.0
-# Similaridade da edição: abaixo disso compara caractere a caractere (exato);
-# acima, por tokens, para não virar O(n·m) em Python.
-LIMITE_SIM_CHARS = 20000
-LIMITE_SIM_TOKENS = 40000
+# Similaridade da edição: comparações do SequenceMatcher sem autojunk numa chamada
+# (~0,1 µs cada, ~0,5 s) e prazo total do exato; acima disso, aproximação quase linear.
+ORCAMENTO_SIM = 5_000_000
+PRAZO_SIM = 1.0
 
 # umask lida uma vez, na importação (ainda sem threads): arquivo novo nasce com
 # o modo que um open() normal daria, não com o 0600 do mkstemp.
@@ -254,7 +258,8 @@ def escrever_atomico(path: Path, data: bytes) -> None:
 
 def escrever_json(path: Path, obj, final_nl: bool = True, eol: str = "\n", bom: bool = False) -> None:
     """eol/bom: fontes.json é do repo; reescrever CRLF como LF mudava todas as linhas no diff."""
-    txt = json.dumps(obj, indent=2, ensure_ascii=False) + ("\n" if final_nl else "")
+    # allow_nan=False: NaN/Infinity no estado é JSON que outro consumidor recusa; melhor falhar aqui.
+    txt = json.dumps(obj, indent=2, ensure_ascii=False, allow_nan=False) + ("\n" if final_nl else "")
     if eol != "\n":
         txt = txt.replace("\n", eol)
     escrever_atomico(path, (("﻿" if bom else "") + txt).encode("utf-8"))
@@ -1562,23 +1567,111 @@ def calcular_R(sinais: dict) -> float | None:
 
 
 def similaridade(a: str, b: str) -> float:
-    """Razão de similaridade entregue×editado (0–1).
+    """Razão de similaridade entregue×editado (0–1): 2·iguais / (len(a) + len(b)).
 
     autojunk=False: com o padrão, acima de 200 caracteres o difflib trata letras
-    comuns como lixo e apagar 100 de 8 000 caracteres dava 0,43. Textos grandes
-    comparam por tokens (palavra + espaço) com peso em caracteres, porque o
-    caractere a caractere sem autojunk é O(n·m) e levaria minutos.
+    comuns como lixo e apagar 1 palavra de 60 dava 0,65 (100 de 8 000 caracteres, 0,43).
+    Sem autojunk o SequenceMatcher pode ser O(n·m) em texto repetitivo (tabela,
+    lista: 34 s em 40 KB), então o exato só roda com custo previsto no orçamento e
+    sob prazo; senão, _iguais_aprox.
     """
     if a == b:
         return 1.0
     if not a or not b:
         return 0.0
-    if len(a) + len(b) <= LIMITE_SIM_CHARS:
-        return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
-    ta, tb = RE_TOKEN.findall(a), RE_TOKEN.findall(b)
-    sm = difflib.SequenceMatcher(None, ta, tb, autojunk=len(ta) + len(tb) > LIMITE_SIM_TOKENS)
-    iguais = sum(len(t) for i, _j, n in sm.get_matching_blocks() for t in ta[i:i + n])
+    prazo = time.monotonic() + PRAZO_SIM
+    iguais = _iguais_sm(a, b, False, prazo)
+    if iguais is None:
+        iguais = _iguais_aprox(a, b, prazo)
     return 2 * iguais / (len(a) + len(b))
+
+
+class _PrazoEsgotado(Exception):
+    """O SequenceMatcher passou do PRAZO_SIM: cair para a aproximação."""
+
+
+class _SMComPrazo(difflib.SequenceMatcher):
+    """SequenceMatcher que confere o prazo a cada find_longest_match.
+
+    O custo previsto (_custo_sm) vale para uma chamada; com muitos blocos a recursão
+    multiplica (prosa com 160 edições: previsão 0,5 s, real 28 s). Cada chamada custa
+    no máximo o orçamento, então o prazo estoura por no máximo uma chamada.
+    """
+
+    def __init__(self, xs, ys, prazo: float):
+        self._prazo = prazo
+        super().__init__(None, xs, ys, autojunk=False)
+
+    def find_longest_match(self, alo=0, ahi=None, blo=0, bhi=None):
+        if time.monotonic() > self._prazo:
+            raise _PrazoEsgotado
+        return super().find_longest_match(alo, ahi, blo, bhi)
+
+
+def _custo_sm(xs, ys) -> int:
+    """Comparações do find_longest_match de topo sem autojunk: Σ ocorrências(x em a)·ocorrências(x em b)."""
+    cb = collections.Counter(ys)
+    return sum(n * cb.get(x, 0) for x, n in collections.Counter(xs).items())
+
+
+def _iguais_sm(xs, ys, pesar: bool, prazo: float) -> int | None:
+    """Caracteres iguais segundo o SequenceMatcher(autojunk=False), ou None se passaria
+    do orçamento ou do prazo. pesar=True: xs/ys são tokens e cada um vale seu tamanho."""
+    if _custo_sm(xs, ys) > ORCAMENTO_SIM:
+        return None
+    try:
+        blocos = _SMComPrazo(xs, ys, prazo).get_matching_blocks()
+    except _PrazoEsgotado:
+        return None
+    if pesar:
+        return sum(len(t) for i, _j, n in blocos for t in xs[i:i + n])
+    return sum(n for _i, _j, n in blocos)
+
+
+def _comum(a: str, b: str, sufixo: bool, limite: int) -> int:
+    """Tamanho do prefixo (ou sufixo) comum, por busca binária com comparação de
+    fatias em C: O(n log n) sem laço Python por caractere."""
+    lo, hi = 0, limite
+    while lo < hi:
+        m = (lo + hi + 1) // 2
+        igual = a[len(a) - m:] == b[len(b) - m:] if sufixo else a[:m] == b[:m]
+        lo, hi = (m, hi) if igual else (lo, m - 1)
+    return lo
+
+
+def _iguais_aprox(a: str, b: str, prazo: float) -> int:
+    """Iguais quando o exato não coube no orçamento ou no prazo.
+
+    Prefixo e sufixo comuns saem em tempo quase linear e cobrem a edição localizada
+    em qualquer texto, com ou sem espaço (JSON minificado, CJK, base64). O miolo
+    tenta o exato por caracteres e depois por tokens (palavra ou 1 caractere; com
+    \\S+ um texto sem espaço era um token só e a similaridade dava 0); sem orçamento
+    ou prazo, estima pela fração de trechos de 8 caracteres em comum (linear).
+    """
+    p = _comum(a, b, False, min(len(a), len(b)))
+    s = _comum(a, b, True, min(len(a), len(b)) - p)
+    ma, mb = a[p:len(a) - s], b[p:len(b) - s]
+    if not ma or not mb:
+        return p + s
+    meio = _iguais_sm(ma, mb, False, prazo)
+    if meio is None and not (RE_PALAVRA_LONGA.search(ma) or RE_PALAVRA_LONGA.search(mb)):
+        # Palavra de centenas de caracteres (base64, 'abab...') não é unidade de
+        # edição: um caractere deslocado zerava todos os tokens em comum.
+        meio = _iguais_sm(RE_TOKEN.findall(ma), RE_TOKEN.findall(mb), True, prazo)
+    if meio is None:
+        meio = _iguais_trechos(ma, mb)
+    return p + s + meio
+
+
+def _iguais_trechos(a: str, b: str, k: int = 8) -> int:
+    """Estimativa linear: fração dos trechos de k caracteres (multiconjunto) em comum
+    vezes o menor tamanho. Não depende de espaço nem de alinhamento."""
+    if len(a) < k or len(b) < k:
+        return sum((collections.Counter(a) & collections.Counter(b)).values())
+    ca = collections.Counter(a[i:i + k] for i in range(len(a) - k + 1))
+    cb = collections.Counter(b[i:i + k] for i in range(len(b) - k + 1))
+    comuns = sum((ca & cb).values())
+    return int(comuns / max(len(a), len(b)) * min(len(a), len(b)))
 
 
 def _sinais_novos(args) -> dict:
@@ -1610,62 +1703,141 @@ def _sinais_novos(args) -> dict:
     return s
 
 
-def _aplicar_placar(placar: dict, ep_id: str, modelo: str, tarefa: str, velha: dict, nova: dict) -> None:
+def _fracao(v) -> bool:
+    """Número finito em [0, 1]: todo sinal normalizado, R e contribuição R_d."""
+    return not isinstance(v, bool) and isinstance(v, (int, float)) and math.isfinite(v) and 0 <= v <= 1
+
+
+def _contribuicao_valida(c) -> bool:
+    return isinstance(c, dict) and all(isinstance(k, str) and _fracao(v) for k, v in c.items())
+
+
+def entrada_valida(e) -> bool:
+    """alfa/beta/n finitos e >= 0, n inteiro e alfa, beta <= n (cada episódio soma R_d e 1 − R_d, ambos <= 1).
+
+    NaN ou alfa negativo passavam pelo politica/stats e saíam como "media": NaN
+    (JSON que parser estrito recusa) ou média fora de 0..1.
+    """
+    if not isinstance(e, dict):
+        return False
+    vals = [e.get(c, 0) for c in ("alfa", "beta", "n")]
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0 for v in vals):
+        return False
+    a, b, n = vals
+    return n == int(n) and a <= n + 1e-6 and b <= n + 1e-6
+
+
+def caminho_journal() -> Path:
+    return state_dir() / "placar.journal.json"
+
+
+def _recuperar_journal() -> None:
+    """Termina uma recompensa interrompida; chame sob trava_estado().
+
+    placar.json e episodios.jsonl são dois arquivos: um crash entre gravar o placar
+    e anexar o retrato deixava o placar com a contribuição nova e o retrato com a
+    velha, e a chamada seguinte subtraía a errada. O journal guarda o estado final
+    dos dois antes de qualquer escrita; refazê-lo é idempotente (o último retrato vence).
+    """
+    p = caminho_journal()
+    j = ler_estado(p, {})
+    if not j:
+        return
+    placar, ep = j.get("placar"), j.get("episodio")
+    if not (isinstance(placar, dict) and isinstance(ep, dict) and isinstance(ep.get("id"), str)):
+        raise ErroUso(f"{p} corrompido; remova-o (a última recompensa pode não ter sido aplicada)", EXIT_VALIDACAO)
+    escrever_json(caminho_placar(), placar)
+    anexar_episodio(ep)
+    p.unlink()
+    diag(f"recompensa interrompida de {ep['id']} concluída a partir do journal")
+
+
+def _somar_contribuicoes(eps: dict, chaves: set, excluir: str) -> dict:
+    """(alfa, beta, n) de cada chave pedida, somando o último retrato de cada episódio.
+
+    Só para chaves ausentes do placar (placar.json apagado ou entrada removida):
+    sem isto a contribuição velha era subtraída de zero e o episódio sumia (n=0).
+    """
+    tot: dict[str, tuple[float, float, int]] = {}
+    for eid, e in eps.items():
+        c = e.get("contribuicao")
+        if eid == excluir or not c:
+            continue
+        if not (isinstance(e.get("modelo"), str) and isinstance(e.get("tarefa"), str) and _contribuicao_valida(c)):
+            diag(f"episódio {eid}: contribuição ilegível; fora da reconstrução do placar")
+            continue
+        for d, rd in c.items():
+            for t in (e["tarefa"], "*"):
+                k = chave(e["modelo"], t, d)
+                if k in chaves:
+                    a, b, n = tot.get(k, (0.0, 0.0, 0))
+                    tot[k] = (a + rd, b + 1 - rd, n + 1)
+    return tot
+
+
+def _aplicar_placar(placar: dict, eps: dict, ep: dict, nova: dict) -> None:
     """Idempotente: desfaz a contribuição anterior do episódio antes de somar a nova.
 
-    Quem diz se a contribuição já está somada é a própria entrada do placar
-    (`episodios`: {ep_id: R_d}), gravada no mesmo arquivo atômico. Confiar só no
-    retrato do episódio (outro arquivo) contava duas vezes quando o append falhava
-    depois do placar gravado, e zerava n / negativava alfa quando placar.json sumia.
+    A contribuição aplicada fica no retrato do episódio (spec), e a entrada do placar
+    mantém o formato fixo {alfa, beta, n, atualizado_em}. O mapa "episodios" que a
+    versão anterior guardava em cada entrada crescia sem limite; é removido aqui.
     """
     agora = agora_iso()
-    for d, rd in nova.items():
-        for t in (tarefa, "*"):
-            k = chave(modelo, t, d)
-            e = placar.get(k)
-            if e is None:
-                e = placar[k] = {"alfa": 0.0, "beta": 0.0, "n": 0, "atualizado_em": agora}
+    velha = ep.get("contribuicao") or {}
+    for e in placar.values():
+        if isinstance(e, dict):
+            e.pop("episodios", None)
+    tocadas = [(d, rd, chave(ep["modelo"], t, d)) for d, rd in nova.items() for t in (ep["tarefa"], "*")]
+    faltantes = {k for _d, _rd, k in tocadas if k not in placar}
+    base = _somar_contribuicoes(eps, faltantes, ep["id"]) if faltantes else {}
+    for d, rd, k in tocadas:
+        if k in placar:
+            e = placar[k]
             _conferir_entrada(k, e)
-            aplicados = e.get("episodios")
-            if not isinstance(aplicados, dict):
-                aplicados = e["episodios"] = {}
-            n = int(e.get("n", 0))
-            antiga = aplicados.get(ep_id)
-            if antiga is None and d in velha and n > len(aplicados):
-                # Entrada anterior a este registro: há contribuições sem id e o
-                # retrato diz que esta foi uma delas.
-                antiga = velha[d]
+            a, b, n = float(e.get("alfa", 0)), float(e.get("beta", 0)), int(e.get("n", 0))
+            antiga = velha.get(d)
             if antiga is None:
                 n += 1
-                a, b = float(e.get("alfa", 0)), float(e.get("beta", 0))
             else:
-                a, b = float(e.get("alfa", 0)) - antiga, float(e.get("beta", 0)) - (1 - antiga)
-            e["alfa"] = max(0.0, round(a + rd, 12))
-            e["beta"] = max(0.0, round(b + 1 - rd, 12))
-            e["n"] = n
-            aplicados[ep_id] = rd
-            e["atualizado_em"] = agora
+                a, b = a - antiga, b - (1 - antiga)
+        else:
+            a, b, n = base.get(k, (0.0, 0.0, 0))
+            n += 1
+        placar[k] = {"alfa": max(0.0, round(a + rd, 12)), "beta": max(0.0, round(b + 1 - rd, 12)),
+                     "n": n, "atualizado_em": agora}
 
 
 def _conferir_entrada(k: str, e) -> None:
-    """Entrada do placar com alfa/beta/n não numéricos: parar (exit 3) em vez de
-    sobrescrever às cegas ou levantar ValueError (exit 1)."""
-    ok = isinstance(e, dict)
-    if ok:
-        for campo in ("alfa", "beta", "n"):
-            v = e.get(campo, 0)
-            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
-                ok = False
-    if not ok:
+    """Entrada do placar inválida (não numérica, NaN, negativa, alfa > n): parar
+    (exit 3) em vez de sobrescrever às cegas ou levantar ValueError (exit 1)."""
+    if not entrada_valida(e):
         raise ErroUso(f"{caminho_placar()} corrompido na chave {k!r}; corrija ou remova a entrada", EXIT_VALIDACAO)
 
 
 def _conferir_episodio(ep: dict) -> None:
-    """Retrato editado à mão sem modelo/tarefa/decisões não pode virar KeyError (exit 1)."""
+    """Retrato editado à mão não pode virar exceção (exit 1) nem R fora de 0..1 no placar.
+
+    sinais "x" levantava ValueError no dict(); rubrica "alta" no float(); rubrica 7
+    gravava R = 2,5; sinal NaN virava alfa 0 com n=1 (max(0.0, nan) é 0).
+    """
     decs = ep.get("decisoes")
+    motivos = []
     if not (isinstance(ep.get("modelo"), str) and isinstance(ep.get("tarefa"), str) and isinstance(decs, list)
             and all(isinstance(x, str) for x in decs)):
-        raise ErroUso(f"episódio {ep.get('id')} corrompido em episodios.jsonl (modelo/tarefa/decisoes)",
+        motivos.append("modelo/tarefa/decisoes")
+    sinais = ep.get("sinais")
+    if sinais is not None and not (isinstance(sinais, dict)
+                                   and all(k in PESOS and _fracao(v) for k, v in sinais.items())):
+        motivos.append("sinais (esperado {eval|nota|iteracoes|edicao|rubrica: 0..1})")
+    if ep.get("rubrica") is not None and not _fracao(ep["rubrica"]):
+        motivos.append("rubrica (esperado 0..1)")
+    if ep.get("contribuicao") is not None and not _contribuicao_valida(ep["contribuicao"]):
+        motivos.append("contribuicao (esperado {decisão: 0..1})")
+    ed = ep.get("decisoes_editadas")
+    if ed is not None and not (isinstance(ed, list) and all(isinstance(x, str) for x in ed)):
+        motivos.append("decisoes_editadas (esperado lista de ids)")
+    if motivos:
+        raise ErroUso(f"episódio {ep.get('id')} corrompido em episodios.jsonl: {'; '.join(motivos)}",
                       EXIT_VALIDACAO)
 
 
@@ -1685,6 +1857,7 @@ def cmd_recompensa(args) -> tuple[dict, int]:
 
 
 def _recompensa(args, novos: dict, editadas_arg: list[str] | None) -> tuple[dict, int]:
+    _recuperar_journal()
     eps = carregar_episodios()
     ep = eps.get(args.id)
     if ep is None:
@@ -1717,23 +1890,25 @@ def _recompensa(args, novos: dict, editadas_arg: list[str] | None) -> tuple[dict
     editadas = set(ep.get("decisoes_editadas") or [])
     nova = {d: (0.0 if d.strip() in editadas else R) for d in ep["decisoes"]}
     placar = ler_estado(caminho_placar(), {})
-    _aplicar_placar(placar, ep["id"], ep["modelo"], ep["tarefa"], ep.get("contribuicao") or {}, nova)
-    escrever_json(caminho_placar(), placar)
+    _aplicar_placar(placar, eps, ep, nova)
     ep.update({"sinais": sinais, "contribuicao": nova, "R": R, "recompensado_em": agora_iso()})
     if args.fechar:
         ep["pendente"] = False
+    # Journal primeiro, depois placar e retrato: qualquer interrupção entre os dois
+    # é concluída pela próxima recompensa (_recuperar_journal).
+    escrever_json(caminho_journal(), {"placar": placar, "episodio": ep})
+    escrever_json(caminho_placar(), placar)
     anexar_episodio(ep)
+    caminho_journal().unlink()
     return {"id": ep["id"], "R": R, "sinais": efetivos, "decisoes": nova}, EXIT_OK
 
 
 def _estat(placar: dict, k: str) -> tuple[float, float, int]:
+    """Entrada já filtrada por carregar_placar; ausente vale (0, 0, 0)."""
     e = placar.get(k)
     if not isinstance(e, dict):
         return 0.0, 0.0, 0
-    try:
-        return float(e.get("alfa", 0)), float(e.get("beta", 0)), int(e.get("n", 0))
-    except (TypeError, ValueError):
-        return 0.0, 0.0, 0
+    return float(e.get("alfa", 0)), float(e.get("beta", 0)), int(e.get("n", 0))
 
 
 def partes_chave(k: str) -> tuple[str, str, str] | None:
@@ -1743,11 +1918,17 @@ def partes_chave(k: str) -> tuple[str, str, str] | None:
 
 
 def carregar_placar() -> dict:
+    """Leitura de politica/candidatos/stats: chave fora do formato ou entrada inválida
+    (NaN, negativa, alfa > n) é ignorada com diagnóstico, nunca vira média no stdout."""
     placar = ler_estado(caminho_placar(), {})
     ruins = [k for k in placar if partes_chave(k) is None]
     if ruins:
         diag(f"placar.json: {len(ruins)} chave(s) fora do formato modelo|tarefa|decisao ignorada(s)")
-    return {k: v for k, v in placar.items() if k not in ruins}
+    invalidas = [k for k in placar if k not in ruins and not entrada_valida(placar[k])]
+    if invalidas:
+        diag(f"placar.json: entrada(s) inválida(s) ignorada(s) (alfa/beta/n não finitos, negativos "
+             f"ou maiores que n): {', '.join(invalidas[:10])}")
+    return {k: v for k, v in placar.items() if k not in ruins and k not in invalidas}
 
 
 def cmd_politica(args) -> tuple[dict, int]:
@@ -1868,7 +2049,7 @@ def cmd_stats(args) -> tuple[dict, int]:
     por_tarefa: dict[str, list[float]] = {}
     for ep in eps:
         R = ep.get("R")
-        if isinstance(R, bool) or not isinstance(R, (int, float)):
+        if not _fracao(R):  # NaN ou fora de 0..1 (retrato editado à mão) não entra na média
             continue
         por_modelo.setdefault(str(ep.get("modelo")), []).append(R)
         por_tarefa.setdefault(str(ep.get("tarefa")), []).append(R)
@@ -2228,7 +2409,7 @@ def _st_memoria(st: _Selftest) -> None:
     _o, code = st.run(["episodio", "-"], json.dumps(longo))
     st.t("episodio: recusa texto longo", code == EXIT_VALIDACAO, str(code))
     _o, code = st.run(["episodio", "-"], json.dumps({"modo": "criar", "modelo": "opus-5-5"}))
-    st.t("episodio: obrigatórios", code == EXIT_VALIDACAO, str(code))
+    st.t("episodio: obrigatórios ausentes → exit 2 (dado insuficiente)", code == EXIT_INSUFICIENTE, str(code))
 
 
 class _RespostaFalsa:
@@ -2383,12 +2564,24 @@ def _st_robustez(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
          (e.get("alfa"), e.get("beta"), e.get("n")) == (0.0, 1.0, 1), str(e))
     _o, code = st.run(["candidatos", "--min-n", "0"])
     st.t("candidatos: --min-n 0 não divide por zero", code == 0, str(code))
-    # Retrato perdido depois do placar gravado (append falhou): o retry não pode contar de novo.
-    linhas = caminho_episodios().read_text(encoding="utf-8").splitlines(keepends=True)
-    caminho_episodios().write_text("".join(linhas[:-1]), encoding="utf-8")
+    # Append do retrato falha depois do placar gravado: o journal conclui a recompensa
+    # na chamada seguinte, que então desfaz a contribuição certa (não conta duas vezes).
+    real_anexar = globals()["anexar_episodio"]
+
+    def _disco_cheio(_ep):
+        raise OSError(28, "No space left on device", str(caminho_episodios()))
+
+    globals()["anexar_episodio"] = _disco_cheio
+    try:
+        _o, c1 = st.run(["recompensa", "--id", ep_id, "--nota", "5"])
+    finally:
+        globals()["anexar_episodio"] = real_anexar
+    pendente = caminho_journal().exists()
     st.run(["recompensa", "--id", ep_id, "--nota", "1"])
     e = ler_json(caminho_placar(), {}).get(chave("opus-5-5", "codigo", "a"), {})
-    st.t("memória: retry após append perdido não conta duas vezes", e.get("n") == 1 and e.get("beta") == 1.0, str(e))
+    st.t("memória: append perdido após o placar → journal conclui e não conta duas vezes",
+         c1 == EXIT_VALIDACAO and pendente and not caminho_journal().exists()
+         and (e.get("alfa"), e.get("beta"), e.get("n")) == (0.0, 1.0, 1), f"{c1} {pendente} {e}")
     with caminho_episodios().open("a", encoding="utf-8") as f:
         f.write('{"id": "ep-truncado", "modo": "c"')
     novo = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
@@ -2599,6 +2792,146 @@ def _st_correcoes(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
     st.t("cli: toda opção tem --help", not sem_ajuda, str(sem_ajuda))
 
 
+def _st_revisao8(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
+    """Defeitos da 8ª rodada de revisão: um teste por defeito reproduzido."""
+    os.environ["PCM_STATE_DIR"] = str(st.tmp / "state-revisao8")
+    fj = sk / "fontes.json"
+    dom = "platform.claude.com"
+    # doctor e selftest (dados reais) dão o mesmo veredicto para URL fora do domínio.
+    fora = dict(_pagina("pg-a", "a\n"), url="http://evil.example/pg-a.md")
+    fj.write_text(json.dumps({"dominio_permitido": dom, "paginas": [fora]}), encoding="utf-8")
+    dr, c_doc = st.run(["doctor"])
+    ck = {c["nome"]: c for c in dr.get("checks", [])}
+    sub = _Selftest()
+    shutil.rmtree(sub.tmp, ignore_errors=True)
+    _st_dados_reais(sub, sk)
+    st_ok = {t["nome"]: t["ok"] for t in sub.testes}.get("dados: fontes.json válido")
+    st.t("doctor e selftest: URL fora do domínio invalida fontes.json nos dois",
+         c_doc == EXIT_INSUFICIENTE and ck.get("fontes.json", {}).get("ok") is False and st_ok is False,
+         f"{c_doc} {ck.get('fontes.json')} {st_ok}")
+    # Entrada provisória sem bytes ({id, url} à mão) não bloqueia; fontes-aplicar a preenche.
+    (fetch_dir / "pg-a.md").write_text("a\n", encoding="utf-8")
+    (fetch_dir / "pg-b.md").write_text("b\n", encoding="utf-8")
+    fj.write_text(json.dumps({"dominio_permitido": dom, "paginas": [
+        _pagina("pg-a", "a\n"), {"id": "pg-b", "url": URL_BASE + "pg-b.md"}]}), encoding="utf-8")
+    _o, c1 = st.run(["fontes-check", "--so", "pg-a"])
+    st.run(["fontes-check", "--so", "pg-b"])
+    _o, c2 = st.run(["fontes-aplicar", "--ids", "pg-b"])
+    pb = json.loads(fj.read_text(encoding="utf-8"))["paginas"][1]
+    st.t("fontes: página sem bytes não bloqueia e fontes-aplicar a preenche",
+         (c1, c2) == (0, 0) and pb.get("bytes") == 2 and pb.get("sha256") == sha256_bytes(b"b\n"), f"{c1} {c2} {pb}")
+    # --adicionar id=url id=url (vários depois de uma flag, como no spec).
+    for n in ("pg-c", "pg-d"):
+        (fetch_dir / f"{n}.md").write_text(n, encoding="utf-8")
+    out, code = st.run(["fontes-aplicar", "--adicionar", f"pg-c={URL_BASE}pg-c.md", f"pg-d={URL_BASE}pg-d.md"])
+    st.t("fontes-aplicar: --adicionar aceita vários id=url", code == 0
+         and [a["id"] for a in out.get("adicionadas", [])] == ["pg-c", "pg-d"], str(out))
+    # --timeout enorme: exit 3, e OverflowError do socket vira ErroRede (status), não exit 1.
+    _o, code = st.run(["fontes-check", "--timeout", "1e10"])
+    ov = _fetch_falso(OverflowError("timestamp out of range for platform time_t"))
+    st.t("fontes: --timeout acima do teto → exit 3; OverflowError → ErroRede",
+         code == EXIT_VALIDACAO and ov.startswith("ErroRede"), f"{code} {ov}")
+    # Cache ruim de uma página vira status 'erro' dela; as outras seguem.
+    st.run(["fontes-check"])
+    (fetch_dir / "pg-a.md").write_text("a2\n", encoding="utf-8")
+    ant = caminho_cache("pg-a", ".anterior.md")
+    with contextlib.suppress(FileNotFoundError):
+        ant.unlink()
+    ant.mkdir()
+    out, code = st.run(["fontes-check"])
+    stt = {p["id"]: p["status"] for p in out.get("paginas", [])}
+    st.t("fontes: cache inutilizável → 'erro' só da página", code == 0 and stt.get("pg-a") == "erro"
+         and stt.get("pg-b") == "inalterado", f"{code} {stt}")
+    ant.rmdir()
+    # snippets: diretório chamado x.md não derruba a varredura.
+    (sk / "references" / "dir.md").mkdir(parents=True, exist_ok=True)
+    _o, code = st.run(["snippets-verificar"])
+    st.t("snippets: diretório com nome .md é ignorado", code in (0, 2), str(code))
+    (sk / "references" / "dir.md").rmdir()
+    # Estado: arquivo no lugar do diretório e diretório no lugar do jsonl → exit 3, não 1.
+    arq = st.tmp / "estado-arquivo"
+    arq.write_text("x", encoding="utf-8")
+    velho = os.environ["PCM_STATE_DIR"]
+    os.environ["PCM_STATE_DIR"] = str(arq)
+    try:
+        _o, c1 = st.run(["stats"])
+    finally:
+        os.environ["PCM_STATE_DIR"] = velho
+    caminho_episodios().mkdir(parents=True, exist_ok=True)
+    _o, c2 = st.run(["pendentes"])
+    caminho_episodios().rmdir()
+    st.t("estado: arquivo/diretório trocados → exit 3 com diagnóstico", (c1, c2) == (3, 3), f"{c1} {c2}")
+    # episodio: aninhamento profundo, vírgula em decisão, espaço nas pontas, só espaço.
+    base = {"modo": "criar", "modelo": "opus-5-5", "tarefa": "codigo", "decisoes": ["a"]}
+    fundo = json.dumps(dict(base, patamar="x"))[:-1].replace('"x"', "[" * 400 + "]" * 400) + "}"
+    _o, c1 = st.run(["episodio", "-"], fundo)
+    _o, c2 = st.run(["episodio", "-"], json.dumps(dict(base, decisoes=["xml,tags", "b"])))
+    _o, c3 = st.run(["episodio", "-"], json.dumps(dict(base, modo=" ", tarefa="  ")))
+    st.t("episodio: aninhado demais e ',' em decisão → 3; só espaço → 2", (c1, c2, c3) == (3, 3, 2), f"{c1} {c2} {c3}")
+    for t in ("codigo", "codigo "):
+        eid = st.run(["episodio", "-"], json.dumps(dict(base, tarefa=t)))[0]["id"]
+        st.run(["recompensa", "--id", eid, "--nota", "5"])
+    placar = ler_json(caminho_placar(), {})
+    st.t("episodio: tarefa aparada cai na mesma chave", sorted(placar) == ["opus-5-5|*|a", "opus-5-5|codigo|a"]
+         and placar["opus-5-5|codigo|a"]["n"] == 2, str(sorted(placar)))
+    st.t("placar: entrada no formato fixo {alfa, beta, n, atualizado_em}",
+         all(set(e) == {"alfa", "beta", "n", "atualizado_em"} for e in placar.values()), str(placar))
+    # Entrada antiga com o mapa "episodios" perde o campo na próxima gravação.
+    placar["opus-5-5|codigo|a"]["episodios"] = {"ep-velho": 1.0}
+    escrever_json(caminho_placar(), placar)
+    st.run(["recompensa", "--id", eid, "--nota", "4"])
+    placar = ler_json(caminho_placar(), {})
+    st.t("placar: campo 'episodios' legado removido, contas intactas", "episodios" not in placar["opus-5-5|codigo|a"]
+         and placar["opus-5-5|codigo|a"]["n"] == 2 and abs(placar["opus-5-5|codigo|a"]["alfa"] - 1.75) < 1e-9,
+         str(placar["opus-5-5|codigo|a"]))
+    # NaN/negativo no placar: politica/stats seguem com JSON estrito (entrada ignorada).
+    ruim = dict(placar)
+    ruim["opus-5-5|*|x"] = {"alfa": float("nan"), "beta": 1, "n": 5}
+    ruim["opus-5-5|*|y"] = {"alfa": -4, "beta": 1, "n": 5}
+    caminho_placar().write_text(json.dumps(ruim), encoding="utf-8")
+    p_out, c1 = st.run(["politica", "--modelo", "opus-5-5"])
+    s_out, c2 = st.run(["stats"])
+    try:
+        json.dumps([p_out, s_out], allow_nan=False)
+        estrito = True
+    except ValueError:
+        estrito = False
+    st.t("placar: NaN/negativo ignorado, saída JSON estrita", (c1, c2) == (0, 0) and estrito
+         and {"x", "y"}.isdisjoint(d["id"] for d in p_out.get("decisoes", [])), str(p_out))
+    escrever_json(caminho_placar(), placar)
+    # Retrato corrompido à mão (sinais/rubrica): exit 3 e placar intacto.
+    antes = caminho_placar().read_bytes()
+    codigos = []
+    for campo, valor in (("sinais", "x"), ("rubrica", "alta"), ("sinais", {"nota": "abc"}), ("rubrica", 7),
+                         ("sinais", {"nota": float("nan")})):
+        ep = {"id": f"ep-ruim-{len(codigos)}", **base, "pendente": True, campo: valor}
+        with caminho_episodios().open("a", encoding="utf-8") as f:
+            f.write(json.dumps(ep) + "\n")
+        codigos.append(st.run(["recompensa", "--id", ep["id"], "--eval", "1"])[1])
+    st.t("recompensa: retrato com sinais/rubrica inválidos → exit 3, placar intacto",
+         codigos == [3] * 5 and caminho_placar().read_bytes() == antes, str(codigos))
+    # Similaridade: sem espaço (JSON minificado, CJK) e repetitivo, rápido e sem colapsar.
+    j = json.dumps({f"k{i}": f"v{i}" for i in range(3000)}, separators=(",", ":"))
+    j2 = j.replace('"k10":"v10"', '"k10":"v11"').replace('"k2990":"v2990"', '"k2990":"v2991"')
+    # Pseudoaleatório fixo: texto periódico confundiria o próprio difflib (bloco mais longo deslocado).
+    cjk = "".join(chr(0x4E00 + int.from_bytes(hashlib.sha256(str(i).encode()).digest()[:2], "big") % 3000)
+                  for i in range(25000))
+    t0 = time.monotonic()
+    sims = [similaridade(j, j2), similaridade(cjk, "Y" + cjk[1:12000] + "X" + cjk[12001:]),
+            similaridade("a " * 19999, "b " + "a " * 19998),
+            similaridade("X" + "| col a | col b |\n" * 2800, "Z" + "| col a | col b |\n" * 2799 + "| x |\n")]
+    dt = time.monotonic() - t0
+    st.t("similaridade: texto sem espaço e repetitivo ≈ 1 e rápido", all(s > 0.999 for s in sims) and dt < 3,
+         f"{[round(s, 5) for s in sims]} {dt:.1f}s")
+    t0 = time.monotonic()
+    vocab = "the model should write clear instructions for each task and avoid excessive markdown".split()
+    ws = [vocab[(i * 31 + i // 7) % len(vocab)] for i in range(8000)]
+    ws2 = ["EDITADO" if i % 50 == 0 else w for i, w in enumerate(ws)]
+    s = similaridade(" ".join(ws), " ".join(ws2))
+    dt = time.monotonic() - t0
+    st.t("similaridade: muitas edições em 45 KB repetitivo tem prazo", dt < 3 and 0.8 < s < 1, f"{s:.4f} {dt:.1f}s")
+
+
 def _st_dados_reais(st: _Selftest, real: Path) -> None:
     """Valida os arquivos reais da skill, quando existem (outros agentes os geram)."""
     # Mesma leitura (utf-8-sig) e mesma validação do lint/doctor: o veredicto tem de bater.
@@ -2633,7 +2966,8 @@ def cmd_selftest(args) -> tuple[dict, int]:
                          ("lint", lambda: _st_lint(st, sk)), ("memória", lambda: _st_memoria(st)),
                          ("rede", lambda: _st_rede(st)),
                          ("robustez", lambda: _st_robustez(st, sk, fetch_dir)),
-                         ("correções", lambda: _st_correcoes(st, sk, fetch_dir))):
+                         ("correções", lambda: _st_correcoes(st, sk, fetch_dir)),
+                         ("revisão 8", lambda: _st_revisao8(st, sk, fetch_dir))):
             try:
                 fn()
             except Exception as e:  # um bloco quebrado não pode esconder os outros
@@ -2708,10 +3042,12 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--nota", type=float, help="nota do usuário de 1 a 5")
     p.add_argument("--eval", type=float, help="resultado de eval, 0 a 1")
     p.add_argument("--iteracoes", type=int, help="rodadas de ajuste até aceitar (0 = de primeira)")
-    p.add_argument("--edicao", type=float, help="similaridade entregue×editado, 0 a 1")
+    p.add_argument("--edicao", type=float, help="similaridade entregue×editado, 0 a 1; para ficar na mesma escala "
+                                                "de --editado/--entregue, calcule com difflib.SequenceMatcher(None, "
+                                                "entregue, editado, autojunk=False).ratio()")
     p.add_argument("--editado", help="arquivo editado pelo usuário ('-' = stdin); lido só para a razão de "
-                                     "similaridade (SequenceMatcher com autojunk=False; acima de 20 000 "
-                                     "caracteres, por tokens) e não é guardado")
+                                     "similaridade (SequenceMatcher com autojunk=False; texto grande ou "
+                                     "repetitivo, aproximação por prefixo/sufixo comuns e tokens) e não é guardado")
     p.add_argument("--entregue", help="arquivo entregue por Claude ('-' = stdin, mas não os dois); lido só para a "
                                       "razão e não é guardado")
     p.add_argument("--decisoes-editadas", help="decisões do episódio que o usuário desfez (recebem 0), por vírgula; "
@@ -2770,7 +3106,12 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as e:  # bug: exit 1 com diagnóstico, nunca traceback cru no stdout
         diag(f"erro inesperado: {e.__class__.__name__}: {e}")
         payload, code = {"erro": f"{e.__class__.__name__}: {e}"}, EXIT_BUG
-    imprimir_json(payload)
+    try:
+        imprimir_json(payload)
+    except ValueError as e:  # NaN/Infinity escapou de alguma validação: é bug, e o stdout segue JSON válido
+        diag(f"erro inesperado: saída com número não finito ({e})")
+        imprimir_json({"erro": f"saída com número não finito: {e}"})
+        return EXIT_BUG
     return code
 
 
@@ -2781,10 +3122,11 @@ def imprimir_json(payload) -> None:
     R̄ ou →, levantavam UnicodeEncodeError fora do try: traceback cru e exit 1.
     Cair para ensure_ascii dá JSON equivalente só com escapes \\uXXXX.
     """
+    # allow_nan=False: "NaN" no stdout quebra jq e JSON.parse; levanta ValueError (tratado no main).
     try:
-        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        print(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False))
     except UnicodeEncodeError:
-        print(json.dumps(payload, ensure_ascii=True, indent=2))
+        print(json.dumps(payload, ensure_ascii=True, indent=2, allow_nan=False))
 
 
 if __name__ == "__main__":

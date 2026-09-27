@@ -10,6 +10,7 @@ Padrões do repo reaproveitados: memória N2 do `comunicacao-executiva` (estado 
 |---|---|---|
 | Episódios (decisões + metadados + sinais) | `~/.claude/state/prompt-claude-models/episodios.jsonl` | não |
 | Placar (Beta por decisão) | `…/placar.json` | não |
+| Journal de uma recompensa em andamento (some ao concluir; a próxima `recompensa` termina uma interrompida) | `…/placar.journal.json` | não |
 | Cache das páginas oficiais e diffs | `…/cache/` | não |
 | Lições promovidas, anonimizadas | `prompt-claude-models/MEMORY.md` | **sim, após aprovação** |
 | Histórico de syncs e promoções | `prompt-claude-models/CHANGELOG.md` | sim |
