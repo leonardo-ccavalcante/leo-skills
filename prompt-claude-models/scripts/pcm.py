@@ -84,6 +84,7 @@ CAMPOS_EPISODIO = ("modo", "modelo", "effort", "superficie", "tarefa", "patamar"
                    "origem_skill", "decisoes", "lint", "rubrica")
 OBRIGATORIOS_EPISODIO = ("modo", "modelo", "tarefa", "decisoes")
 MAX_TEXTO = 300
+MAX_PROFUNDIDADE = 32
 
 # Regex compiladas uma vez (heurísticas do lint e blocos verbatim).
 RE_CAPS = re.compile(r"\b(CRITICAL|MUST|NEVER|ALWAYS|IMPORTANT)\b")
@@ -112,6 +113,7 @@ RE_TOKEN = re.compile(r"\S+\s*|\s+")
 # Limites de rede: --timeout é prazo total por página (não só por leitura de
 # socket) e uma página maior que isso não é documentação.
 MAX_PAGINA = 20 * 1024 * 1024
+MAX_TIMEOUT = 3600.0
 # Similaridade da edição: abaixo disso compara caractere a caractere (exato);
 # acima, por tokens, para não virar O(n·m) em Python.
 LIMITE_SIM_CHARS = 20000
@@ -153,13 +155,23 @@ def state_dir(criar: bool = True) -> Path:
     env = os.environ.get("PCM_STATE_DIR")
     p = Path(env) if env else Path.home() / ".claude" / "state" / "prompt-claude-models"
     if criar:
-        p.mkdir(parents=True, exist_ok=True)
+        _criar_dir_estado(p)
     return p
+
+
+def _criar_dir_estado(p: Path) -> None:
+    """Um arquivo comum no lugar do diretório (PCM_STATE_DIR apontando para um
+    arquivo, cache/ virou arquivo) levantava FileExistsError: exit 1 sem dizer o caminho."""
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise ErroUso(f"diretório de estado inutilizável: {p} ({e.strerror or e}); corrija ou remova",
+                      EXIT_VALIDACAO)
 
 
 def cache_dir() -> Path:
     p = state_dir() / "cache"
-    p.mkdir(parents=True, exist_ok=True)
+    _criar_dir_estado(p)
     return p
 
 
@@ -416,7 +428,9 @@ def fetch(url: str, timeout: float = 15.0) -> bytes:
         raise ErroRede(f"HTTP {e.code} em {url}")
     # HTTPException (IncompleteRead, BadStatusLine...) não é OSError e o urllib não a
     # embrulha: sem isto uma resposta truncada derrubava o fontes-check inteiro (exit 1).
-    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as e:
+    # OverflowError: timeout que o socket não representa (o teto de validar_timeout
+    # já barra; aqui é a última linha para não abortar as outras páginas).
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError, OverflowError) as e:
         motivo = " ".join(str(getattr(e, "reason", e)).split())
         raise ErroRede(f"falha de rede em {url}: {e.__class__.__name__}: {motivo}")
 
@@ -461,9 +475,25 @@ def carregar_fontes() -> tuple[dict, dict]:
 
 
 def shas_pendentes(d: dict) -> list[str]:
-    """Páginas com sha provisório (o modelo do spec usa "..."): falta um fontes-aplicar."""
+    """Páginas provisórias (sha "..." do modelo do spec, ou sem bytes, como uma
+    entrada {id, url} adicionada à mão): falta um fontes-aplicar."""
     return [p["id"] for p in d.get("paginas", [])
-            if isinstance(p, dict) and not (isinstance(p.get("sha256"), str) and RE_SHA.match(p["sha256"]))]
+            if isinstance(p, dict) and not (isinstance(p.get("sha256"), str) and RE_SHA.match(p["sha256"])
+                                            and _bytes_ok(p.get("bytes")))]
+
+
+def _bytes_ok(b) -> bool:
+    return isinstance(b, int) and not isinstance(b, bool) and b >= 0
+
+
+def erros_fontes_completo(d) -> list[str]:
+    """Veredicto único de "fontes.json válido" para doctor e selftest (dados reais).
+
+    O doctor passava pelo carregar_fontes (URLs não checadas) e o selftest checava:
+    o mesmo arquivo saía válido num e inválido no outro. URL fora do domínio conta
+    como erro aqui (o fontes-check a recusa); entrada provisória (sha/bytes) é aviso.
+    """
+    return validar_fontes(d, checar_urls=True, sha_estrito=False)
 
 
 @contextlib.contextmanager
@@ -495,8 +525,9 @@ def trava_fontes():
 def validar_fontes(d, checar_urls: bool = True, sha_estrito: bool = True) -> list[str]:
     """Checagem estrutural: outros agentes editam o arquivo, então conferimos a forma.
 
-    sha_estrito=False aceita sha provisório (texto qualquer ou null): uma página
-    recém-adicionada à mão bloqueava fontes-check e fontes-aplicar de todas.
+    sha_estrito=False aceita entrada provisória (sha texto qualquer ou null, bytes
+    ausente ou null): uma página recém-adicionada à mão bloqueava fontes-check e
+    fontes-aplicar de todas, inclusive o fontes-aplicar que a preencheria.
     """
     erros: list[str] = []
     if not isinstance(d, dict):
@@ -543,8 +574,9 @@ def validar_fontes(d, checar_urls: bool = True, sha_estrito: bool = True) -> lis
             erros.append(f"{pid}: sha256 inválido")
         elif not (sha is None or isinstance(sha, str)):
             erros.append(f"{pid}: sha256 deve ser texto")
-        if not isinstance(p.get("bytes"), int):
-            erros.append(f"{pid}: bytes não é inteiro")
+        b = p.get("bytes")
+        if not (_bytes_ok(b) or (not sha_estrito and b is None)):
+            erros.append(f"{pid}: bytes não é inteiro >= 0")
         for campo in ("modelos", "alimenta"):
             if not isinstance(p.get(campo, []), list):
                 erros.append(f"{pid}: {campo} não é lista")
@@ -572,6 +604,19 @@ def _checar_pagina(pag: dict, dominio: str, timeout: float) -> tuple[dict, bytes
         return item, None
     sha = sha256_bytes(conteudo)
     item["sha_atual"] = sha
+    try:
+        return _atualizar_cache(pid, sha_reg, conteudo, item)
+    except OSError as e:
+        # Cache ruim (diretório no lugar do arquivo, permissão) é problema desta
+        # página: antes a exceção saía do f.result() e abortava todas as outras.
+        item.update(status="erro", diff=None,
+                    nota=f"cache local inutilizável ({e.filename or pid}): {e.strerror or e}")
+        return item, conteudo
+
+
+def _atualizar_cache(pid: str, sha_reg, conteudo: bytes, item: dict) -> tuple[dict, bytes]:
+    """Grava o cache (atual/.anterior) e o diff; separado para o OSError virar status."""
+    sha = item["sha_atual"]
     atual, anterior = caminho_cache(pid), caminho_cache(pid, ".anterior.md")
     velho, velho_ant = ler_cache(pid), ler_cache(pid, ".anterior.md")
     # Procura a baseline (conteúdo com o sha registrado) antes de mexer no cache.
@@ -633,9 +678,13 @@ def _descobrir(fontes: dict, conteudos: dict, timeout: float) -> tuple[list[dict
 
 
 def validar_timeout(t: float) -> float:
-    """Timeout 0, negativo ou nan virava 'falha de rede' e offline=true, como se a rede tivesse caído."""
-    if not (isinstance(t, (int, float)) and math.isfinite(t) and t > 0):
-        raise ErroUso(f"--timeout deve ser um número de segundos > 0: {t}", EXIT_VALIDACAO)
+    """Timeout 0, negativo ou nan virava 'falha de rede' e offline=true, como se a rede tivesse caído.
+
+    Teto: acima de ~1e10 s o socket levanta OverflowError (time_t) e o fontes-check
+    inteiro morria com exit 1; uma hora por página já é mais do que qualquer rede lenta.
+    """
+    if not (isinstance(t, (int, float)) and math.isfinite(t) and 0 < t <= MAX_TIMEOUT):
+        raise ErroUso(f"--timeout deve ser um número de segundos > 0 e <= {MAX_TIMEOUT:g}: {t}", EXIT_VALIDACAO)
     return float(t)
 
 
@@ -847,12 +896,18 @@ def cmd_snippets(args) -> tuple[dict, int]:
     falhas, sem_cache, ids = [], [], {}
     for arq in arquivos:
         rel = str(arq.relative_to(raiz))
+        if arq.is_dir():
+            continue  # diretório chamado x.md: o rglob já desce nele; não é documento
         try:
             texto = arq.read_text(encoding="utf-8-sig")
         except UnicodeDecodeError as e:
             # Um .md ruim vira falha dele; não pode derrubar a verificação dos outros.
             falhas.append({"arquivo": rel, "linha": None, "fonte": None, "id": None, "inicio": "",
                            "motivo": f"arquivo não é UTF-8 (byte inválido na posição {e.start})"})
+            continue
+        except OSError as e:  # permissão, link quebrado: idem, falha do arquivo e segue
+            falhas.append({"arquivo": rel, "linha": None, "fonte": None, "id": None, "inicio": "",
+                           "motivo": f"arquivo ilegível: {e.strerror or e}"})
             continue
         for b in extrair_blocos(texto):
             total += 1
@@ -1330,6 +1385,8 @@ def carregar_episodios() -> dict[str, dict]:
                     diag(f"episodios.jsonl linha {n} sem id válido; ignorada")
     except FileNotFoundError:
         pass
+    except OSError as e:  # diretório no lugar do arquivo, permissão: diagnóstico, não bug
+        raise ErroUso(f"{caminho_episodios()} ilegível ({e.strerror or e}); corrija ou remova", EXIT_VALIDACAO)
     return eps
 
 
@@ -1377,9 +1434,27 @@ def _num01(v, nome: str) -> float:
     return float(v)
 
 
+def _aninhado_demais(obj, limite: int) -> bool:
+    """Profundidade de listas/objetos, sem recursão.
+
+    json.loads aceita ~1000 níveis, mas tem_surrogate/_strings_longas recursam com
+    ~2 quadros por nível: 350 '[' passavam no parse e davam RecursionError (exit 1).
+    """
+    pilha = [(obj, 1)]
+    while pilha:
+        o, n = pilha.pop()
+        if isinstance(o, (dict, list)):
+            if n > limite:
+                return True
+            pilha.extend((f, n + 1) for f in (o.values() if isinstance(o, dict) else o))
+    return False
+
+
 def validar_episodio(d) -> dict:
     if not isinstance(d, dict):
         raise ErroUso("episódio deve ser objeto JSON", EXIT_VALIDACAO)
+    if _aninhado_demais(d, MAX_PROFUNDIDADE):
+        raise ErroUso(f"JSON aninhado demais (mais de {MAX_PROFUNDIDADE} níveis; um episódio tem 2)", EXIT_VALIDACAO)
     if tem_surrogate(d):
         raise ErroUso("episódio com texto que não é UTF-8 válido (surrogate solto, ex.: \\ud800)", EXIT_VALIDACAO)
     longos = _strings_longas(d)
@@ -1390,9 +1465,13 @@ def validar_episodio(d) -> dict:
     extras = [k for k in d if k not in CAMPOS_EPISODIO]
     if extras:
         raise ErroUso(f"campos não permitidos: {', '.join(extras)}", EXIT_VALIDACAO)
+    # Sem espaço nas pontas, como as decisões: "codigo " abria no placar uma chave
+    # separada de "codigo", e tarefa "  " passava como preenchida.
+    d = {k: (v.strip() if isinstance(v, str) else v) for k, v in d.items()}
     faltam = [k for k in OBRIGATORIOS_EPISODIO if d.get(k) in (None, "", [])]
     if faltam:
-        raise ErroUso(f"campos obrigatórios ausentes: {', '.join(faltam)}", EXIT_VALIDACAO)
+        # Campo ausente é dado insuficiente (2); tipo ou valor errado é validação (3).
+        raise ErroUso(f"campos obrigatórios ausentes ou vazios: {', '.join(faltam)}", EXIT_INSUFICIENTE)
     for k in ("modo", "modelo", "tarefa", "effort", "superficie", "patamar", "origem_skill"):
         if k in d and d[k] is not None and not isinstance(d[k], str):
             raise ErroUso(f"{k} deve ser texto", EXIT_VALIDACAO)
@@ -1410,6 +1489,12 @@ def validar_episodio(d) -> dict:
     for v in [d["modelo"], d["tarefa"], *decs]:
         if "|" in v:
             raise ErroUso(f"'|' não permitido em modelo/tarefa/decisões: {v}", EXIT_VALIDACAO)
+    # ',' separa as listas da CLI (--decisoes-editadas, --candidatas, --recomendadas):
+    # a decisão "xml,tags" nunca podia ser marcada como editada nem consultada.
+    com_virgula = [v for v in decs if "," in v]
+    if com_virgula:
+        raise ErroUso(f"',' não permitida em ids de decisão (as listas da CLI são separadas por vírgula): "
+                      f"{', '.join(repr(v) for v in com_virgula)}", EXIT_VALIDACAO)
     if d["tarefa"] == "*":
         raise ErroUso("tarefa '*' é reservada para o agregado", EXIT_VALIDACAO)
     if "lint" in d and d["lint"] is not None:
@@ -1669,6 +1754,8 @@ def cmd_politica(args) -> tuple[dict, int]:
     if not modelo_conhecido(args.modelo):
         raise ErroUso(f"modelo desconhecido: {args.modelo}", EXIT_INSUFICIENTE)
     placar = carregar_placar()
+    # Mesmo aparo do episodio: "codigo " consulta a chave de "codigo".
+    args.tarefa = (args.tarefa or "").strip() or None
     recomendadas = set(lista_csv(args.recomendadas))
     cands = lista_csv(args.candidatas)
     if not cands:
@@ -1820,16 +1907,19 @@ def cmd_doctor(args) -> tuple[dict, int]:
         with tempfile.NamedTemporaryFile(dir=str(sd), prefix=".doctor.", delete=True):
             pass
         checks.append(_check("state_dir gravável", True, str(sd)))
-    except OSError as e:
+    except (OSError, ErroUso) as e:
         checks.append(_check("state_dir gravável", False, str(e)))
     fontes = None
     try:
         fontes, _ = carregar_fontes()
-        checks.append(_check("fontes.json", True, f"{len(fontes['paginas'])} páginas"))
+        erros = erros_fontes_completo(fontes)
+        checks.append(_check("fontes.json", not erros,
+                             "; ".join(erros) if erros else f"{len(fontes['paginas'])} páginas"))
         pend = shas_pendentes(fontes)
         if pend:
-            checks.append(_check("fontes.json: sha provisório", False,
-                                 f"{', '.join(pend)}: rode fontes-check e fontes-aplicar --ids <id>", "aviso"))
+            checks.append(_check("fontes.json: entrada provisória", False,
+                                 f"{', '.join(pend)}: sha/bytes a preencher; rode fontes-check e "
+                                 f"fontes-aplicar --ids <id>", "aviso"))
     except ErroUso as e:
         checks.append(_check("fontes.json", False, str(e)))
     for nome, val in (("cruft.json", validar_cruft), ("restricoes-api.json", validar_restricoes)):
@@ -1840,13 +1930,17 @@ def cmd_doctor(args) -> tuple[dict, int]:
             continue
         checks.append(_check(nome, not erros, "; ".join(erros) if erros else "válido"))
     if fontes and fontes["paginas"]:
-        url = fontes["paginas"][0]["url"]
-        try:
-            validar_url(url, fontes["dominio_permitido"])
-            n = len(fetch(url, 5))
-            checks.append(_check("rede", True, f"GET {url} ({n} bytes)", "aviso"))
-        except ErroRede as e:
-            checks.append(_check("rede", False, f"{e} (fontes-check vai reportar offline)", "aviso"))
+        # Primeira página com URL permitida: uma URL fora do domínio já é erro do
+        # fontes.json acima e não pode virar "rede fora" aqui.
+        urls = [p["url"] for p in fontes["paginas"] if not _recusa(p["url"], fontes["dominio_permitido"])]
+        if not urls:
+            checks.append(_check("rede", False, "nenhuma URL permitida em fontes.json para testar", "aviso"))
+        else:
+            try:
+                n = len(fetch(urls[0], 5))
+                checks.append(_check("rede", True, f"GET {urls[0]} ({n} bytes)", "aviso"))
+            except ErroRede as e:
+                checks.append(_check("rede", False, f"{e} (fontes-check vai reportar offline)", "aviso"))
     essenciais_ok = all(c["ok"] for c in checks if c["nivel"] == "erro")
     return {"ok": essenciais_ok, "versao": VERSION, "skill_dir": str(skill_dir()), "checks": checks}, \
         EXIT_OK if essenciais_ok else EXIT_INSUFICIENTE
@@ -1986,9 +2080,9 @@ def _st_fontes(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
     st.t("fontes: tudo erro → offline, exit 0", out.get("offline") is True and code == 0, str(out.get("resumo")))
 
 
-def _recusa(url: str) -> bool:
+def _recusa(url: str, dominio: str = "platform.claude.com") -> bool:
     try:
-        validar_url(url, "platform.claude.com")
+        validar_url(url, dominio)
     except ErroRede:
         return True
     return False
@@ -2510,12 +2604,12 @@ def _st_dados_reais(st: _Selftest, real: Path) -> None:
     # Mesma leitura (utf-8-sig) e mesma validação do lint/doctor: o veredicto tem de bater.
     p = real / "fontes.json"
     if p.exists():
+        # Mesma leitura (carregar_fontes) e mesma validação (erros_fontes_completo) do doctor.
         try:
-            d = ler_json(p, {})
-            # sha provisório é aviso no doctor, não arquivo inválido (fontes-check o aceita).
-            erros = validar_fontes(d, sha_estrito=False)
-        except ERROS_LEITURA as e:
-            erros = [f"{e.__class__.__name__}: {e}"]
+            d, _fmt = carregar_fontes()
+            erros = erros_fontes_completo(d)
+        except ErroUso as e:
+            erros = [str(e)]
         st.t("dados: fontes.json válido", not erros, "; ".join(erros))
     for nome, val in (("cruft.json", validar_cruft), ("restricoes-api.json", validar_restricoes)):
         d, erros = validar_arquivo_regras(real / "references" / nome, val)
@@ -2592,7 +2686,10 @@ def construir_parser() -> argparse.ArgumentParser:
     g = p.add_mutually_exclusive_group()
     g.add_argument("--ids", help="ids a aplicar, separados por vírgula")
     g.add_argument("--todas-mudadas", action="store_true", help="aplica todas cujo cache difere do sha registrado")
-    p.add_argument("--adicionar", action="append", metavar="ID=URL", help="cria entrada nova (repetível)")
+    # extend + nargs="+": a assinatura do spec é "--adicionar id=url ..." (vários
+    # depois de uma flag); com append só a forma repetida funcionava.
+    p.add_argument("--adicionar", action="extend", nargs="+", metavar="ID=URL",
+                   help="cria entrada(s) nova(s): --adicionar a=URL b=URL (a flag também pode se repetir)")
     p.add_argument("--timeout", type=float, default=15.0,
                    help="prazo em segundos (> 0) para buscar página nova sem cache (padrão 15)")
 
@@ -2657,6 +2754,12 @@ def despachar(argv: list[str]) -> tuple[dict, int]:
         if e.payload:
             payload.update(e.payload)
         return payload, e.code
+    except OSError as e:
+        # E/S do ambiente (arquivo de estado virou diretório, permissão, disco cheio)
+        # não é bug do script: exit 3 nomeando o caminho, não "erro inesperado" (1).
+        msg = f"falha de E/S{f' em {e.filename}' if e.filename else ''}: {e.strerror or e}"
+        diag(msg)
+        return {"erro": msg}, EXIT_VALIDACAO
 
 
 def main(argv: list[str] | None = None) -> int:
