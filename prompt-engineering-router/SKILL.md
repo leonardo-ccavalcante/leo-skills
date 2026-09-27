@@ -27,6 +27,8 @@ A single-skill view is incomplete for those cases. The router resolves the ambig
 | 7 | `prompt-security` | Injection, leaking, jailbreaks, defenses, ethics |
 | 8 | `prompt-task-patterns` | Application recipes: classification, summarization, extraction, QA, code gen, image gen |
 
+**Cross-cutting layer (not a 9th cell):** `prompt-claude-models` — when the target is a Claude model, it picks model and effort first, then applies that model's documented rules (API parameters that return 400, instructions to remove, snippets to add). It is layered on top of whatever route the algorithm below produces; see "Step 4 — Model check".
+
 ## When this skill is the right call
 
 The router is invoked when **any** of these is true:
@@ -141,6 +143,10 @@ Disconfirmation pass:
 
 Verdict: primary = `prompt-orchestration` (the *system* is the headline), secondary = `prompt-output-control` (the *shape* each prompt produces). Recommend both; orchestration is the entry point.
 
+### Step 4 — Model check (cross-cutting)
+
+If the target model is Claude, or the user names Opus / Sonnet / Haiku / Fable / Mythos, `effort`, or reports a 400 / `stop_reason: "refusal"`, append `prompt-claude-models` to the route. It runs after the technique skills and overrides them where the model's documentation says so — three examples that change routes above: raise `effort` before adding "think step by step" (thinking is adaptive on current models); no non-default `temperature`/`top_p`/`top_k` on Sonnet 5, Opus 4.7+, Opus 5.5 or Fable 5.1 (400) — so "self-consistency via temperature" is not available; and never ask for the reasoning trace in the response text on Fable 5, Fable 5.1 or Opus 5.5 (`reasoning_extraction` refusal). If the question is only "which Claude model or effort should I use?", route straight to `prompt-claude-models`.
+
 ## Common misroutes (Devil's Advocacy)
 
 A short list of cases where the keyword and the right skill diverge. Memorize.
@@ -169,7 +175,7 @@ Some patterns recur. These combos are the right call most of the time:
 - **Agent with tools** = `prompt-reasoning` (ReAct) + `prompt-security` (action gating).
 - **Domain-specific classifier** = `prompt-task-patterns` + `prompt-foundations` (instruction tuning) + `prompt-reliability` (eval).
 
-If you find yourself recommending 4+ skills, you're probably padding. Cut to the 2–3 that carry the load.
+If you find yourself recommending 4+ skills, you're probably padding. Cut to the 2–3 that carry the load. The `prompt-claude-models` layer does not count toward that limit — it is a target-model check, not another technique.
 
 ## Output format — what the router produces
 
@@ -187,6 +193,7 @@ When the router fires, return a structured recommendation following Pyramid Prin
 - Start with: `{primary skill}` — focuses on {its specialty for this query}.
 - {If combo:} Then layer in `{secondary skill}` for {its specialty for this query}.
 - {If watch-out:} If you also see {signal X}, swap/add `{tertiary}`.
+- {If the target is Claude:} Apply `prompt-claude-models` for {model}: {the 1–2 model rules that change this route}.
 ```
 
 Keep it to ~10 lines. The user wants to be routed, not lectured.

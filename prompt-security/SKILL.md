@@ -11,6 +11,8 @@ The framing throughout: **assume an adversary is on the other end of the input p
 
 This skill is for **defensive work** — hardening systems, red-teaming your own deployments, understanding ethical guardrails. It is not a recipe book for attacking third-party systems.
 
+> **Claude target?** If the target is Claude, apply `prompt-claude-models`: mark pasted text with `<pasted_content id>` tags on Opus 5.5, send per-turn reminders as turn-scoped system messages instead of editing earlier turns (on Fable 5.1 edited history can return 400), and treat `stop_reason: "refusal"` from safety classifiers as its own outcome when red-teaming.
+
 ## When this skill is the right call
 
 - User is hardening a prompt against malicious input.

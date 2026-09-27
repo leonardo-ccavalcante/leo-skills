@@ -25,6 +25,7 @@ import contextlib
 import datetime as _dt
 import difflib
 import hashlib
+import http.client
 import io
 import json
 import os
@@ -33,10 +34,16 @@ import secrets
 import shutil
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+try:  # trava entre processos; sem fcntl (Windows) seguimos sem trava
+    import fcntl
+except ImportError:  # pragma: no cover
+    fcntl = None
 
 VERSION = "1.0.0"
 
@@ -81,7 +88,9 @@ RE_CAPS = re.compile(r"\b(CRITICAL|MUST|NEVER|ALWAYS|IMPORTANT)\b")
 RE_EXEMPLO = re.compile(r"<example(?:\s[^<>]*)?>")
 RE_TAG_ABRE = re.compile(r"<([a-z_]+)(\s[^<>]*)?>")
 RE_TAG_FECHA = re.compile(r"</([a-z_]+)\s*>")
-RE_FENCE_CODIGO = re.compile(r"^[ \t]*(`{3,}|~{3,})[^\n]*\n.*?^[ \t]*\1[ \t]*$", re.S | re.M)
+# Cerca de código linha a linha: a regex única com .*? e \1 retrocedia de forma
+# catastrófica (46 KB de cercas sem fechamento levavam 9 s no lint).
+RE_FENCE_LINHA = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
 RE_CRASE = re.compile(r"`[^`\n]*`")
 RE_DOC_ABRE = re.compile(r"<documents?\b")
 RE_DOC_FECHA = re.compile(r"</documents?\s*>")
@@ -89,6 +98,23 @@ RE_VERBATIM_ABRE = re.compile(r"^\s*(`{3,})text\s+verbatim\b(.*)$")
 RE_ATRIB = re.compile(r"(\w+)=(\S+)")
 RE_WS = re.compile(r"\s+")
 RE_SHA = re.compile(r"^[0-9a-f]{64}$")
+# Id de página vira nome de arquivo no cache: sem '/' nem '.' inicial, nada de
+# '../../x' escrevendo fora de STATE_DIR/cache.
+RE_ID_PAGINA = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+RE_TOKEN = re.compile(r"\S+\s*|\s+")
+
+# Limites de rede: --timeout é prazo total por página (não só por leitura de
+# socket) e uma página maior que isso não é documentação.
+MAX_PAGINA = 20 * 1024 * 1024
+# Similaridade da edição: abaixo disso compara caractere a caractere (exato);
+# acima, por tokens, para não virar O(n·m) em Python.
+LIMITE_SIM_CHARS = 20000
+LIMITE_SIM_TOKENS = 40000
+
+# umask lida uma vez, na importação (ainda sem threads): arquivo novo nasce com
+# o modo que um open() normal daria, não com o 0600 do mkstemp.
+_UMASK = os.umask(0o022)
+os.umask(_UMASK)
 
 FONTE_GUIA = "claude-prompting-best-practices"
 
@@ -131,6 +157,32 @@ def cache_dir() -> Path:
     return p
 
 
+def id_pagina_valido(pid) -> bool:
+    return isinstance(pid, str) and RE_ID_PAGINA.match(pid) is not None
+
+
+def caminho_cache(pid: str, sufixo: str = ".md") -> Path:
+    """Único ponto que monta caminho de cache: recusa id que escaparia do diretório."""
+    if not id_pagina_valido(pid):
+        raise ErroUso(f"id de página inválido (use [A-Za-z0-9._-], sem '/' nem '.' inicial): {pid!r}",
+                      EXIT_VALIDACAO)
+    return cache_dir() / f"{pid}{sufixo}"
+
+
+@contextlib.contextmanager
+def trava_estado():
+    """Trava exclusiva do STATE_DIR: dois `recompensa` simultâneos perdiam updates do placar."""
+    if fcntl is None:  # pragma: no cover
+        yield
+        return
+    with (state_dir() / ".trava").open("a") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
 def agora_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -155,12 +207,23 @@ def sha256_bytes(b: bytes) -> str:
 
 
 def escrever_atomico(path: Path, data: bytes) -> None:
-    """Temporário + os.replace: um crash no meio nunca deixa arquivo pela metade."""
+    """Temporário + os.replace: um crash no meio nunca deixa arquivo pela metade.
+
+    Segue symlink (substituir o link por arquivo quebraria quem o criou) e mantém
+    o modo do arquivo existente: fontes.json é do repo e não pode virar 0600.
+    """
+    path = Path(os.path.realpath(path))
     path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        modo = path.stat().st_mode & 0o7777
+    except FileNotFoundError:
+        modo = 0o666 & ~_UMASK
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(data)
+        with contextlib.suppress(OSError):
+            os.chmod(tmp, modo)
         os.replace(tmp, path)
     except BaseException:
         with contextlib.suppress(OSError):
@@ -174,9 +237,12 @@ def escrever_json(path: Path, obj, final_nl: bool = True) -> None:
 
 
 def ler_json(path: Path, padrao=None):
-    """Arquivo de estado ausente ou vazio vale o padrão (primeiro uso)."""
+    """Arquivo de estado ausente ou vazio vale o padrão (primeiro uso).
+
+    utf-8-sig: editor do Windows grava BOM e o json.loads recusaria o arquivo.
+    """
     try:
-        txt = path.read_text(encoding="utf-8")
+        txt = path.read_text(encoding="utf-8-sig")
     except FileNotFoundError:
         return padrao
     if not txt.strip():
@@ -184,13 +250,40 @@ def ler_json(path: Path, padrao=None):
     return json.loads(txt)
 
 
-def ler_entrada(arg: str | None) -> str:
-    if arg in (None, "-"):
-        return sys.stdin.read()
+def ler_estado(path: Path, padrao: dict) -> dict:
+    """Estado da memória: corrompido vira diagnóstico (exit 3) e nunca é sobrescrito."""
     try:
-        return Path(arg).read_text(encoding="utf-8")
-    except FileNotFoundError:
-        raise ErroUso(f"arquivo não encontrado: {arg}", EXIT_INSUFICIENTE)
+        d = ler_json(path, padrao)
+    except (ValueError, OSError) as e:  # JSONDecodeError e UnicodeDecodeError são ValueError
+        raise ErroUso(f"{path} corrompido ({e.__class__.__name__}: {e}); corrija ou remova o arquivo",
+                      EXIT_VALIDACAO)
+    if d is None:
+        return padrao
+    if not isinstance(d, dict):
+        raise ErroUso(f"{path} corrompido: esperado objeto JSON; corrija ou remova o arquivo", EXIT_VALIDACAO)
+    return d
+
+
+def ler_entrada(arg: str | None) -> str:
+    """Lê arquivo ou stdin do mesmo jeito: UTF-8 estrito, BOM descartado e quebras
+    de linha universais (como o read_text de antes, para CRLF não mudar o lint)."""
+    if arg in (None, "-"):
+        buf = getattr(sys.stdin, "buffer", None)
+        if buf is None:  # stdin trocado por StringIO (selftest)
+            return sys.stdin.read().lstrip("\ufeff")
+        dados, nome = buf.read(), "stdin"
+    else:
+        nome = arg
+        try:
+            dados = Path(arg).read_bytes()
+        except FileNotFoundError:
+            raise ErroUso(f"arquivo não encontrado: {arg}", EXIT_INSUFICIENTE)
+        except OSError as e:  # diretório, permissão...
+            raise ErroUso(f"não foi possível ler {arg}: {e.strerror or e}", EXIT_INSUFICIENTE)
+    try:
+        return dados.decode("utf-8-sig").replace("\r\n", "\n").replace("\r", "\n")
+    except UnicodeDecodeError as e:
+        raise ErroUso(f"{nome} não é UTF-8 (byte inválido na posição {e.start})", EXIT_VALIDACAO)
 
 
 def lista_csv(s: str | None) -> list[str]:
@@ -229,6 +322,44 @@ def validar_url(url: str, dominio: str) -> None:
         raise ErroRede(f"URL fora de https://{dominio}: {url}")
 
 
+def _mesmo_host_https(url: str, novo: str) -> bool:
+    a, b = urllib.parse.urlparse(url), urllib.parse.urlparse(novo)
+    return b.scheme == "https" and (b.hostname or "").lower() == (a.hostname or "").lower()
+
+
+class _RedirecionamentoRestrito(urllib.request.HTTPRedirectHandler):
+    """Só segue redirect para o mesmo host https: validar_url vê só a URL inicial,
+    e um 302 para outro domínio viraria cache e sha "oficiais"."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _mesmo_host_https(req.full_url, newurl):
+            with contextlib.suppress(Exception):
+                fp.close()
+            raise ErroRede(f"redirecionamento para fora de {urllib.parse.urlparse(req.full_url).hostname}: {newurl}")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _ler_com_prazo(r, url: str, prazo: float) -> bytes:
+    """Lê em pedaços conferindo o prazo total: o timeout do urlopen vale por recv,
+    e um servidor pingando 1 byte/s segurava o fontes-check indefinidamente."""
+    partes, total = [], 0
+    while True:
+        if time.monotonic() > prazo:
+            raise ErroRede(f"prazo esgotado lendo {url}")
+        pedaco = r.read1(65536)
+        if not pedaco:
+            # read1 não levanta IncompleteRead: sem isto uma conexão cortada no meio
+            # do corpo virava página "mudou" com conteúdo truncado no cache.
+            faltam = getattr(r, "length", None)
+            if faltam:
+                raise ErroRede(f"resposta truncada em {url}: faltaram {faltam} bytes")
+            return b"".join(partes)
+        total += len(pedaco)
+        if total > MAX_PAGINA:
+            raise ErroRede(f"página maior que {MAX_PAGINA} bytes: {url}")
+        partes.append(pedaco)
+
+
 def fetch(url: str, timeout: float = 15.0) -> bytes:
     """Busca a página; com PCM_FETCH_DIR lê fixture local (testes sem rede)."""
     fdir = os.environ.get("PCM_FETCH_DIR")
@@ -238,14 +369,21 @@ def fetch(url: str, timeout: float = 15.0) -> bytes:
             return p.read_bytes()
         except OSError as e:
             raise ErroRede(f"rede simulada: {p.name} ausente ({e.__class__.__name__})")
+    prazo = time.monotonic() + timeout
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    opener = urllib.request.build_opener(_RedirecionamentoRestrito)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.read()
+        with opener.open(req, timeout=timeout) as r:
+            if not _mesmo_host_https(url, r.geturl()):
+                raise ErroRede(f"resposta veio de fora de {urllib.parse.urlparse(url).hostname}: {r.geturl()}")
+            return _ler_com_prazo(r, url, prazo)
     except urllib.error.HTTPError as e:
         raise ErroRede(f"HTTP {e.code} em {url}")
-    except (urllib.error.URLError, OSError, ValueError) as e:
-        raise ErroRede(f"falha de rede em {url}: {getattr(e, 'reason', e)}")
+    # HTTPException (IncompleteRead, BadStatusLine...) não é OSError e o urllib não a
+    # embrulha: sem isto uma resposta truncada derrubava o fontes-check inteiro (exit 1).
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as e:
+        motivo = " ".join(str(getattr(e, "reason", e)).split())
+        raise ErroRede(f"falha de rede em {url}: {e.__class__.__name__}: {motivo}")
 
 
 # ---------------------------------------------------------------------------
@@ -260,9 +398,11 @@ def carregar_fontes() -> tuple[dict, bool]:
     """Devolve (dados, terminava_com_newline) para reescrever sem ruído no diff."""
     p = caminho_fontes()
     try:
-        raw = p.read_text(encoding="utf-8")
+        raw = p.read_text(encoding="utf-8-sig")
     except FileNotFoundError:
         raise ErroUso(f"fontes.json ausente em {p}", EXIT_INSUFICIENTE)
+    except UnicodeDecodeError as e:
+        raise ErroUso(f"fontes.json não é UTF-8: {e}", EXIT_VALIDACAO)
     try:
         dados = json.loads(raw)
     except json.JSONDecodeError as e:
@@ -303,6 +443,9 @@ def validar_fontes(d, checar_urls: bool = True) -> list[str]:
         if not isinstance(pid, str) or not pid:
             erros.append(f"paginas[{i}] sem id")
             continue
+        if not id_pagina_valido(pid):
+            erros.append(f"paginas[{i}]: id inválido {pid!r} (use [A-Za-z0-9._-], sem '/' nem '.' inicial)")
+            continue
         if pid in vistos:
             erros.append(f"id duplicado: {pid}")
         vistos.add(pid)
@@ -324,7 +467,7 @@ def validar_fontes(d, checar_urls: bool = True) -> list[str]:
 
 
 def ler_cache(pid: str, sufixo: str = ".md") -> bytes | None:
-    p = cache_dir() / f"{pid}{sufixo}"
+    p = caminho_cache(pid, sufixo)
     try:
         return p.read_bytes()
     except FileNotFoundError:
@@ -344,8 +487,7 @@ def _checar_pagina(pag: dict, dominio: str, timeout: float) -> tuple[dict, bytes
         return item, None
     sha = sha256_bytes(conteudo)
     item["sha_atual"] = sha
-    cdir = cache_dir()
-    atual, anterior = cdir / f"{pid}.md", cdir / f"{pid}.anterior.md"
+    atual, anterior = caminho_cache(pid), caminho_cache(pid, ".anterior.md")
     velho = ler_cache(pid)
     # Procura a baseline (conteúdo com o sha registrado) antes de mexer no cache.
     baseline = None
@@ -369,7 +511,7 @@ def _checar_pagina(pag: dict, dominio: str, timeout: float) -> tuple[dict, bytes
         conteudo.decode("utf-8", "replace").splitlines(keepends=True),
         fromfile=f"{pid}@{(sha_reg or '')[:12]}", tofile=f"{pid}@{sha[:12]}",
     )
-    dpath = cdir / f"{pid}.diff"
+    dpath = caminho_cache(pid, ".diff")
     escrever_atomico(dpath, "".join(linhas).encode("utf-8"))
     item["diff"] = str(dpath)
     return item, conteudo
@@ -456,14 +598,24 @@ def cmd_fontes_aplicar(args) -> tuple[dict, int]:
             raise ErroUso(f"--adicionar espera id=url: {spec}", EXIT_VALIDACAO)
         nid, url = spec.split("=", 1)
         nid, url = nid.strip(), url.strip()
+        # Tudo que validar_fontes recusaria é barrado aqui, antes de escrever:
+        # senão o próprio fontes-aplicar deixava fontes.json quebrado para todo comando.
+        if not id_pagina_valido(nid):
+            raise ErroUso(f"--adicionar: id inválido {nid!r} (use [A-Za-z0-9._-], sem '/' nem '.' inicial)",
+                          EXIT_VALIDACAO)
         if nid in por_id:
             raise ErroUso(f"id já existe em fontes.json: {nid}", EXIT_VALIDACAO)
+        if any(nid == a for a, _u in adicionar):
+            raise ErroUso(f"--adicionar repetido para o mesmo id: {nid}", EXIT_VALIDACAO)
         try:
             validar_url(url, dominio)
         except ErroRede as e:
             raise ErroUso(str(e), EXIT_VALIDACAO)
         adicionar.append((nid, url))
     if not ids and not adicionar:
+        if args.todas_mudadas:
+            # Nada mudou é o caso normal depois de um fontes-check limpo, não erro.
+            return {"arquivo": str(caminho_fontes()), "alteradas": [], "adicionadas": []}, EXIT_OK
         raise ErroUso("nada a aplicar: use --ids, --todas-mudadas ou --adicionar", EXIT_INSUFICIENTE)
     desconhecidos = [i for i in ids if i not in por_id]
     if desconhecidos:
@@ -480,7 +632,7 @@ def cmd_fontes_aplicar(args) -> tuple[dict, int]:
                 diag(f"{nid}: {e}")
                 sem_cache.append(nid)
                 continue
-            escrever_atomico(cache_dir() / f"{nid}.md", c)
+            escrever_atomico(caminho_cache(nid), c)
         novos_conteudos[nid] = c
     if sem_cache:
         raise ErroUso(f"sem cache (rode fontes-check antes): {', '.join(sem_cache)}", EXIT_INSUFICIENTE,
@@ -526,6 +678,16 @@ def contem_verbatim(bloco: str, pagina: str) -> bool:
     return bool(cb) and cb in colapsar(pagina)
 
 
+def fecha_cerca(linha: str, cerca: str) -> bool:
+    """CommonMark: fecha com o mesmo caractere, comprimento >= o da abertura, sem info string.
+
+    Exigir comprimento igual deixava uma abertura de 4 crases fechada por 5 sem fechar,
+    e o bloco engolia os blocos verbatim seguintes, que ficavam sem verificação.
+    """
+    s = linha.strip()
+    return len(s) >= len(cerca) and s == cerca[0] * len(s)
+
+
 def extrair_blocos(texto: str) -> list[dict]:
     """Blocos ```text verbatim fonte=... id=...```; bloco sem fechamento vira erro."""
     linhas = texto.split("\n")
@@ -537,7 +699,7 @@ def extrair_blocos(texto: str) -> list[dict]:
             continue
         cerca, attrs = m.group(1), dict(RE_ATRIB.findall(m.group(2)))
         j = i + 1
-        while j < len(linhas) and linhas[j].strip() != cerca:
+        while j < len(linhas) and not fecha_cerca(linhas[j], cerca):
             j += 1
         blocos.append({"linha": i + 1, "fonte": attrs.get("fonte"), "id": attrs.get("id"),
                        "conteudo": "\n".join(linhas[i + 1:j]), "fechado": j < len(linhas)})
@@ -558,12 +720,23 @@ def cmd_snippets(args) -> tuple[dict, int]:
     falhas, sem_cache, ids = [], [], {}
     for arq in arquivos:
         rel = str(arq.relative_to(raiz))
-        for b in extrair_blocos(arq.read_text(encoding="utf-8")):
+        try:
+            texto = arq.read_text(encoding="utf-8-sig")
+        except UnicodeDecodeError as e:
+            # Um .md ruim vira falha dele; não pode derrubar a verificação dos outros.
+            falhas.append({"arquivo": rel, "linha": None, "fonte": None, "id": None, "inicio": "",
+                           "motivo": f"arquivo não é UTF-8 (byte inválido na posição {e.start})"})
+            continue
+        for b in extrair_blocos(texto):
             total += 1
             falha = {"arquivo": rel, "linha": b["linha"], "fonte": b["fonte"], "id": b["id"],
                      "inicio": normalizar(b["conteudo"])[:80]}
             if not b["fonte"] or not b["id"]:
                 falhas.append({**falha, "motivo": "atributos fonte= e id= obrigatórios"})
+                continue
+            if not id_pagina_valido(b["fonte"]):
+                # fonte= vira nome de arquivo no cache: '../x' leria fora dele.
+                falhas.append({**falha, "motivo": "fonte= inválida (use o id da página em fontes.json)"})
                 continue
             if b["id"] in ids:
                 falhas.append({**falha, "motivo": "id de snippet duplicado"})
@@ -719,11 +892,35 @@ def _trecho(texto: str, pos: int) -> str:
     return texto[ini: fim if fim >= 0 else len(texto)].strip()[:160]
 
 
+def _mascarar_cercas(texto: str) -> str:
+    """Troca blocos de código cercados por espaços, em tempo linear.
+
+    Segue o CommonMark: info string de cerca com crase não pode conter crase (então
+    ```inline``` não abre bloco), fecha com cerca do mesmo caractere de comprimento
+    >= e, sem fechamento, o bloco vai até o fim do texto.
+    """
+    linhas = texto.split("\n")
+    i = 0
+    while i < len(linhas):
+        m = RE_FENCE_LINHA.match(linhas[i])
+        if not m or (m.group(1)[0] == "`" and "`" in m.group(2)):
+            i += 1
+            continue
+        cerca, j = m.group(1), i + 1
+        while j < len(linhas) and not fecha_cerca(linhas[j], cerca):
+            j += 1
+        fim = min(j, len(linhas) - 1)
+        for k in range(i, fim + 1):
+            linhas[k] = " " * len(linhas[k])
+        i = fim + 1
+    return "\n".join(linhas)
+
+
 def _mascarar_codigo(texto: str) -> str:
     """Troca código (cercas e crases) por espaços, preservando posições e linhas."""
     def branco(m):
         return re.sub(r"[^\n]", " ", m.group(0))
-    return RE_CRASE.sub(branco, RE_FENCE_CODIGO.sub(branco, texto))
+    return RE_CRASE.sub(branco, _mascarar_cercas(texto))
 
 
 def _achado(regra, sev, linha, trecho, motivo, sugestao, fonte, origem=None) -> dict:
@@ -841,23 +1038,35 @@ def checar_request(req: dict, c: dict) -> str | None:
 
 
 def _textos_request(req: dict) -> list[tuple[str, str]]:
-    """Extrai o texto de system e das mensagens para o lint de texto."""
+    """Extrai o texto de system e de cada mensagem para o lint de texto.
+
+    Os blocos de texto de uma mesma mensagem são juntados: um <documents> aberto
+    num bloco e fechado no seguinte é uma estrutura só, não uma tag sem fechamento.
+    """
     out = []
 
-    def blocos(conteudo, origem):
+    def coletar(conteudo, origem):
         if isinstance(conteudo, str):
             out.append((origem, conteudo))
-        elif isinstance(conteudo, list):
-            for k, b in enumerate(conteudo):
-                if isinstance(b, dict) and isinstance(b.get("text"), str):
-                    out.append((f"{origem}[{k}]", b["text"]))
-                elif isinstance(b, str):
-                    out.append((f"{origem}[{k}]", b))
+            return
+        if not isinstance(conteudo, list):
+            return
+        partes = []
+        for k, b in enumerate(conteudo):
+            if isinstance(b, dict) and isinstance(b.get("text"), str):
+                partes.append((f"{origem}[{k}]", b["text"]))
+            elif isinstance(b, str):
+                partes.append((f"{origem}[{k}]", b))
+        if len(partes) == 1:
+            out.append(partes[0])
+        elif partes:
+            out.append((origem, "\n".join(t for _o, t in partes)))
 
-    blocos(req.get("system"), "system")
-    for i, m in enumerate(req.get("messages") or []):
+    coletar(req.get("system"), "system")
+    msgs = req.get("messages")
+    for i, m in enumerate(msgs if isinstance(msgs, list) else []):
         if isinstance(m, dict):
-            blocos(m.get("content"), f"messages[{i}]")
+            coletar(m.get("content"), f"messages[{i}]")
     return out
 
 
@@ -910,7 +1119,8 @@ def caminho_episodios() -> Path:
 def carregar_episodios() -> dict[str, dict]:
     eps: dict[str, dict] = {}
     try:
-        with caminho_episodios().open(encoding="utf-8") as f:
+        # errors="replace": um byte ruim estraga só a própria linha (ignorada abaixo).
+        with caminho_episodios().open(encoding="utf-8-sig", errors="replace") as f:
             for n, linha in enumerate(f, 1):
                 if not linha.strip():
                     continue
@@ -927,8 +1137,19 @@ def carregar_episodios() -> dict[str, dict]:
 
 
 def anexar_episodio(ep: dict) -> None:
-    with caminho_episodios().open("a", encoding="utf-8") as f:
-        f.write(json.dumps(ep, ensure_ascii=False) + "\n")
+    """Anexa um retrato; chame sob trava_estado().
+
+    Se um append anterior foi interrompido (disco cheio, crash), a última linha
+    ficou sem '\\n' e o retrato novo seria colado nela e perdido: termina a linha antes.
+    """
+    p = caminho_episodios()
+    with p.open("ab") as f:
+        if f.tell() > 0:
+            with p.open("rb") as r:
+                r.seek(-1, os.SEEK_END)
+                if r.read(1) != b"\n":
+                    f.write(b"\n")
+        f.write((json.dumps(ep, ensure_ascii=False) + "\n").encode("utf-8"))
         f.flush()
         os.fsync(f.fileno())
 
@@ -937,7 +1158,17 @@ def _strings_longas(obj, caminho="") -> list[str]:
     if isinstance(obj, str):
         return [caminho] if len(obj) > MAX_TEXTO else []
     if isinstance(obj, dict):
-        return [c for k, v in obj.items() for c in _strings_longas(v, f"{caminho}.{k}" if caminho else k)]
+        # Chaves também: {"lint": {"<texto do usuário>": 1}} guardaria conteúdo. A
+        # chave longa sai como <chave longa> para não ecoar o conteúdo na mensagem.
+        out = []
+        for k, v in obj.items():
+            longa = len(str(k)) > MAX_TEXTO
+            nome = "<chave longa>" if longa else str(k)
+            c = f"{caminho}.{nome}" if caminho else nome
+            if longa:
+                out.append(c)
+            out.extend(_strings_longas(v, c))
+        return out
     if isinstance(obj, list):
         return [c for i, v in enumerate(obj) for c in _strings_longas(v, f"{caminho}[{i}]")]
     return []
@@ -966,6 +1197,10 @@ def validar_episodio(d) -> dict:
     for k in ("modo", "modelo", "tarefa", "effort", "superficie", "patamar", "origem_skill"):
         if k in d and d[k] is not None and not isinstance(d[k], str):
             raise ErroUso(f"{k} deve ser texto", EXIT_VALIDACAO)
+    if not modelo_conhecido(d["modelo"]):
+        # politica recusa modelo desconhecido: aceitar aqui juntaria recompensa que nunca é lida.
+        raise ErroUso(f"modelo desconhecido: {d['modelo']} (conhecidos: {', '.join(MODELOS_CONHECIDOS)})",
+                      EXIT_VALIDACAO)
     decs = d["decisoes"]
     if not isinstance(decs, list) or not all(isinstance(x, str) and x.strip() for x in decs):
         raise ErroUso("decisoes deve ser lista de ids", EXIT_VALIDACAO)
@@ -977,7 +1212,9 @@ def validar_episodio(d) -> dict:
         raise ErroUso("tarefa '*' é reservada para o agregado", EXIT_VALIDACAO)
     if "lint" in d and d["lint"] is not None:
         li = d["lint"]
-        if not isinstance(li, dict) or any(not isinstance(li.get(k, 0), int) for k in ("hard", "soft")):
+        # Só as duas contagens: chave extra seria canal para texto livre.
+        if (not isinstance(li, dict) or set(li) - {"hard", "soft"}
+                or any(isinstance(v, bool) or not isinstance(v, int) or v < 0 for v in li.values())):
             raise ErroUso("lint deve ser {hard: int, soft: int}", EXIT_VALIDACAO)
     if d.get("rubrica") is not None:
         _num01(d["rubrica"], "rubrica")
@@ -996,7 +1233,8 @@ def cmd_episodio(args) -> tuple[dict, int]:
     ep_id = f"ep-{agora.strftime('%Y%m%dT%H%M%S')}-{secrets.token_hex(2)}"
     ep.update({"id": ep_id, "criado_em": agora_iso(), "pendente": True,
                "sinais": {}, "decisoes_editadas": [], "contribuicao": {}, "R": None})
-    anexar_episodio(ep)
+    with trava_estado():
+        anexar_episodio(ep)
     return {"id": ep_id}, EXIT_OK
 
 
@@ -1014,6 +1252,26 @@ def calcular_R(sinais: dict) -> float | None:
     if not pres:
         return None
     return sum(PESOS[k] * v for k, v in pres.items()) / sum(PESOS[k] for k in pres)
+
+
+def similaridade(a: str, b: str) -> float:
+    """Razão de similaridade entregue×editado (0–1).
+
+    autojunk=False: com o padrão, acima de 200 caracteres o difflib trata letras
+    comuns como lixo e apagar 100 de 8 000 caracteres dava 0,43. Textos grandes
+    comparam por tokens (palavra + espaço) com peso em caracteres, porque o
+    caractere a caractere sem autojunk é O(n·m) e levaria minutos.
+    """
+    if a == b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    if len(a) + len(b) <= LIMITE_SIM_CHARS:
+        return difflib.SequenceMatcher(None, a, b, autojunk=False).ratio()
+    ta, tb = RE_TOKEN.findall(a), RE_TOKEN.findall(b)
+    sm = difflib.SequenceMatcher(None, ta, tb, autojunk=len(ta) + len(tb) > LIMITE_SIM_TOKENS)
+    iguais = sum(len(t) for i, _j, n in sm.get_matching_blocks() for t in ta[i:i + n])
+    return 2 * iguais / (len(a) + len(b))
 
 
 def _sinais_novos(args) -> dict:
@@ -1035,30 +1293,56 @@ def _sinais_novos(args) -> dict:
             raise ErroUso("--editado e --entregue vão juntos", EXIT_VALIDACAO)
         # Os arquivos só são lidos para a razão de similaridade; nada deles é guardado.
         ent, edi = ler_entrada(args.entregue), ler_entrada(args.editado)
-        s["edicao"] = 1 - (1 - difflib.SequenceMatcher(None, ent, edi).ratio())
+        s["edicao"] = similaridade(ent, edi)
     if args.rubrica is not None:
         s["rubrica"] = _num01(args.rubrica, "--rubrica")
     return s
 
 
-def _aplicar_placar(placar: dict, modelo: str, tarefa: str, velha: dict, nova: dict) -> None:
-    """Idempotente: desfaz a contribuição anterior do episódio antes de somar a nova."""
+def _aplicar_placar(placar: dict, ep_id: str, modelo: str, tarefa: str, velha: dict, nova: dict) -> None:
+    """Idempotente: desfaz a contribuição anterior do episódio antes de somar a nova.
+
+    Quem diz se a contribuição já está somada é a própria entrada do placar
+    (`episodios`: {ep_id: R_d}), gravada no mesmo arquivo atômico. Confiar só no
+    retrato do episódio (outro arquivo) contava duas vezes quando o append falhava
+    depois do placar gravado, e zerava n / negativava alfa quando placar.json sumia.
+    """
     agora = agora_iso()
     for d, rd in nova.items():
         for t in (tarefa, "*"):
             k = chave(modelo, t, d)
-            e = placar.setdefault(k, {"alfa": 0.0, "beta": 0.0, "n": 0, "atualizado_em": agora})
-            if d in velha:
-                e["alfa"] -= velha[d]
-                e["beta"] -= 1 - velha[d]
+            e = placar.get(k)
+            if not isinstance(e, dict):
+                e = placar[k] = {"alfa": 0.0, "beta": 0.0, "n": 0, "atualizado_em": agora}
+            aplicados = e.get("episodios")
+            if not isinstance(aplicados, dict):
+                aplicados = e["episodios"] = {}
+            n = int(e.get("n", 0))
+            antiga = aplicados.get(ep_id)
+            if antiga is None and d in velha and n > len(aplicados):
+                # Entrada anterior a este registro: há contribuições sem id e o
+                # retrato diz que esta foi uma delas.
+                antiga = velha[d]
+            if antiga is None:
+                n += 1
+                a, b = float(e.get("alfa", 0)), float(e.get("beta", 0))
             else:
-                e["n"] += 1
-            e["alfa"] = round(e["alfa"] + rd, 12)
-            e["beta"] = round(e["beta"] + 1 - rd, 12)
+                a, b = float(e.get("alfa", 0)) - antiga, float(e.get("beta", 0)) - (1 - antiga)
+            e["alfa"] = max(0.0, round(a + rd, 12))
+            e["beta"] = max(0.0, round(b + 1 - rd, 12))
+            e["n"] = n
+            aplicados[ep_id] = rd
             e["atualizado_em"] = agora
 
 
 def cmd_recompensa(args) -> tuple[dict, int]:
+    # Ler episódio + placar, somar e gravar é um read-modify-write: sem trava, dois
+    # processos simultâneos perdiam contribuições (12 recompensas → n=9).
+    with trava_estado():
+        return _recompensa(args)
+
+
+def _recompensa(args) -> tuple[dict, int]:
     eps = carregar_episodios()
     ep = eps.get(args.id)
     if ep is None:
@@ -1080,8 +1364,8 @@ def cmd_recompensa(args) -> tuple[dict, int]:
                       EXIT_INSUFICIENTE, {"id": ep["id"], "R": None, "fechado": bool(args.fechar)})
     editadas = set(ep.get("decisoes_editadas") or [])
     nova = {d: (0.0 if d in editadas else R) for d in ep["decisoes"]}
-    placar = ler_json(caminho_placar(), {}) or {}
-    _aplicar_placar(placar, ep["modelo"], ep["tarefa"], ep.get("contribuicao") or {}, nova)
+    placar = ler_estado(caminho_placar(), {})
+    _aplicar_placar(placar, ep["id"], ep["modelo"], ep["tarefa"], ep.get("contribuicao") or {}, nova)
     escrever_json(caminho_placar(), placar)
     ep.update({"sinais": sinais, "contribuicao": nova, "R": R, "recompensado_em": agora_iso()})
     if args.fechar:
@@ -1091,18 +1375,37 @@ def cmd_recompensa(args) -> tuple[dict, int]:
 
 
 def _estat(placar: dict, k: str) -> tuple[float, float, int]:
-    e = placar.get(k) or {}
-    return float(e.get("alfa", 0)), float(e.get("beta", 0)), int(e.get("n", 0))
+    e = placar.get(k)
+    if not isinstance(e, dict):
+        return 0.0, 0.0, 0
+    try:
+        return float(e.get("alfa", 0)), float(e.get("beta", 0)), int(e.get("n", 0))
+    except (TypeError, ValueError):
+        return 0.0, 0.0, 0
+
+
+def partes_chave(k: str) -> tuple[str, str, str] | None:
+    """modelo|tarefa|decisao; chave em outro formato é ignorada (não derruba leitura)."""
+    partes = k.split("|", 2)
+    return (partes[0], partes[1], partes[2]) if len(partes) == 3 else None
+
+
+def carregar_placar() -> dict:
+    placar = ler_estado(caminho_placar(), {})
+    ruins = [k for k in placar if partes_chave(k) is None]
+    if ruins:
+        diag(f"placar.json: {len(ruins)} chave(s) fora do formato modelo|tarefa|decisao ignorada(s)")
+    return {k: v for k, v in placar.items() if k not in ruins}
 
 
 def cmd_politica(args) -> tuple[dict, int]:
     if not modelo_conhecido(args.modelo):
         raise ErroUso(f"modelo desconhecido: {args.modelo}", EXIT_INSUFICIENTE)
-    placar = ler_json(caminho_placar(), {}) or {}
+    placar = carregar_placar()
     recomendadas = set(lista_csv(args.recomendadas))
     cands = lista_csv(args.candidatas)
     if not cands:
-        vistos = {k.split("|", 2)[2] for k in placar if k.split("|", 2)[0] == args.modelo}
+        vistos = {partes_chave(k)[2] for k in placar if partes_chave(k)[0] == args.modelo}
         cands = sorted(vistos | recomendadas)
     decisoes = []
     for d in dict.fromkeys(cands):
@@ -1138,24 +1441,26 @@ def caminho_promovidos() -> Path:
 
 
 def cmd_candidatos(args) -> tuple[dict, int]:
-    placar = ler_json(caminho_placar(), {}) or {}
-    promovidos = ler_json(caminho_promovidos(), {}) or {}
+    placar = carregar_placar()
     marcado = None
     if args.marcar_promovido:
         k = args.marcar_promovido
         if k not in placar:
             raise ErroUso(f"chave não está no placar: {k}", EXIT_INSUFICIENTE)
-        promovidos[k] = {"marcado_em": agora_iso()}
-        escrever_json(caminho_promovidos(), promovidos)
+        with trava_estado():  # read-modify-write de promovidos.json
+            promovidos = ler_estado(caminho_promovidos(), {})
+            promovidos[k] = {"marcado_em": agora_iso()}
+            escrever_json(caminho_promovidos(), promovidos)
         marcado = k
+    promovidos = ler_estado(caminho_promovidos(), {})
     hoje = hoje_utc()
     out = []
     for k in sorted(placar):
-        modelo, tarefa, dec = k.split("|", 2)
+        modelo, tarefa, dec = partes_chave(k)
         if tarefa == "*" or k in promovidos:
             continue
         a, _b, n = _estat(placar, k)
-        if n < args.min_n:
+        if n < args.min_n or n <= 0:  # n=0 não tem média (e --min-n 0 dividia por zero)
             continue
         media = a / n
         if media >= args.alto:
@@ -1163,6 +1468,9 @@ def cmd_candidatos(args) -> tuple[dict, int]:
         elif media <= args.baixo:
             direcao = "evitar"
         else:
+            continue
+        if direcao == "evitar" and dec.startswith(("api.", "hard.")):
+            # politica trata api./hard. como fixas: a memória nunca afrouxa restrição da API.
             continue
         media_txt = f"{media:.2f}".replace(".", ",")
         linha = (f"- [{hoje} · {modelo} · {tarefa}] {dec}: {direcao} — Aplicar: <preencher>. "
@@ -1176,7 +1484,12 @@ def cmd_candidatos(args) -> tuple[dict, int]:
 
 
 def cmd_pendentes(args) -> tuple[dict, int]:
-    limite = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=args.dias)
+    if args.dias < 0:
+        raise ErroUso("--dias deve ser >= 0", EXIT_VALIDACAO)
+    try:
+        limite = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=args.dias)
+    except OverflowError:  # --dias enorme = sem limite de idade
+        limite = _dt.datetime.min.replace(tzinfo=_dt.timezone.utc)
     lista = []
     for ep in carregar_episodios().values():
         if not ep.get("pendente"):
@@ -1194,15 +1507,16 @@ def cmd_stats(args) -> tuple[dict, int]:
     por_modelo: dict[str, list[float]] = {}
     por_tarefa: dict[str, list[float]] = {}
     for ep in eps:
-        if ep.get("R") is None:
+        R = ep.get("R")
+        if isinstance(R, bool) or not isinstance(R, (int, float)):
             continue
-        por_modelo.setdefault(ep["modelo"], []).append(ep["R"])
-        por_tarefa.setdefault(ep["tarefa"], []).append(ep["R"])
+        por_modelo.setdefault(str(ep.get("modelo")), []).append(R)
+        por_tarefa.setdefault(str(ep.get("tarefa")), []).append(R)
     media = lambda xs: sum(xs) / len(xs)  # noqa: E731
-    placar = ler_json(caminho_placar(), {}) or {}
+    placar = carregar_placar()
     decs = []
     for k in placar:
-        modelo, tarefa, dec = k.split("|", 2)
+        modelo, tarefa, dec = partes_chave(k)
         a, _b, n = _estat(placar, k)
         if tarefa == "*" and n >= 3:
             decs.append({"modelo": modelo, "decisao": dec, "n": n, "media": a / n})
@@ -1549,6 +1863,197 @@ def _st_memoria(st: _Selftest) -> None:
     st.t("episodio: obrigatórios", code == EXIT_VALIDACAO, str(code))
 
 
+class _RespostaFalsa:
+    """Resposta HTTP de mentira para testar fetch sem rede."""
+
+    def __init__(self, pedacos=(), length=None, erro=None, url="https://platform.claude.com/x.md"):
+        self.pedacos, self.length, self.erro, self.url = list(pedacos), length, erro, url
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def geturl(self):
+        return self.url
+
+    def read1(self, _n):
+        if self.erro:
+            raise self.erro
+        return self.pedacos.pop(0) if self.pedacos else b""
+
+
+def _fetch_falso(resposta) -> str:
+    """Roda fetch() com build_opener trocado; devolve 'ok' ou a mensagem de ErroRede."""
+    velho_fetch, velho_opener = os.environ.pop("PCM_FETCH_DIR", None), urllib.request.build_opener
+
+    class _Opener:
+        def open(self, _req, timeout=None):
+            if isinstance(resposta, BaseException):
+                raise resposta
+            return resposta
+
+    urllib.request.build_opener = lambda *_a: _Opener()
+    try:
+        fetch("https://platform.claude.com/x.md", 5)
+        return "ok"
+    except ErroRede as e:
+        return f"ErroRede: {e}"
+    finally:
+        urllib.request.build_opener = velho_opener
+        if velho_fetch is not None:
+            os.environ["PCM_FETCH_DIR"] = velho_fetch
+
+
+def _st_rede(st: _Selftest) -> None:
+    """Falhas de rede viram ErroRede (status 'erro'), nunca exceção solta (exit 1)."""
+    ir = _fetch_falso(_RespostaFalsa(erro=http.client.IncompleteRead(b"parcial", 100)))
+    st.t("rede: IncompleteRead → ErroRede", ir.startswith("ErroRede"), ir)
+    bs = _fetch_falso(http.client.BadStatusLine("GARBAGE"))
+    st.t("rede: BadStatusLine → ErroRede", bs.startswith("ErroRede"), bs)
+    tr = _fetch_falso(_RespostaFalsa([b"so dez b"], length=990))
+    st.t("rede: corpo truncado (read1 sem erro) → ErroRede", "truncada" in tr, tr)
+    fora = _fetch_falso(_RespostaFalsa([b"x"], url="https://evil.example.org/x.md"))
+    st.t("rede: resposta de outro host → ErroRede", fora.startswith("ErroRede"), fora)
+    st.t("rede: conteúdo normal passa", _fetch_falso(_RespostaFalsa([b"ab", b"cd"])) == "ok")
+    req = urllib.request.Request("https://platform.claude.com/docs/a.md")
+    try:
+        _RedirecionamentoRestrito().redirect_request(req, None, 302, "Found", {}, "https://evil.example.org/x.md")
+        redir = "seguiu"
+    except ErroRede:
+        redir = "recusou"
+    st.t("rede: redirect para outro domínio recusado", redir == "recusou", redir)
+    try:
+        _ler_com_prazo(_RespostaFalsa([b"x"] * 5), "u", time.monotonic() - 1)
+        prazo = "leu"
+    except ErroRede:
+        prazo = "prazo"
+    st.t("rede: prazo total vale entre leituras", prazo == "prazo", prazo)
+
+
+def _st_robustez(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
+    """Casos de borda que já quebraram: cada um tem o defeito original no nome."""
+    os.environ["PCM_STATE_DIR"] = str(st.tmp / "state-robustez")
+    fontes = {"dominio_permitido": "platform.claude.com", "paginas": [_pagina("prompting-claude-x", FIX_X)]}
+    (fetch_dir / "prompting-claude-x.md").write_text(FIX_X, encoding="utf-8")
+    (fetch_dir / "nova1.md").write_text("# nova\n", encoding="utf-8")
+    fj = sk / "fontes.json"
+    fj.write_text(json.dumps(fontes, indent=2), encoding="utf-8")
+    if os.name == "posix":
+        os.chmod(fj, 0o644)
+    u = URL_BASE + "nova1.md"
+    antes = fj.read_bytes()
+    _o, c1 = st.run(["fontes-aplicar", "--adicionar", f"nova1={u}", "--adicionar", f"nova1={u}"])
+    _o, c2 = st.run(["fontes-aplicar", "--adicionar", f"={u}"])
+    _o, c3 = st.run(["fontes-aplicar", "--adicionar", f"../../fora={u}"])
+    st.t("fontes-aplicar: id repetido/vazio/'../' → exit 3 sem escrever",
+         (c1, c2, c3) == (3, 3, 3) and fj.read_bytes() == antes and not (st.tmp / "fora.md").exists(), f"{c1} {c2} {c3}")
+    ruim = json.loads(json.dumps(fontes))
+    ruim["paginas"][0]["id"] = "../../x"
+    st.t("fontes: validar_fontes recusa id com '../'", any("id inválido" in e for e in validar_fontes(ruim)))
+    st.run(["fontes-check"])
+    out, code = st.run(["fontes-aplicar", "--todas-mudadas"])
+    st.t("fontes-aplicar: --todas-mudadas sem mudança → exit 0 vazio",
+         code == 0 and out.get("alteradas") == [] and out.get("adicionadas") == [], f"{code} {out}")
+    _o, code = st.run(["fontes-aplicar", "--adicionar", f"nova1={u}"])
+    if os.name == "posix":
+        st.t("fontes-aplicar: preserva o modo de fontes.json", code == 0 and (fj.stat().st_mode & 0o777) == 0o644,
+             oct(fj.stat().st_mode))
+    # Snippets: cerca de fechamento mais longa, fonte com '../', arquivo não UTF-8.
+    rob = sk / "references" / "robustez"
+    rob.mkdir(parents=True, exist_ok=True)
+    (rob / "a.md").write_text("````text verbatim fonte=prompting-claude-x id=r.longa\nUse clear instructions.\n`````\n\n"
+                              "```text verbatim fonte=prompting-claude-x id=r.inventado\nLinha inventada.\n```\n\n"
+                              "```text verbatim fonte=../../x id=r.fora\nfoo\n```\n", encoding="utf-8")
+    (rob / "b.md").write_bytes(b"caf\xe9\n")
+    out, code = st.run(["snippets-verificar"])
+    motivos = {f["id"]: f["motivo"] for f in out.get("falhas", [])}
+    st.t("snippets: cerca de fechamento mais longa fecha o bloco",
+         "r.longa" not in motivos and "r.inventado" in motivos
+         and {"r.longa", "r.inventado"} <= set(out.get("ids", {})), str(out))
+    st.t("snippets: fonte= com '../' recusada", "inválida" in motivos.get("r.fora", ""), str(motivos))
+    st.t("snippets: .md não UTF-8 vira falha sem derrubar", code == EXIT_VALIDACAO and any(
+        f["arquivo"].endswith("b.md") for f in out.get("falhas", [])), str(out))
+    shutil.rmtree(rob)
+    # Lint: BOM, messages não-lista, XML entre blocos, cercas patológicas, entrada ruim.
+    req = '\ufeff' + json.dumps({"temperature": 0.5, "messages": [{"role": "user", "content": "hi"}]})
+    out, code = st.run(["lint", "--modelo", "sonnet-5", "-"], req)
+    st.t("lint: request com BOM ainda é request", code == 3 and out.get("entrada") == "request", str(out))
+    bom = st.tmp / "entradas" / "bom.json"
+    bom.write_bytes(req.encode("utf-8"))
+    out, code = st.run(["lint", "--modelo", "sonnet-5", str(bom)])
+    st.t("lint: arquivo com BOM ainda é request", code == 3 and out.get("entrada") == "request", str(out))
+    _o, code = st.run(["lint", "--modelo", "sonnet-5", "-"], '{"messages": 5}')
+    st.t("lint: messages não-lista não derruba", code == 0, str(code))
+    req = {"messages": [{"role": "user", "content": [{"type": "text", "text": "<documents>\n<document>a</document>"},
+                                                     {"type": "text", "text": "</documents>\nResuma."}]}]}
+    out, _ = st.run(["lint", "--modelo", "opus-5-5", "-"], json.dumps(req))
+    st.t("lint: XML fechado em outro bloco da mesma mensagem",
+         not any(a["regra"] == "heur.tag_sem_fechamento" for a in out["achados"]), str(out))
+    cercas = "".join("`" * (k + 3) + "\n" for k in range(600)) + "```inline``` uso\n" * 2000
+    t0 = time.monotonic()
+    st.run(["lint", "--modelo", "opus-5-5", st.arq("cercas.txt", cercas)])
+    dt = time.monotonic() - t0
+    st.t("lint: cercas patológicas em tempo linear", dt < 3, f"{dt:.1f}s")
+    st.t("lint: cerca sem fechamento mascara até o fim (CommonMark)",
+         _mascarar_cercas("a\n```\n<x>\n") == "a\n   \n   \n")
+    st.t("lint: ```inline``` não abre bloco", _mascarar_cercas("```inline``` <x>\n") == "```inline``` <x>\n")
+    ruim = st.tmp / "entradas" / "latin.txt"
+    ruim.write_bytes(b"caf\xe9\n")
+    _o, c1 = st.run(["lint", "--modelo", "opus-5-5", str(ruim)])
+    _o, c2 = st.run(["lint", "--modelo", "opus-5-5", str(st.tmp)])
+    st.t("lint: arquivo não UTF-8 → 3, diretório → 2", (c1, c2) == (3, 2), f"{c1} {c2}")
+    # Memória.
+    base = {"modo": "criar", "modelo": "opus-5-5", "tarefa": "codigo", "decisoes": ["a"]}
+    ep_id = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
+    st.run(["recompensa", "--id", ep_id, "--nota", "5"])
+    caminho_placar().unlink()
+    st.run(["recompensa", "--id", ep_id, "--nota", "1"])
+    e = ler_json(caminho_placar(), {}).get(chave("opus-5-5", "codigo", "a"), {})
+    st.t("memória: placar.json perdido → reconta o episódio uma vez",
+         (e.get("alfa"), e.get("beta"), e.get("n")) == (0.0, 1.0, 1), str(e))
+    _o, code = st.run(["candidatos", "--min-n", "0"])
+    st.t("candidatos: --min-n 0 não divide por zero", code == 0, str(code))
+    # Retrato perdido depois do placar gravado (append falhou): o retry não pode contar de novo.
+    linhas = caminho_episodios().read_text(encoding="utf-8").splitlines(keepends=True)
+    caminho_episodios().write_text("".join(linhas[:-1]), encoding="utf-8")
+    st.run(["recompensa", "--id", ep_id, "--nota", "1"])
+    e = ler_json(caminho_placar(), {}).get(chave("opus-5-5", "codigo", "a"), {})
+    st.t("memória: retry após append perdido não conta duas vezes", e.get("n") == 1 and e.get("beta") == 1.0, str(e))
+    with caminho_episodios().open("a", encoding="utf-8") as f:
+        f.write('{"id": "ep-truncado", "modo": "c"')
+    novo = st.run(["episodio", "-"], json.dumps(base))[0]["id"]
+    _o, code = st.run(["recompensa", "--id", novo, "--nota", "5", "--fechar"])
+    st.t("memória: linha truncada não engole o episódio seguinte", code == 0, str(_o))
+    longo = dict(base, lint={"hard": 0, "soft": 0, "x" * 400: 1})
+    _o, c1 = st.run(["episodio", "-"], json.dumps(longo))
+    _o, c2 = st.run(["episodio", "-"], json.dumps(dict(base, lint={"hard": 0, "soft": 0, "nota": "segredo"})))
+    _o, c3 = st.run(["episodio", "-"], json.dumps(dict(base, modelo="gpt-9")))
+    st.t("episodio: recusa texto em chave de lint, chave extra e modelo desconhecido", (c1, c2, c3) == (3, 3, 3),
+         f"{c1} {c2} {c3}")
+    for _ in range(3):
+        eid = st.run(["episodio", "-"], json.dumps(dict(base, decisoes=["api.x", "hard.y"])))[0]["id"]
+        st.run(["recompensa", "--id", eid, "--nota", "1"])
+    out, _ = st.run(["candidatos"])
+    st.t("candidatos: nunca sugere 'evitar' para api./hard.",
+         not any(c["decisao"].startswith(("api.", "hard.")) for c in out["candidatos"]), str(out))
+    # Palavras em ordem pseudoaleatória fixa: texto periódico confundiria o próprio difflib.
+    vocab = "the model should write clear instructions for each task and avoid excessive markdown".split()
+    texto = " ".join(vocab[hashlib.sha256(str(i).encode()).digest()[0] % len(vocab)] for i in range(1200))
+    sim = similaridade(texto, texto[:3000] + texto[3100:])
+    st.t("recompensa: edição pequena em texto longo ≈ similar", sim > 0.95, f"{sim:.4f}")
+    grande = texto * 10
+    st.t("recompensa: similaridade de texto grande (por tokens)", similaridade(grande, grande[:-100]) > 0.95)
+    _o, code = st.run(["pendentes", "--dias", "999999999"])
+    st.t("pendentes: --dias enorme não estoura", code == 0, str(code))
+    caminho_placar().write_text("corrompido", encoding="utf-8")
+    _o, c1 = st.run(["politica", "--modelo", "opus-5-5"])
+    _o, c2 = st.run(["recompensa", "--id", novo, "--nota", "3"])
+    st.t("memória: placar corrompido → exit 3 e não é sobrescrito",
+         (c1, c2) == (3, 3) and caminho_placar().read_text(encoding="utf-8") == "corrompido", f"{c1} {c2}")
+
+
 def _st_dados_reais(st: _Selftest, real: Path) -> None:
     """Valida os arquivos reais da skill, quando existem (outros agentes os geram)."""
     p = real / "fontes.json"
@@ -1581,7 +2086,9 @@ def cmd_selftest(args) -> tuple[dict, int]:
                        "PCM_FETCH_DIR": str(fetch_dir)})
     try:
         for nome, fn in (("fontes", lambda: _st_fontes(st, sk, fetch_dir)), ("snippets", lambda: _st_snippets(st, sk)),
-                         ("lint", lambda: _st_lint(st, sk)), ("memória", lambda: _st_memoria(st))):
+                         ("lint", lambda: _st_lint(st, sk)), ("memória", lambda: _st_memoria(st)),
+                         ("rede", lambda: _st_rede(st)),
+                         ("robustez", lambda: _st_robustez(st, sk, fetch_dir))):
             try:
                 fn()
             except Exception as e:  # um bloco quebrado não pode esconder os outros

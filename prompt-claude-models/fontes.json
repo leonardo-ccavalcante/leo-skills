@@ -234,6 +234,47 @@
         "references/modelos/sonnet-5.md",
         "references/selecao-modelo.md"
       ]
+    },
+    {
+      "id": "migration-guide-opus-5-5",
+      "url": "https://platform.claude.com/docs/en/models/opus-5-5/migration-guide.md",
+      "sha256": "9a108c032bf9a368ea9d84648de028e5641f97ab3e65d1301db5e379c2c04b90",
+      "bytes": 90144,
+      "verificado_em": "2026-09-27",
+      "tipo": "api",
+      "modelos": [
+        "opus-5-5",
+        "opus-5",
+        "opus-4-8",
+        "opus-4-7",
+        "opus-4-6"
+      ],
+      "alimenta": [
+        "references/restricoes-api.json",
+        "references/matriz-modelos.md",
+        "references/cruft.json",
+        "references/modelos/opus-5-5.md"
+      ]
+    },
+    {
+      "id": "migration-guide-fable-5-1",
+      "url": "https://platform.claude.com/docs/en/models/fable-5-1/migration-guide.md",
+      "sha256": "66b4fb8c6a70993a54fb2637602fbf4d717ae0a66fbe785b57d10ff3bf7c98b4",
+      "bytes": 93306,
+      "verificado_em": "2026-09-27",
+      "tipo": "api",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5",
+        "mythos-5"
+      ],
+      "alimenta": [
+        "references/restricoes-api.json",
+        "references/matriz-modelos.md",
+        "references/cruft.json",
+        "references/modelos/fable-5-1.md"
+      ]
     }
   ]
 }

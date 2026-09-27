@@ -41,6 +41,8 @@ Don't chain when:
 
 Rule of thumb: if you can write the sub-steps with crisp boundaries and a typed interface between them, chain. If the boundary is fuzzy, keep them in one prompt with CoT.
 
+> **Claude target?** Claude targets: apply `prompt-claude-models` — never vary temperature/top_p/top_k per step (400 on Sonnet 5, Opus 4.7 and Fable 5.1); vary model and effort instead, drop self-critique/"validate" steps on Opus 5 (it already self-verifies), and keep shared context as a byte-stable cached prefix.
+
 ## Common chain shapes
 
 ```

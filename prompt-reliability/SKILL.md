@@ -11,6 +11,8 @@ A prompt that works on three hand-picked examples is not the same as a prompt th
 2. **Optimization** — how to iterate on prompts using those measurements.
 3. **Failure mitigation** — reducing hallucinations, bias, and inconsistency.
 
+> **Claude target?** Claude targets: apply `prompt-claude-models` — never send non-default temperature/top_p/top_k (400 on Sonnet 5, Opus 4.7, Fable 5.1; get consistency from repeated runs and `effort`), drop the self-check pass on Opus 5, and put long documents above the instructions.
+
 ## When this skill is the right call
 
 - The user wants to evaluate or A/B test a prompt.

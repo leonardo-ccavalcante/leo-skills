@@ -11,6 +11,8 @@ When the model knows *what* to produce but not *exactly how to shape it*, you ne
 2. **Constraint specification** — length, vocabulary, allow/forbid lists, refusal conditions.
 3. **Format drift recovery** — why outputs drift and what to do about it.
 
+> **Claude target?** For Claude targets, also apply `prompt-claude-models`: never prefill the assistant turn (400 on Claude 4.6+), don't force `tool_choice` on Opus 5.5/Fable 5.1 (use Structured Outputs or strict tools), and size `max_tokens` for thinking plus reply.
+
 ## When this skill is the right call
 
 - The user wants JSON, XML, or another structured format.

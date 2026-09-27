@@ -1,0 +1,129 @@
+{
+  "skill_name": "prompt-claude-models",
+  "note": "Dois tipos de caso, no formato do sat. (1) Execução (ids 1-6): rodados com e sem a skill por subagentes; as expectations são verificáveis no output. (2) Gatilho (ids 7-12): only should_trigger; os negativos são near-misses de prompt-foundations, claude-api, sat e problem-solving. Regra dura herdada do sat: a description do SKILL.md deve passar `wc -c` <= 1024, senão trunca em silêncio e perde os gatilhos em inglês e a cláusula de exclusão.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "diagnostico-e-modelo",
+      "prompt": "Preciso montar um agente que, toda noite, lê os tickets de suporte do dia (uns 300, em JSON), classifica cada um em 7 categorias, agrupa duplicados e escreve um resumo de 10 linhas para o time de produto. Ninguém acompanha em tempo real. Não sei qual modelo Claude usar nem como escrever o prompt. Pode montar isso?",
+      "should_trigger": true,
+      "expectations": [
+        "Apresenta um bloco DIAGNOSTICO antes do prompt, com superfície (API/agente), supervisão (autônoma), tipo de carga e patamar de qualidade explícitos",
+        "Recomenda um modelo e um effort inicial nomeados, com pelo menos uma fonte oficial (página e seção) e marcados como [PROPOSTO] ou equivalente até medir",
+        "Propõe um plano de medição que compara por custo por tarefa concluída (não por token) e varre 2 a 3 níveis de effort",
+        "Menciona Batch API ou processamento fora de horário como alavanca, dado que ninguém espera a resposta",
+        "O prompt entregue usa Structured Outputs ou formato verificável por máquina para as 7 categorias, sem prefill e sem tool_choice forçado",
+        "Não inventa categorias, nomes de produto ou dados que o usuário não deu; lacunas aparecem como suposições ou perguntas"
+      ],
+      "notes": "Caso central: o prompt é consequência do diagnóstico. Sem a skill, a resposta típica escolhe um modelo por palpite e entrega só o prompt."
+    },
+    {
+      "id": 2,
+      "name": "construir-sonnet5",
+      "prompt": "Quero um system prompt para o Sonnet 5 via API. É um assistente de atendimento para a livraria Páginas & Cia: responde dúvidas sobre pedidos, troca e devolução (prazo de 30 dias com nota fiscal), horário (seg–sáb 9h–19h) e não fala de preço de concorrente. Tom cordial mas direto. Vou passar o histórico do cliente e a política completa como documento. Monta pra mim com os parâmetros da chamada.",
+      "should_trigger": true,
+      "expectations": [
+        "O prompt contém apenas fatos dados pelo usuário (30 dias com nota fiscal, seg–sáb 9h–19h, não falar de preço de concorrente); nada inventado",
+        "Documentos longos (política, histórico) ficam no topo em tags XML e a instrução/pergunta fica no fim",
+        "As regras estão em forma positiva com o porquê; não há CAPS agressivo (CRITICAL/MUST/NEVER)",
+        "O escopo é declarado explicitamente, citando que o Sonnet 5 segue instruções literalmente",
+        "Os parâmetros não incluem temperature/top_p/top_k nem budget_tokens; effort explícito; max_tokens com folga para o thinking",
+        "Entrega casos de teste (feliz, borda, adversarial) ou explica por que o patamar não os exige"
+      ],
+      "notes": "Sonnet 5: literalidade e sampling proibido são as duas regras que mais mudam o prompt."
+    },
+    {
+      "id": 3,
+      "name": "adaptar-opus48-para-fable51",
+      "prompt": "Estou migrando meu agente de pesquisa do Opus 4.8 para o Fable 5.1 e ele ficou pior: passa minutos em silêncio e às vezes não usa o web search. Segue o system prompt atual, o que eu mudo?\n\n---\nYou are a research agent.\n<avoid_excessive_markdown_and_bullet_points>\nWhen writing reports, write in flowing prose. DO NOT use ordered or unordered lists unless asked. NEVER output a series of short bullet points.\n</avoid_excessive_markdown_and_bullet_points>\nCRITICAL: You MUST use the web_search tool whenever a question could be answered by searching. If in doubt, search.\nAfter every 3 tool calls, summarize your progress to the user.\nHold all findings for the final response; do not narrate while working.\nBefore answering, write out your full reasoning inside <reasoning> tags, then give the answer.\n---\nA chamada usa tool_choice: {type: \"any\"} para forçar a busca.",
+      "should_trigger": true,
+      "expectations": [
+        "Remove o bloco anti-markdown explicando que o Fable 5.1 já formata menos e o bloco suprime estrutura necessária, com fonte",
+        "Remove ou reescreve 'Hold all findings for the final response' e o scaffolding 'After every 3 tool calls', e adiciona a instrução de progress updates do guia do Fable 5.1 (ou explica display: updates)",
+        "Remove a instrução de escrever o raciocínio em <reasoning> tags citando o risco de refusal reasoning_extraction",
+        "Substitui 'CRITICAL: You MUST ... If in doubt, search' por linguagem normal e, para o problema de não buscar, sugere effort maior ou o snippet de verificação de nomes do guia (search triggering at low effort)",
+        "Aponta que tool_choice any retorna 400 no Fable 5.1 e propõe auto + instrução (ou strict)",
+        "Entrega como diff comentado: cada remoção com motivo e fonte, cada adição com o sintoma que justifica"
+      ],
+      "notes": "Modo Adaptar. Cada linha do prompt de entrada é um cruft documentado para o Fable 5.1."
+    },
+    {
+      "id": 4,
+      "name": "compilar-sat-para-opus55",
+      "prompt": "Saí de uma sessão do /sat e quero transformar isso num prompt para um agente no Opus 5.5 que vai executar a migração dos 40 endpoints da API v1 para v2 durante a noite, sem ninguém olhando.\n\n| Supuesto | Clasificación | Si es falso, entonces... | Cómo testearlo |\n|---|---|---|---|\n| Todos os endpoints v1 têm teste de contrato | **frágil** | o agente quebra clientes sem perceber | rodar a suíte e listar endpoints sem teste |\n| O schema v2 está congelado | correcto con salvedades | retrabalho nos 6 endpoints de billing | confirmar com o time de billing |\n| O staging espelha produção | sólido | — | — |\n\n**Hecho consumado:** a migração falhou.\n1. **Endpoints sem teste migrados às cegas** — *Señal temprana:* cobertura cai no relatório. *Desactivador:* bloquear migração de endpoint sem teste.\n2. **Agente parou no meio com 'Próximo passo: migrar billing'** — *Señal temprana:* turno termina sem tool call. *Desactivador:* instrução de não parar antes do fim.",
+      "should_trigger": true,
+      "expectations": [
+        "O supuesto frágil vira instrução explícita de verificar antes de agir (listar endpoints sem teste e não migrá-los às cegas); o 'con salvedades' vira contexto com a salvedade; o sólido vira contexto",
+        "As tags do sat (frágil, correcto con salvedades, sólido) são preservadas ou citadas; nenhuma vira afirmação de fato no prompt",
+        "Os desativadores do premortem viram limites ou pontos de confirmação no prompt (bloquear migração sem teste; não terminar o turno com plano em vez de ação)",
+        "Aplica o snippet de execução sem supervisão do guia do Opus 5.5 (ou o de 'finish the whole task'), no fim do system prompt, mantendo confirmação para ações destrutivas",
+        "Define effort explicitamente (o default do Opus 5.5 é medium) e max_tokens alto, e não tenta desligar thinking",
+        "Inclui casos de teste adversariais derivados do premortem"
+      ],
+      "notes": "Modo Compilar com artefatos do sat. Testa 'a tag sobrevive à síntese' e o delta do Opus 5.5 para agentes autônomos."
+    },
+    {
+      "id": 5,
+      "name": "compilar-problem-solving-para-fable51",
+      "prompt": "Terminei um issue tree no /problem-solving e quero virar isso um prompt de análise para o Fable 5.1, que vai receber 3 planilhas de vendas e escrever o relatório para a diretoria.\n\nProblem statement: Por que a margem da unidade Sul caiu 6 p.p. entre Q1 e Q3 de 2026 e o que fazer até dezembro?\n\nIssue tree (MECE):\n├─→ Preço: descontos acima da política? [prioridade alta]\n├─→ Mix: mais itens de baixa margem? [prioridade alta]\n├─→ Custo: frete e devoluções subiram? [prioridade média]\n└─→ Volume: queda de venda diluindo fixo? [descartado: volume cresceu 4%]\n\nGoverning Thought esperado: recomendação de 1 linha para a diretoria; 3 Key Lines.",
+      "should_trigger": true,
+      "expectations": [
+        "O problem statement vira o objetivo do prompt sem reescrita de sentido; as ramas de prioridade alta e média viram passos de análise e a rama descartada vira 'fora de escopo' com o motivo dado",
+        "O formato de saída pedido segue a pirâmide (Governing Thought em 1 linha + exatamente 3 Key Lines) e o princípio 'lead with the outcome'",
+        "As planilhas ficam no topo do prompt em <documents> e a instrução no fim; pede citações/valores extraídos antes da análise",
+        "Aplica delta do Fable 5.1 pertinente a relatório longo (por exemplo, instrução sobre densidade de escrita ou sobre não rascunhar o entregável inteiro no thinking em xhigh/max) e não aplica snippets de agente sem cabimento",
+        "Não inventa números nem causas além do que o usuário deu"
+      ],
+      "notes": "Modo Compilar com artefatos do problem-solving. Delta proporcional: relatório, não agente."
+    },
+    {
+      "id": 6,
+      "name": "guiar-nao-interativo",
+      "prompt": "[Invocada por skill-creator] Estou escrevendo o SKILL.md de uma skill que vai rodar no Claude Code com Fable 5.1 como modelo. O rascunho pede ao modelo 'think step by step and show your reasoning before each edit', usa 'YOU MUST ALWAYS run the tests', e manda 'keep progress updates brief'. Não recomende skills; devolva só o bloco de orientação.",
+      "should_trigger": true,
+      "expectations": [
+        "A resposta é apenas o bloco fixo (DIAGNOSTICO, MODELO, APLICAR, REMOVER, PARAMETROS, FONTES), sem preâmbulo, sem perguntas de volta e sem recomendar skills",
+        "REMOVER inclui 'show your reasoning' (reasoning_extraction), o CAPS 'YOU MUST ALWAYS' (linguagem normal) e 'keep progress updates brief' (o Fable 5.1 já escreve menos updates), cada um com fonte",
+        "Incertezas sobre o que não está no texto aparecem como [UNSURE — verificar] em vez de perguntas",
+        "Não registra episódio de recompensa nem pede nota"
+      ],
+      "notes": "Contrato do modo Guiar, espelho da entrada (c) do sat."
+    },
+    {
+      "id": 7,
+      "prompt": "Qual a diferença entre few-shot e zero-shot e quando cada um funciona melhor? Estou aprendendo prompt engineering.",
+      "should_trigger": false,
+      "notes": "Near-miss: técnica genérica sem alvo Claude = prompt-foundations."
+    },
+    {
+      "id": 8,
+      "prompt": "Meu código Python com o SDK da Anthropic está dando 400 quando passo budget_tokens no thinking. Como fica a chamada certa com adaptive thinking e streaming?",
+      "should_trigger": false,
+      "notes": "Near-miss: código de SDK e forma da chamada = claude-api. A skill só entraria se o pedido fosse sobre o texto do prompt ou a escolha de modelo."
+    },
+    {
+      "id": 9,
+      "prompt": "Amanhã decido se fecho o contrato com o fornecedor único. Quero testar meus supostos antes, sem decidir ainda.",
+      "should_trigger": false,
+      "notes": "Near-miss: análise da decisão em si = sat."
+    },
+    {
+      "id": 10,
+      "prompt": "which claude model should i use for a customer-facing chatbot that answers ~50k questions a day about our 2026 product catalog? latency matters, budget is tight",
+      "should_trigger": true,
+      "notes": "Inglês casual, só pergunta de modelo. Modo Recomendar: filtros (corte de conhecimento 2026 exclui Haiku 4.5 e pesa contra Sonnet 5 sem retrieval), latência e volume, custo por tarefa concluída."
+    },
+    {
+      "id": 11,
+      "prompt": "Pega esse PRD que o /to-prd gerou e transforma num prompt para o Opus 5.5 implementar a feature inteira num PR.",
+      "should_trigger": true,
+      "notes": "Modo Compilar com artefato de outra skill e modelo nomeado."
+    },
+    {
+      "id": 12,
+      "prompt": "Estou com dificuldade de estruturar o problema da queda de vendas; me ajuda a montar um issue tree e apresentar pro comitê.",
+      "should_trigger": false,
+      "notes": "Near-miss: estruturação e comunicação = problem-solving. A skill entra depois, se o resultado virar prompt."
+    }
+  ]
+}
