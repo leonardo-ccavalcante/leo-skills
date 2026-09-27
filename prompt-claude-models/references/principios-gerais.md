@@ -1,6 +1,8 @@
 # Princípios gerais (todos os modelos atuais)
 
-Fonte única: `claude-prompting-best-practices` (BP). Este arquivo é lido no passo 6 da espinha, **depois** do delta do modelo-alvo em `modelos/<modelo>.md`: a própria página manda ler primeiro o guia do seu modelo e só então as técnicas gerais (BP, "Model-specific guidance"). Ordem das seções: a da página, agrupada.
+"Modelos atuais", na página: Fable 5.1, Mythos 5.1, Fable 5, Mythos 5, Opus 5.5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Sonnet 5, Sonnet 4.6 e Haiku 4.5 (BP, "Prompting best practices"). "Todos" abaixo quer dizer esse conjunto; onde a página exclui um deles (ex.: thinking do Haiku 4.5, §9), o item diz.
+
+Fonte principal: `claude-prompting-best-practices` (BP). Os guias por modelo aparecem só quando BP remete a eles ou para apontar o bloco do modelo (§10 "Superengenharia", §11), sempre com a página citada. Este arquivo é lido no passo 6 da espinha, **depois** do delta do modelo-alvo em `modelos/<modelo>.md`: a própria página manda ler primeiro o guia do seu modelo e só então as técnicas gerais (BP, "Model-specific guidance"). Ordem das seções: a da página, agrupada.
 
 Duas regras de leitura:
 
@@ -23,7 +25,7 @@ Create an analytics dashboard. Include as many relevant features and interaction
 ```
 
 ### Dê o porquê, não só a regra
-Explicar a motivação de uma instrução ajuda o modelo a entender o objetivo e responder de forma mais direcionada; ele generaliza a partir da explicação. **Cruft:** regra em caixa alta sem motivo (a versão "menos eficaz" da página é `NEVER use ellipses`) — acrescente a razão. **Onde:** system prompt · **Fonte:** (BP, "Add context to improve performance")
+Explicar a motivação de uma instrução ajuda o modelo a entender o objetivo e responder de forma mais direcionada; ele generaliza a partir da explicação. **Cruft:** regra em caixa alta sem motivo (a versão "menos eficaz" da página é `NEVER use ellipses`) — acrescente a razão. **Onde:** a página não indica; junto da regra que ele explica [julgamento local] · **Fonte:** (BP, "Add context to improve performance")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_tts_ellipses
 Your response will be read aloud by a text-to-speech engine, so never use ellipses since the text-to-speech engine will not know how to pronounce them.
@@ -45,7 +47,7 @@ Um papel no system prompt foca comportamento e tom; até uma frase faz diferenç
 You are a helpful coding assistant specializing in Python.
 ```
 
-**Autoconhecimento do modelo.** Para o modelo se identificar corretamente no app, ou para apps que precisam citar a string do modelo, a página traz os dois exemplos abaixo (escritos para Opus 5.5; troque nome e string pelos do modelo-alvo). **Onde:** system prompt · **Fonte:** (BP, "Model self-knowledge")
+**Autoconhecimento do modelo.** Para o modelo se identificar corretamente no app, ou para apps que precisam citar a string do modelo, a página traz os dois prompts de exemplo abaixo, ambos com Claude Opus 5.5 e `claude-opus-5-5`. **Onde:** system prompt · **Fonte:** (BP, "Model self-knowledge")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_model_identity
 The assistant is Claude, created by Anthropic. The current model is Claude Opus 5.5.
@@ -59,7 +61,7 @@ otherwise. The exact model string for Claude Opus 5.5 is claude-opus-5-5.
 ## 5. Contexto longo
 
 ### Documentos no topo, pergunta no fim
-Com entradas grandes (20k+ tokens), coloque documentos e dados longos no topo do prompt, acima da pergunta, das instruções e dos exemplos — melhora o desempenho em todos os modelos. Perguntas no fim melhoraram a qualidade da resposta em até 30% nos testes, sobretudo com entradas complexas multidocumento. Com vários documentos, envolva cada um em `<document>` com subtags `<document_content>` e `<source>` (e outros metadados). **Onde:** turno `user` · **Fonte:** (BP, "Long context prompting")
+Com entradas grandes (20k+ tokens), coloque documentos e dados longos no topo do prompt, acima da pergunta, das instruções e dos exemplos — melhora o desempenho em todos os modelos. Perguntas no fim podem melhorar a qualidade da resposta em até 30% nos testes, sobretudo com entradas complexas multidocumento. Com vários documentos, envolva cada um em `<document>` com subtags `<document_content>` e `<source>` (e outros metadados). **Onde:** turno `user` · **Fonte:** (BP, "Long context prompting")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.doc_xml_structure
 <documents>
@@ -113,7 +115,7 @@ Find quotes from the patient records and appointment history that are relevant t
 ## 6. Formato e verbosidade
 
 ### Estilo padrão e resumo após ferramentas
-Os modelos recentes são mais diretos (relatórios de progresso factuais, não autocelebratórios), mais conversacionais e menos verbosos: podem pular o resumo depois de tool calls e ir direto à próxima ação. Se você quer mais visibilidade do raciocínio, peça o resumo. **Onde:** system prompt · **Fonte:** (BP, "Communication style and verbosity")
+Os modelos recentes são mais diretos (relatórios de progresso factuais, não autocelebratórios), mais conversacionais e menos verbosos: podem pular o resumo depois de tool calls e ir direto à próxima ação. Se você quer mais visibilidade do raciocínio, peça o resumo. **Sintoma:** o modelo pula o resumo depois de tool calls e você quer visibilidade. **Onde:** system prompt · **Fonte:** (BP, "Communication style and verbosity")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_summary_after_tools
 After completing a task that involves tool use, provide a quick summary of the work you've done.
@@ -129,7 +131,7 @@ Your response should be composed of smoothly flowing prose paragraphs.
 ```
 
 ### Controle fino de markdown em conteúdo longo
-Para excesso de markdown e bullets em relatórios, documentos e explicações longas. **Onde:** system prompt · **Fonte:** (BP, "Control the format of responses")
+**Sintoma:** excesso de markdown e bullets em relatórios, documentos e explicações longas. **Onde:** system prompt · **Não use quando:** o alvo é o Fable 5.1 (aviso abaixo do bloco) · **Fonte:** (BP, "Control the format of responses")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_minimize_markdown
 <avoid_excessive_markdown_and_bullet_points>
@@ -156,7 +158,7 @@ rather than fragmenting information into isolated points.
 > **Atrapalha no Fable 5.1.** O Fable 5.1 já formata menos que modelos anteriores; nele este bloco pode suprimir estrutura de que o conteúdo precisa. Remova-o ou troque pela regra curta de "Formatting in chat" (bloco em `modelos/fable-5-1.md`, id `fable-5-1.formatting_rule_snippet`) (BP, "Control the format of responses").
 
 ### LaTeX
-Os modelos recentes usam LaTeX por padrão em expressões matemáticas, equações e explicações técnicas. Se a superfície não renderiza, peça texto puro. **Onde:** system prompt · **Fonte:** (BP, "LaTeX output")
+Os modelos recentes usam LaTeX por padrão em expressões matemáticas, equações e explicações técnicas. Se você prefere texto puro, acrescente as instruções abaixo. **Sintoma:** LaTeX na saída de uma superfície que não o renderiza. **Onde:** system prompt · **Fonte:** (BP, "LaTeX output")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_plain_text_math
 Format your response in plain text only. Do not use LaTeX, MathJax, or any markup
@@ -216,7 +218,7 @@ edits, modifications, or implementations when the user explicitly requests them.
 </do_not_act_before_instructions>
 ```
 
-**Cruft (medido em Opus 4.5 e 4.6):** esses modelos respondem mais ao system prompt; prompts feitos contra subacionamento de ferramentas ou skills passam a sobreacionar. Troque `CRITICAL: You MUST use this tool when...` por `Use this tool when...` (BP, "Tool usage").
+**Cruft (medido em Opus 4.5 e 4.6):** esses modelos respondem mais ao system prompt; prompts feitos contra subacionamento de ferramentas ou skills podem passar a sobreacionar. Troque `CRITICAL: You MUST use this tool when...` por `Use this tool when...` (BP, "Tool usage").
 
 ### Paralelismo
 Os modelos recentes já executam tool calls independentes em paralelo (buscas especulativas, vários arquivos lidos de uma vez, comandos bash em paralelo — que podem até gargalar o sistema). O comportamento é ajustável e o prompt abaixo leva a taxa a ~100%. **Onde:** system prompt · **Fonte:** (BP, "Optimize parallel tool calling")
@@ -237,7 +239,7 @@ calls.
 
 > **Fable 5.1 em loops longos de agente:** não deixe só no system prompt — envie a instrução de chamadas paralelas como mensagem de sistema com escopo de turno depois de cada rodada de tool results (BP, "Optimize parallel tool calling"; detalhes em `modelos/fable-5-1.md`).
 
-Para **reduzir** o paralelismo quando ele sobrecarrega o sistema. **Onde:** system prompt · **Fonte:** (BP, "Optimize parallel tool calling")
+Para **reduzir** o paralelismo. **Sintoma:** o paralelismo sobrecarrega o sistema. **Onde:** system prompt · **Fonte:** (BP, "Optimize parallel tool calling")
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.snip_parallel_reduce
 Execute operations sequentially with brief pauses between each step to ensure stability.
@@ -247,6 +249,7 @@ Execute operations sequentially with brief pauses between each step to ensure st
 
 ### Adaptativo e effort (parâmetros)
 - Claude 4.6 em diante (e Mythos Preview) usa thinking adaptativo (`thinking: {type: "adaptive"}`): o modelo decide quando e quanto pensar pelo `effort` e pela complexidade da consulta, e responde direto nas fáceis. Em avaliações internas o adaptativo rendeu mais que o extended de forma confiável; use-o em tool use multietapa, código complexo e loops longos de agente (BP, "Leverage thinking & interleaved thinking capabilities").
+- **Não use quando:** o modelo é mais antigo. Esses usam extended thinking manual com `budget_tokens`, e a página remete à tabela de configuração por modelo (BP, "Leverage thinking & interleaved thinking capabilities"). Dos modelos atuais, o **Haiku 4.5** é o que usa thinking Extended, e nele `effort` não é suportado (models-overview, "Compare models"); ver `modelos/legado.md`, seção Haiku 4.5, e `matriz-modelos.md`. Se você não usa extended thinking, nenhuma mudança é necessária (BP, "Leverage thinking & interleaved thinking capabilities").
 - **Fable 5.1, Mythos 5.1, Fable 5, Mythos 5 e Opus 5.5:** thinking sempre ligado, adaptativo é o único modo, com ou sem o parâmetro. **Opus 5 e Sonnet 5:** ligado por padrão quando o parâmetro é omitido; no Opus 5 só desliga em effort ≤ `high`. **Opus 4.6 a 4.8 e Sonnet 4.6:** desligado quando omitido (BP, mesma seção).
 - **Restrição dura:** `budget_tokens` dá 400 do Claude 4.7 em diante (no Opus 4.6 e Sonnet 4.6 ainda funciona, depreciado). Para teto de custo, baixe o effort ou use `max_tokens` como limite rígido. Ao migrar, troque a config por `thinking: {type: "adaptive"}` e mova o controle para `output_config.effort` (BP, "Overthinking and excessive thoroughness" e "Leverage thinking & interleaved thinking capabilities").
 
@@ -263,21 +266,48 @@ information, and then take the best next action.
 
 O acionamento do adaptativo é ajustável por prompt: se o modelo pensa mais vezes do que você quer (comum com system prompts grandes ou complexos), use o bloco de `modelos/legado.md`, id `all.snip_reduce_thinking`. Para thinking extenso demais (medido no Opus 4.6), o bloco "choose an approach and commit" está em `modelos/legado.md`, id `opus-4-6.snip_commit_approach`, com baixar o effort como alternativa (BP, "Leverage thinking & interleaved thinking capabilities" e "Overthinking and excessive thoroughness").
 
+Exploração inicial excessiva (medido no **Opus 4.6**, sobretudo em effort alto: junta contexto extenso ou segue várias linhas de pesquisa sem ser pedido): troque defaults gerais como "Default to using [tool]" por instrução direcionada (bloco em `modelos/legado.md`, id `opus-4-6.targeted_tool_guidance`); remova over-prompting como "If in doubt, use [tool]", que causa sobreacionamento (cruft); se continuar agressivo demais, effort mais baixo como fallback (BP, "Overthinking and excessive thoroughness").
+
 **CoT manual como fallback:** com thinking desligado, peça que pense passo a passo separando raciocínio e resposta com `<thinking>` e `<answer>`. **No Opus 5, prefira thinking ligado em effort menor:** com thinking desabilitado ele pode vazar tags XML internas na saída visível (ver `modelos/opus-5.md`). Com extended thinking desabilitado, o Opus 4.5 é sensível à palavra "think" — use "consider", "evaluate" ou "reason through" (BP, "Leverage thinking & interleaved thinking capabilities").
 
 ### Autoverificação
-Peça uma checagem no fim; detecta erros de forma confiável, sobretudo em código e matemática. **Onde:** fim do turno `user` · **Fonte:** (BP, "Leverage thinking & interleaved thinking capabilities")
+Peça uma checagem no fim; detecta erros de forma confiável, sobretudo em código e matemática. A página não traz bloco de prompt, só a frase "append something like": ``Before you finish, verify your answer against [test criteria].`` (troque `[test criteria]` pelos seus critérios; na fonte o colchete vem escapado com barra). **Onde:** fim do turno `user` · **Não use quando:** o alvo é o Opus 5 (aviso abaixo) · **Fonte:** (BP, "Leverage thinking & interleaved thinking capabilities")
 
-```text verbatim fonte=claude-prompting-best-practices id=all.self_check
-Before you finish, verify your answer against \[test criteria].
-```
-
-> **Atrapalha no Opus 5.** O Opus 5 já verifica bem o próprio trabalho sem instrução; instruções de verificação herdadas causam sobreverificação (tokens e latência). No Opus 5, **remova-as em vez de reescrevê-las** (BP, "Leverage thinking & interleaved thinking capabilities"; `modelos/opus-5.md`). A barra antes de `[test criteria]` é escape de Markdown da página; no prompt, escreva `[test criteria]` e substitua pelos seus critérios.
+> **Atrapalha no Opus 5.** O Opus 5 já verifica bem o próprio trabalho sem instrução; instruções de verificação herdadas causam sobreverificação (tokens e latência). No Opus 5, **remova-as em vez de reescrevê-las** (BP, "Leverage thinking & interleaved thinking capabilities"; `modelos/opus-5.md`).
 
 ## 10. Sistemas agênticos
 
 ### Estado e longo horizonte
-Os modelos recentes mantêm orientação em sessões longas avançando de forma incremental, poucas coisas por vez; a capacidade aparece sobretudo ao longo de várias janelas de contexto, salvando estado e continuando numa janela nova (BP, "Long-horizon reasoning and state tracking"). Boas práticas de estado: JSON ou outro formato estruturado para dados de estado (resultados de testes, status de tarefas); texto livre para notas de progresso; git como log e checkpoints restauráveis — os modelos recentes vão especialmente bem usando git entre sessões; e peça explicitamente que acompanhe o progresso e trabalhe de forma incremental (BP, "State management best practices"). A página ilustra com um `tests.json` e um `progress.txt`.
+Os modelos recentes mantêm orientação em sessões longas avançando de forma incremental, poucas coisas por vez; a capacidade aparece sobretudo ao longo de várias janelas de contexto, salvando estado e continuando numa janela nova (BP, "Long-horizon reasoning and state tracking"). Boas práticas de estado: JSON ou outro formato estruturado para dados de estado (resultados de testes, status de tarefas); texto livre para notas de progresso; git como log e checkpoints restauráveis — os modelos recentes vão especialmente bem usando git entre sessões; e peça explicitamente que acompanhe o progresso e trabalhe de forma incremental (BP, "State management best practices").
+
+A página ilustra com dois arquivos de estado (accordion "Example: State tracking"). São conteúdo de arquivo no disco, não texto de prompt; servem de modelo para o formato que você pede. **Fonte:** (BP, "State management best practices")
+
+`tests.json` — estado estruturado:
+
+```text verbatim fonte=claude-prompting-best-practices id=all.snip_state_tracking_example
+{
+  "tests": [
+    { "id": 1, "name": "authentication_flow", "status": "passing" },
+    { "id": 2, "name": "user_management", "status": "failing" },
+    { "id": 3, "name": "api_endpoints", "status": "not_started" }
+  ],
+  "total": 200,
+  "passing": 150,
+  "failing": 25,
+  "not_started": 25
+}
+```
+
+`progress.txt` — notas de progresso em texto livre:
+
+```text verbatim fonte=claude-prompting-best-practices id=all.snip_progress_notes_example
+// Progress notes (progress.txt)
+Session 3 progress:
+- Fixed authentication token validation
+- Updated user model to handle edge cases
+- Next: investigate user_management test failures (test #2)
+- Note: Do not remove tests as this could lead to missing functionality
+```
 
 ### Limite de contexto e múltiplas janelas
 Sonnet 5, Sonnet 4.6, Sonnet 4.5 e Haiku 4.5 rastreiam a janela restante ("token budget"). Sem saber que o harness compacta ou salva estado externo, o modelo pode tentar encerrar o trabalho perto do limite — então, **só quando o harness realmente compacta ou salva estado**, diga isso no prompt: bloco em `modelos/legado.md`, id `all.snip_context_compaction`. A memory tool combina bem com essa consciência de contexto (BP, "Context awareness and multiwindow workflows").
@@ -285,7 +315,7 @@ Sonnet 5, Sonnet 4.6, Sonnet 4.5 e Haiku 4.5 rastreiam a janela restante ("token
 Para tarefas que atravessam várias janelas (BP, "Workflows across multiple context windows"):
 
 1. **Prompt diferente na primeira janela:** monte o framework (testes, scripts de setup); nas seguintes, itere sobre uma todo-list.
-2. **Testes estruturados:** peça que crie os testes antes de começar e os acompanhe em formato estruturado (ex.: `tests.json`), lembrando a importância deles. **Onde:** system prompt
+2. **Testes estruturados:** peça que crie os testes antes de começar e os acompanhe em formato estruturado (ex.: `tests.json`), lembrando a importância deles com a frase abaixo. **Onde:** a página não indica [julgamento local: system prompt]
 
 ```text verbatim fonte=claude-prompting-best-practices id=all.structured_tests
 It is unacceptable to remove or edit tests because this could lead to missing or buggy functionality.
@@ -294,7 +324,7 @@ It is unacceptable to remove or edit tests because this could lead to missing or
 3. **Scripts de qualidade de vida:** incentive scripts de setup (ex.: `init.sh`) para subir servidores, rodar testes e linters, evitando retrabalho ao retomar numa janela nova.
 4. **Janela nova vs compactação:** ao limpar a janela, considere começar do zero em vez de compactar — os modelos recentes descobrem estado no filesystem muito bem. Seja prescritivo sobre como começar. **Onde:** turno `user` da nova janela
 
-```text verbatim fonte=claude-prompting-best-practices id=all.fresh_vs_compact.pwd
+```text verbatim fonte=claude-prompting-best-practices id=all.snip_fresh_start_pwd
 Call pwd; you can only read and write files in this directory.
 ```
 
@@ -302,7 +332,7 @@ Call pwd; you can only read and write files in this directory.
 Review progress.txt, tests.json, and the git logs.
 ```
 
-```text verbatim fonte=claude-prompting-best-practices id=all.fresh_vs_compact.integration_test
+```text verbatim fonte=claude-prompting-best-practices id=all.snip_fresh_start_integration_test
 Manually run through a fundamental integration test before moving on to implementing new features.
 ```
 
@@ -331,7 +361,7 @@ complex research task systematically.
 ```
 
 ### Subagentes
-Os modelos recentes orquestram subagentes nativamente e delegam por conta própria quando faz sentido: garanta ferramentas de subagente disponíveis e bem descritas nas definições de ferramenta, e deixe o modelo orquestrar. Vigie o excesso: o **Opus 4.6** tem forte predileção por subagentes (ex.: explorar código com subagente quando um grep bastaria) e o **Opus 5** também delega mais prontamente que modelos anteriores (prompt próprio em `modelos/opus-5.md`, id `opus-5.delegation_snippet`). Se houver excesso, diga quando subagentes se justificam: bloco em `modelos/legado.md`, id `all.snip_subagent_usage` (BP, "Subagent orchestration").
+Os modelos recentes orquestram subagentes nativamente e delegam por conta própria quando faz sentido: garanta ferramentas de subagente disponíveis e bem descritas nas definições de ferramenta, e deixe o modelo orquestrar: ele delega de forma apropriada sem instrução explícita. **Cruft:** linhas que mandam delegar a subagentes ("use subagents for X") — com ferramentas de subagente bem definidas, remova-as. Vigie o excesso: o **Opus 4.6** tem forte predileção por subagentes (ex.: explorar código com subagente quando um grep bastaria) e o **Opus 5** também delega mais prontamente que modelos anteriores (prompt próprio em `modelos/opus-5.md`, id `opus-5.delegation_snippet`). Se houver excesso, diga quando subagentes se justificam: bloco em `modelos/legado.md`, id `all.snip_subagent_usage` (BP, "Subagent orchestration").
 
 ### Cadeias de prompts
 Com thinking adaptativo e subagentes, o modelo resolve a maior parte do raciocínio multietapa dentro de uma chamada. Encadear chamadas explicitamente ainda vale quando você precisa inspecionar saídas intermediárias ou impor uma estrutura de pipeline. Padrão mais comum: **autocorreção** — rascunho → revisão contra critérios → refinamento, cada passo uma chamada separada, para poder registrar, avaliar ou ramificar em qualquer ponto (BP, "Chain complex prompts"). Sem snippet na página.
@@ -345,7 +375,7 @@ these files by removing them at the end of the task.
 ```
 
 ### Superengenharia
-Medido no **Opus 4.5 e Opus 4.6**: tendência a criar arquivos extras, abstrações desnecessárias e flexibilidade não pedida. Para manter soluções mínimas, bloco em `modelos/legado.md`, id `opus-4-5.snip_minimize_overengineering` (BP, "Overeagerness"). Para Opus 5 e Fable 5.1, os guias próprios trazem snippets de escopo (ver `modelos/opus-5.md` e `modelos/fable-5-1.md`).
+Medido no **Opus 4.5 e Opus 4.6**: tendência a criar arquivos extras, abstrações desnecessárias e flexibilidade não pedida. Para manter soluções mínimas, bloco em `modelos/legado.md`, id `opus-4-5.snip_minimize_overengineering` (BP, "Overeagerness"). Para Opus 5 e Fable 5.1, os guias próprios trazem snippets de escopo: `modelos/opus-5.md`, id `opus-5.scope_snippet` (prompting-claude-opus-5, "Task scope and over-verification"), e `modelos/fable-5-1.md`, id `fable-5-1.scope_tests_snippet` (prompting-claude-fable-5-1, "Keep changes and tests to what the task asks for").
 
 ### Testes e hardcoding
 O modelo pode se concentrar demais em fazer testes passarem em vez de achar a solução geral, ou recorrer a workarounds (scripts auxiliares) em vez das ferramentas padrão. **Sintoma:** valores hardcoded para os casos de teste. **Onde:** system prompt · **Fonte:** (BP, "Avoid focusing on passing tests and hardcoding")
@@ -394,9 +424,9 @@ Checklist da página (BP, "Migration considerations"):
 1. **Seja específico** sobre o comportamento que quer ver no output.
 2. **Use modificadores** que incentivem qualidade e detalhe — o exemplo é o do dashboard (§1, id `all.snip_dashboard_more_effective`).
 3. **Peça explicitamente** animações e elementos interativos quando os quiser.
-4. **Atualize a config de thinking:** adaptativo (`thinking: {type: "adaptive"}`) em vez de `budget_tokens`; profundidade pelo `effort` (§9).
+4. **Atualize a config de thinking:** adaptativo (`thinking: {type: "adaptive"}`) em vez de `budget_tokens`; profundidade pelo `effort` (§9). Exceções: sem extended thinking, nada muda; o Haiku 4.5 segue com thinking Extended por `budget_tokens` e sem `effort` (§9; models-overview, "Compare models").
 5. **Saia do prefill** (§7).
-6. **Reduza o prompting anti-preguiça (cruft):** se o prompt pedia mais minúcia ou uso agressivo de ferramentas, diminua — os modelos 4.6 em diante são mais proativos e podem sobreacionar.
+6. **Reduza o prompting anti-preguiça (cruft):** se o prompt pedia mais minúcia ou uso agressivo de ferramentas, diminua — os modelos Claude 4.6 são mais proativos e podem sobreacionar instruções que eram necessárias para modelos anteriores. A página atribui isso aos 4.6; re-verifique com evals antes de levar a outros modelos (BP, "General principles").
 7. **Devolva os blocos de thinking intactos e mantenha o histórico append-only:** anexe cada turno do assistente exatamente como a API retornou, com os blocos de thinking. **Restrição dura no Fable 5.1 e no Opus 5.5:** modificar a conversa antes de um bloco de thinking dá erro (ou descarta o bloco, se você optar por isso) — editar mensagens anteriores, reconstruir `system` ou `tools` ou resumir turnos antigos no lugar invalida todos os blocos seguintes. Mova essas mudanças para mensagens de sistema no meio da conversa e para gerenciamento de contexto no servidor.
 
 Vindo do Sonnet 4.5 ou anterior para o Sonnet 5: o guia de migração cobre a mudança do effort default e a remoção do extended thinking manual (`budget_tokens`) — ver `modelos/sonnet-5.md` (BP, "Migrating to Claude Sonnet 5 from Claude Sonnet 4.5 or earlier").

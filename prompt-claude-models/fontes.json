@@ -184,7 +184,8 @@
       "alimenta": [
         "references/selecao-modelo.md",
         "references/diagnostico.md",
-        "references/modelos/fable-5.md"
+        "references/modelos/fable-5.md",
+        "references/cruft.json"
       ]
     },
     {

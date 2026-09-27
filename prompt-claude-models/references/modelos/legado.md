@@ -6,7 +6,7 @@ Fontes: claude-prompting-best-practices · effort · models-overview · choosing
 
 Legados ainda disponíveis: Fable 5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 4.6, Sonnet 4.5 (models-overview, "Compare models"). O Haiku 4.5 **não** é legado: é o menor modelo da linha atual (optimizing-for-cost-and-intelligence, "Trade cost against intelligence"), mas também não tem guia próprio.
 
-**Coluna id nas tabelas:** é o id da regra que `pcm.py lint` mostra ao acusar o item — `api.*` e `all.adaptive_not_effort_value` estão em `restricoes-api.json`, os demais em `cruft.json`. "—" = sem regra de lint para aquele modelo: confira à mão. Snippets que valem para vários destes modelos estão em [Snippets compartilhados](#snippets-compartilhados), logo abaixo do comparativo.
+**Coluna id nas tabelas:** é o id da regra que `pcm.py lint` mostra ao acusar o item — `api.*` estão em `restricoes-api.json`, os demais em `cruft.json`. "—" = sem regra de lint para aquele modelo: confira à mão. Snippets que valem para vários destes modelos estão em [Snippets compartilhados](#snippets-compartilhados), logo abaixo do comparativo.
 
 ## Comparativo rápido
 
@@ -84,7 +84,7 @@ Legado (models-overview, "Compare models"); para trabalho novo, Opus 5.5 (`selec
 | Mensagem `role: "system"` dentro de `messages` | 400 — o Opus 4.7 rejeita system messages no meio da conversa (Opus 4.8 e 5.5 aceitam) | — | (migration-guide-opus-5-5, "Migrating to Claude Opus 5.5 from Claude Opus 4.7") |
 | `speed: "fast"` | Erro: fast mode não está disponível no Opus 4.7 | — | (migration-guide-opus-5-5, "Migrating to Claude Opus 5.5 from Claude Opus 4.7") |
 | Effort por mensagem (`role: "system"` com `output_config.effort`) | 400 `output_config.effort requires a model that supports per-turn effort; this model does not` — só Fable 5.1, Mythos 5.1, Opus 5.5 e Opus 5 suportam | — (sem regra; `_lacunas`) | (effort, "Per-message effort (beta)"; effort, "Change effort mid-conversation") |
-| `effort: "adaptive"` | Não é nível de effort (`adaptive` é modo de thinking) | `all.adaptive_not_effort_value` | (effort, "Effort with thinking") |
+| `effort: "adaptive"` | Não é nível de effort (`adaptive` é modo de thinking) | `api.effort_adaptive_invalido` | (effort, "Effort with thinking") |
 | `computer_toolset_20260801` e browser use tool | Não suportados no Opus 4.7; use `computer_20251124` | — | (migration-guide-opus-5-5, "Migrating to Claude Opus 5.5 from Claude Opus 4.7") |
 
 **Não são restrições no Opus 4.7:** `thinking: {"type": "disabled"}`, `tool_choice` forçado e `computer_20251124` são aceitos (migration-guide-opus-5-5, "Migrating to Claude Opus 5.5 from Claude Opus 4.7").
@@ -168,7 +168,7 @@ Legado (models-overview, "Compare models"); para trabalho novo, Opus 5.5 (`selec
 | Prefill no último turno do assistente | 400 (a restrição começa nos modelos 4.6) | `api.prefill` | (claude-prompting-best-practices, "Migrating away from prefilled responses"; migration-guide-opus-5-5, "Breaking changes") |
 | `effort: "xhigh"` | Não disponível no Opus 4.6 (tem `max`, não `xhigh`) | `api.effort_xhigh_indisponivel` | (effort, "Effort levels") |
 | Effort por mensagem | 400 (só Fable 5.1, Mythos 5.1, Opus 5.5, Opus 5) | — (sem regra; `_lacunas`) | (effort, "Per-message effort (beta)") |
-| `effort: "adaptive"` | Não é nível de effort | `all.adaptive_not_effort_value` | (effort, "Effort with thinking") |
+| `effort: "adaptive"` | Não é nível de effort | `api.effort_adaptive_invalido` | (effort, "Effort with thinking") |
 
 **Não são restrições no Opus 4.6:** `budget_tokens` funciona, mas está deprecado (claude-prompting-best-practices, "Overthinking and excessive thoroughness"; models-overview, "Compare models"); `thinking: disabled`, `tool_choice` forçado e `computer_20251124` são aceitos (migration-guide-opus-5-5, "Migrating to Claude Opus 5.5 from Claude Opus 4.6 and earlier Opus models"). O 400 por `temperature`/`top_p`/`top_k` começa no Opus 4.7 (migration-guide-opus-5-5, "Breaking changes").
 
@@ -406,7 +406,7 @@ Legado (models-overview, "Compare models"); para trabalho novo, Sonnet 5 (`selec
 | Prefill no último turno do assistente | 400 (inalterado no Sonnet 5) | `api.prefill` | (whats-new-sonnet-5, "Assistant message prefilling not supported"; claude-prompting-best-practices, "Migrating away from prefilled responses") |
 | `effort: "xhigh"` | Não disponível no Sonnet 4.6 (tem `max`, não `xhigh`) | `api.effort_xhigh_indisponivel` | (effort, "Effort levels") |
 | Effort por mensagem | 400 (só Fable 5.1, Mythos 5.1, Opus 5.5, Opus 5) | — (sem regra; `_lacunas`) | (effort, "Per-message effort (beta)") |
-| `effort: "adaptive"` | Não é nível de effort | `all.adaptive_not_effort_value` | (effort, "Effort with thinking") |
+| `effort: "adaptive"` | Não é nível de effort | `api.effort_adaptive_invalido` | (effort, "Effort with thinking") |
 | `computer_toolset_20260801` e browser use tool | Não suportados no Sonnet 4.6; `computer_20251124` é aceito | — | (whats-new-sonnet-5, "New model") |
 
 **Não são restrições no Sonnet 4.6:** `temperature`/`top_p`/`top_k` não-default (o 400 é "new for Sonnet-class models" no Sonnet 5) (whats-new-sonnet-5, "Sampling parameters not accepted"); `budget_tokens` funciona, deprecado (claude-prompting-best-practices, "Overthinking and excessive thoroughness").
