@@ -146,10 +146,10 @@ Sem a skill não existem os scripts, as tabelas de benchmark nem o envelope `fa.
 
 **Modelo-alvo**
 
-- (M1) A regra central ("Never state a number you did not read from script output", SKILL.md:L36-41) vale para a resposta inteira: todo número, até um derivado simples ("what's that per month"), vem de código executado. O modelo-alvo precisa de ferramenta de execução (Bash/code execution); effort e thinking não substituem isso. O prompt regula o que aparece na resposta, não o conteúdo do thinking — que o Opus 5.5 e o Fable 5.1 nem devolvem no display padrão (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M2) Na API, a tabela a consultar vai pela Files API com code execution, não colada no prompt ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt").
-- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): o status `user`/`public`/`assumption`/`unknown` acompanha cada input e cada valor citado; o prompt diz "em todas as linhas da tabela de inputs e em toda figura da prosa".
-- (M4) **Opus 5:** se o prompt compilado escreve o relatório em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
+- (M1) A regra central ("Never state a number you did not read from script output", SKILL.md:L36-41) vale para a resposta inteira: todo número, até um derivado simples ("what's that per month"), vem de código executado. O modelo-alvo precisa de ferramenta de execução (Bash/code execution); effort e thinking não substituem isso. O prompt regula o que aparece na resposta, não o conteúdo do thinking — que o Opus 5.5 e o Fable 5.1 nem devolvem no display padrão (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M2) Na API, a tabela a consultar vai pela Files API com code execution, não colada no prompt ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt"; optimizing-for-cost-and-intelligence, "Keep data files out of the prompt").
+- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): o status `user`/`public`/`assumption`/`unknown` acompanha cada input e cada valor citado; o prompt diz "em todas as linhas da tabela de inputs e em toda figura da prosa".
+- (M4) **Opus 5:** se o prompt compilado escreve o relatório em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
 
 **Da skill de origem**
 

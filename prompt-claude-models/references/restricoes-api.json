@@ -10,6 +10,7 @@
         "opus-4-7",
         "sonnet-5",
         "fable-5-1",
+        "mythos-5-1",
         "fable-5"
       ],
       "checagem": {
@@ -21,7 +22,7 @@
         ]
       },
       "severidade": "hard",
-      "motivo_pt": "temperature/top_p/top_k com valor não-default retornam 400 no Opus 4.7 e posteriores (inclusive Opus 5.5), no Sonnet 5 e no Fable 5.1/Fable 5; o valor default (ou omitir) é aceito pela API, mas o lint não conhece o default e dispara em qualquer presença: o guia diz que o caminho mais seguro é omiti-los, e no Python SDK v1.0+ passá-los levanta TypeError.",
+      "motivo_pt": "temperature/top_p/top_k com valor não-default retornam 400 no Opus 4.7 e posteriores (inclusive Opus 5.5), no Sonnet 5, no Fable 5.1/Fable 5 e no Mythos 5.1 (o guia de migração para o par 5.1 diz que a restrição de sampling 'carries over' vindo do Opus 5 e dá claude-mythos-5-1 como ID alternativo com as mesmas capacidades); o valor default (ou omitir) é aceito pela API, mas o lint não conhece o default e dispara em qualquer presença: o guia diz que o caminho mais seguro é omiti-los, e no Python SDK v1.0+ passá-los levanta TypeError.",
       "sugestao_pt": "remover temperature, top_p e top_k do corpo (se o valor já é o default, a remoção não muda nada) e guiar o comportamento por prompting; se temperature servia para variedade de design (Opus 4.8, Sonnet 5), pedir que o modelo proponha direções distintas antes de construir",
       "fonte": {
         "page_id": "migration-guide-opus-5-5",
@@ -57,7 +58,9 @@
         "opus-5-5.sampling_removed_sdk_typeerror",
         "opus-5-5.sampling_params_rejected",
         "sonnet-5.sampling_400",
+        "sonnet-5.sampling_params_400",
         "fable-5-1.no_sampling_params",
+        "fable-5-1.from_opus5_carryovers",
         "opus-4-8.temperature_for_variety",
         "sonnet-5.design_propose_options_snippet"
       ],
@@ -147,6 +150,7 @@
       "fatos": [
         "all.budget_tokens_400",
         "sonnet-5.manual_thinking_400",
+        "sonnet-5.budget_tokens_400",
         "fable-5-1.adaptive_thinking_always_on_400",
         "opus-5-5.thinking_always_adaptive",
         "opus-5.budget_tokens_400",
@@ -1074,8 +1078,36 @@
       }
     },
     {
-      "tema": "sampling params em Mythos 5.1 e Mythos 5",
-      "motivo_pt": "as fontes afirmam o 400 de temperature/top_p/top_k para Fable 5.1 e Fable 5 ('Unchanged from Claude Fable 5'). Para o Mythos 5.1 o apoio é só a seção 'Migrating to Claude Fable 5.1 from Claude Opus 5' (migration-guide-fable-5-1), escrita para o Fable 5.1, que diz que a restrição de sampling 'carries over' e cita claude-mythos-5-1 como modelo alternativo com as mesmas capacidades; para o Mythos 5 não há frase, só inferência (delta Mythos 5 → 5.1 igual ao Fable 5 → 5.1). Ficaram fora de api.sampling_params.",
+      "tema": "strict: true com input_schema fora do subconjunto suportado (Opus 5.5)",
+      "motivo_pt": "fato hard: strict tool use aceita um subconjunto de JSON Schema, e todo objeto do schema precisa de additionalProperties: false; confira cada input_schema antes de ligar strict: true (o caminho comum ao trocar tool_choice forçado por auto + strict). tools é um array e os tipos de checagem (caminho pontuado só em objetos) não alcançam tools[].input_schema nem os objetos aninhados dele. Checar à mão.",
+      "fatos": [
+        "opus-5-5.strict_tool_use_schema_rules"
+      ],
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "Forced tool use is not supported"
+      }
+    },
+    {
+      "tema": "model ID do Opus 5.5 (fixo, sem sufixo de data)",
+      "motivo_pt": "na Claude API o ID é claude-opus-5-5, fixo e sem sufixo de data; em Amazon Bedrock, Claude Platform on AWS, Google Cloud e Microsoft Foundry usa-se o ID da plataforma. Um model com sufixo de data (claude-opus-5-5-AAAAMMDD) é erro de corpo, mas não há tipo de checagem por padrão/prefixo (valor_igual só compara valores exatos) e a validade depende da plataforma, que não está no corpo; a fonte também não documenta qual erro volta. Checar à mão.",
+      "fatos": [
+        "opus-5-5.model_id"
+      ],
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "What every request to Claude Opus 5.5 must satisfy"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "whats-new-opus-5-5",
+          "section": "New model"
+        }
+      ]
+    },
+    {
+      "tema": "sampling params no Mythos 5",
+      "motivo_pt": "as fontes afirmam o 400 de temperature/top_p/top_k para Fable 5.1 e Fable 5 ('Unchanged from Claude Fable 5') e, para o Mythos 5.1, pela seção 'Migrating to Claude Fable 5.1 from Claude Opus 5' (migration-guide-fable-5-1), que diz que a restrição de sampling 'carries over' e dá claude-mythos-5-1 como ID alternativo: por isso o Mythos 5.1 está em api.sampling_params, como já está em api.thinking_disabled e api.forced_tool_choice. Para o Mythos 5 não há frase, só inferência (delta Mythos 5 → 5.1 igual ao Fable 5 → 5.1); ficou fora da regra. Omitir os três parâmetros continua sendo o caminho seguro.",
       "fonte": {
         "page_id": "whats-new-fable-5-1",
         "section": "Unchanged from Claude Fable 5"

@@ -135,7 +135,7 @@ Vindo do Opus 4.6 ou anterior:
 |---|---|---|---|
 | `thinking: {"type": "enabled", "budget_tokens": N}` | 400. `{"type": "adaptive"}` + effort | `api.budget_tokens` | (migration-guide-opus-5-5, "Breaking changes") |
 | `temperature` / `top_p` / `top_k` | 400 desde o Opus 4.7; guie pelo system prompt | `api.sampling_params` | (migration-guide-opus-5-5, "Breaking changes") |
-| Scaffolding de status forçado ("After every 3 tool calls, summarize progress") | Updates já vêm regulares e bons desde o 4.7 | `opus-5-5.status_forcado` | (migration-guide-opus-5-5, "Behavior changes") |
+| Scaffolding de status forçado ("After every 3 tool calls, summarize progress") | Updates já vêm regulares e bons desde o 4.7 | `opus-4-7.status_forcado` | (migration-guide-opus-5-5, "Behavior changes") |
 | Contornos de prompt para raciocínio raso | Suba o effort; o snippet de múltiplos passos só quando o effort precisa ficar baixo por latência | — | (effort, "Recommended effort levels for Claude Opus 4.7") |
 | Effort calibrado no Opus 4.6 | O 4.7 respeita effort mais estritamente em `low`/`medium`; re-meça | — | (effort, "Recommended effort levels for Claude Opus 4.7") |
 | Conversão por fator de escala de coordenadas de pointing/bounding box | Coordenadas são 1:1 com os pixels a partir do 4.7 | — | (migration-guide-opus-5-5, "Behavior changes") |
@@ -312,13 +312,13 @@ Vindo do Opus 4.5 ou anterior:
 
 | Instrução a remover | Por quê | id | Fonte |
 |---|---|---|---|
-| "CRITICAL: You MUST use this tool when..." e linguagem agressiva afim | Responde mais ao system prompt e sobreaciona; troque pelo snippet `opus-4-5.cruft_aggressive_tool_language` | `opus-4-5.linguagem_agressiva_ferramenta` | (claude-prompting-best-practices, "Tool usage") |
+| "CRITICAL: You MUST use this tool when..." e linguagem agressiva afim | Responde mais ao system prompt e sobreaciona; troque pelo snippet `opus-4-5.cruft_aggressive_tool_language` | `opus-4-6.linguagem_agressiva_ferramenta` | (claude-prompting-best-practices, "Tool usage") |
 | "If in doubt, use [tool]" | Ferramentas antes subacionadas agora acionam bem; isso causa sobreacionamento | `opus-4-6.if_in_doubt_ferramenta` | (claude-prompting-best-practices, "Overthinking and excessive thoroughness") |
 | "Default to using [tool]" | Troque pelo snippet `opus-4-6.targeted_tool_guidance` | `opus-4-6.if_in_doubt_ferramenta` | (claude-prompting-best-practices, "Overthinking and excessive thoroughness") |
-| "be thorough", "use tools aggressively" e afins | Modelos 4.6 são mais proativos e sobreacionam | `all-4-6-plus.anti_preguica` | (claude-prompting-best-practices, "Migration considerations") |
+| "be thorough", "use tools aggressively" e afins | Modelos 4.6 são mais proativos e sobreacionam | `all-4-6.anti_preguica` | (claude-prompting-best-practices, "Migration considerations") |
 | Prefill do último turno do assistente | 400 a partir do 4.6. Structured outputs / `output_config.format` / system prompt | `api.prefill` | (migration-guide-opus-5-5, "Breaking changes") |
 | `thinking: {"type": "enabled", "budget_tokens": N}` | Deprecado no 4.6 (ainda funciona); adaptive + effort, que em avaliações internas rendeu melhor que extended de forma confiável | `api.budget_tokens_deprecado` | (claude-prompting-best-practices, "Overthinking and excessive thoroughness"; claude-prompting-best-practices, "Migration considerations") |
-| Header `interleaved-thinking-2025-05-14` | Com adaptive thinking, interleaved é automático em todo modelo que suporta adaptive | — (`opus-5-5.beta_interleaved_thinking` só dispara com alvo Opus 5.5) | (migration-guide-opus-5-5, "Recommended changes") |
+| Header `interleaved-thinking-2025-05-14` | Com adaptive thinking, interleaved é automático em todo modelo que suporta adaptive | `all-4-6-plus.beta_interleaved_thinking` | (migration-guide-opus-5-5, "Recommended changes") |
 | Header `effort-2025-11-24` | Effort não exige beta header | — (`opus-5-5.beta_effort` só dispara com alvo Opus 5.5) | (migration-guide-opus-5-5, "Recommended changes") |
 
 ### Harness (fora do prompt)
@@ -443,7 +443,7 @@ Vindo do Sonnet 4.5 ou anterior:
 |---|---|---|---|
 | Prefill do último turno do assistente | 400 a partir dos modelos 4.6 | `api.prefill` | (claude-prompting-best-practices, "Migrating away from prefilled responses") |
 | `thinking: {"type": "enabled", "budget_tokens": N}` | Deprecado no Sonnet 4.6; adaptive + effort | `api.budget_tokens_deprecado` | (claude-prompting-best-practices, "Migration considerations" e "Overthinking and excessive thoroughness") |
-| "be thorough", "use tools aggressively" e afins | Modelos 4.6 são mais proativos e sobreacionam | `all-4-6-plus.anti_preguica` | (claude-prompting-best-practices, "Migration considerations") |
+| "be thorough", "use tools aggressively" e afins | Modelos 4.6 são mais proativos e sobreacionam | `all-4-6.anti_preguica` | (claude-prompting-best-practices, "Migration considerations") |
 
 Ao migrar, defina o effort explícito (`medium` como ponto de partida): omitido, fica no default `high` (ver Defaults).
 

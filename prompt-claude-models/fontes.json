@@ -1,5 +1,5 @@
 {
-  "_nota": "Páginas oficiais rastreadas pela autoatualização (pcm.py fontes-check). sha256 = conteúdo integral do .md na última sincronização aprovada. 'descoberta' = página cujos links prompting-claude-* revelam modelos novos.",
+  "_nota": "Páginas oficiais rastreadas pela autoatualização (pcm.py fontes-check). sha256 = conteúdo integral do .md na última sincronização aprovada. 'descoberta' = página cujos links prompting-claude-* revelam modelos novos. 'alimenta' = todo arquivo de references/ e assets/ que cita a página, pelo id ou pela sigla de uma legenda (BP, EF, OC, [EF-3]…); é gerado por pcm.py fontes-aplicar --alimenta, não editado à mão, e doctor/selftest falham quando um arquivo cita uma página que não o lista.",
   "dominio_permitido": "platform.claude.com",
   "descoberta": {
     "pagina": "claude-prompting-best-practices",
@@ -17,12 +17,32 @@
         "all-current"
       ],
       "alimenta": [
-        "references/principios-gerais.md",
+        "assets/esqueleto-prompt.md",
         "references/cruft.json",
+        "references/diagnostico.md",
+        "references/integracao/problem-solving.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
+        "references/modelos/fable-5-1.md",
+        "references/modelos/fable-5.md",
         "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/rubrica.md",
         "references/sobreposicao-toolkit.md",
-        "references/modelos/fable-5.md"
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-foundations.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-reasoning.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -37,9 +57,19 @@
         "mythos-5-1"
       ],
       "alimenta": [
-        "references/modelos/fable-5-1.md",
+        "references/cruft.json",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/expert-review.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/fable-5-1.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -53,9 +83,35 @@
         "sonnet-5"
       ],
       "alimenta": [
-        "references/modelos/sonnet-5.md",
+        "references/cruft.json",
+        "references/integracao/brainstorming.md",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/executive-deck-builder.md",
+        "references/integracao/expert-review.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao/office-hours.md",
+        "references/integracao/problem-solving.md",
+        "references/integracao/sat.md",
+        "references/integracao/to-prd.md",
+        "references/integracao/writing-plans.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/legado.md",
+        "references/modelos/sonnet-5.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-foundations.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-reasoning.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -70,9 +126,20 @@
         "mythos-5"
       ],
       "alimenta": [
-        "references/modelos/fable-5.md",
+        "references/cruft.json",
+        "references/integracao/sat.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/fable-5.md",
+        "references/modelos/opus-4-8.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-foundations.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-reasoning.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -86,9 +153,32 @@
         "opus-5-5"
       ],
       "alimenta": [
-        "references/modelos/opus-5-5.md",
+        "references/cruft.json",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/executive-deck-builder.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao/office-hours.md",
+        "references/integracao/sat.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/fable-5-1.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-foundations.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-reasoning.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -102,9 +192,25 @@
         "opus-5"
       ],
       "alimenta": [
-        "references/modelos/opus-5.md",
+        "references/cruft.json",
+        "references/integracao/brainstorming.md",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/executive-deck-builder.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao/office-hours.md",
+        "references/integracao/to-prd.md",
+        "references/integracao/writing-plans.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/opus-5.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -118,9 +224,28 @@
         "opus-4-8"
       ],
       "alimenta": [
-        "references/modelos/opus-4-8.md",
+        "references/cruft.json",
+        "references/integracao/brainstorming.md",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/executive-deck-builder.md",
+        "references/integracao/expert-review.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao/office-hours.md",
+        "references/integracao/problem-solving.md",
+        "references/integracao/sat.md",
+        "references/integracao/to-prd.md",
+        "references/integracao/writing-plans.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
-        "references/cruft.json"
+        "references/modelos/fable-5-1.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/principios-gerais.md",
+        "references/restricoes-api.json",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-role-and-context.md"
       ]
     },
     {
@@ -134,7 +259,19 @@
         "all-current"
       ],
       "alimenta": [
-        "references/selecao-modelo.md"
+        "references/diagnostico.md",
+        "references/modelos/fable-5-1.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-reliability.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -148,10 +285,21 @@
         "all-current"
       ],
       "alimenta": [
-        "references/selecao-modelo.md",
+        "assets/esqueleto-prompt.md",
         "references/matriz-modelos.md",
+        "references/modelos/fable-5-1.md",
+        "references/modelos/fable-5.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/principios-gerais.md",
         "references/restricoes-api.json",
-        "references/modelos/fable-5.md"
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-security.md"
       ]
     },
     {
@@ -165,10 +313,22 @@
         "all-current"
       ],
       "alimenta": [
-        "references/selecao-modelo.md",
+        "assets/esqueleto-prompt.md",
         "references/diagnostico.md",
         "references/matriz-modelos.md",
-        "references/modelos/fable-5.md"
+        "references/modelos/fable-5-1.md",
+        "references/modelos/fable-5.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/restricoes-api.json",
+        "references/rubrica.md",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-orchestration.md"
       ]
     },
     {
@@ -182,10 +342,28 @@
         "all-current"
       ],
       "alimenta": [
-        "references/selecao-modelo.md",
+        "assets/esqueleto-prompt.md",
+        "references/cruft.json",
         "references/diagnostico.md",
+        "references/integracao/business-planning.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao-skills.md",
+        "references/matriz-modelos.md",
+        "references/modelos/fable-5-1.md",
         "references/modelos/fable-5.md",
-        "references/cruft.json"
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-orchestration.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-reasoning.md",
+        "references/toolkit/prompt-reliability.md"
       ]
     },
     {
@@ -200,11 +378,26 @@
         "mythos-5-1"
       ],
       "alimenta": [
-        "references/restricoes-api.json",
+        "assets/esqueleto-prompt.md",
+        "references/integracao/business-planning.md",
+        "references/integracao/comunicacao-executiva.md",
+        "references/integracao/data-analyst.md",
+        "references/integracao/executive-deck-builder.md",
+        "references/integracao/financial-analysis.md",
+        "references/integracao/sat.md",
+        "references/integracao-skills.md",
         "references/matriz-modelos.md",
         "references/modelos/fable-5-1.md",
+        "references/modelos/fable-5.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5.md",
+        "references/restricoes-api.json",
         "references/selecao-modelo.md",
-        "references/modelos/fable-5.md"
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-role-and-context.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -218,10 +411,19 @@
         "opus-5-5"
       ],
       "alimenta": [
-        "references/restricoes-api.json",
+        "assets/esqueleto-prompt.md",
         "references/matriz-modelos.md",
+        "references/modelos/fable-5-1.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
         "references/modelos/opus-5-5.md",
-        "references/selecao-modelo.md"
+        "references/modelos/opus-5.md",
+        "references/restricoes-api.json",
+        "references/sobreposicao-toolkit.md",
+        "references/toolkit/prompt-engineering-router.md",
+        "references/toolkit/prompt-output-control.md",
+        "references/toolkit/prompt-security.md",
+        "references/toolkit/prompt-task-patterns.md"
       ]
     },
     {
@@ -235,10 +437,14 @@
         "sonnet-5"
       ],
       "alimenta": [
-        "references/restricoes-api.json",
+        "assets/esqueleto-prompt.md",
         "references/matriz-modelos.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
         "references/modelos/sonnet-5.md",
-        "references/selecao-modelo.md"
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md"
       ]
     },
     {
@@ -256,10 +462,17 @@
         "opus-4-6"
       ],
       "alimenta": [
-        "references/restricoes-api.json",
-        "references/matriz-modelos.md",
+        "assets/esqueleto-prompt.md",
         "references/cruft.json",
-        "references/modelos/opus-5-5.md"
+        "references/matriz-modelos.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5-5.md",
+        "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md"
       ]
     },
     {
@@ -276,11 +489,17 @@
         "mythos-5"
       ],
       "alimenta": [
-        "references/restricoes-api.json",
-        "references/matriz-modelos.md",
         "references/cruft.json",
+        "references/integracao-skills.md",
+        "references/matriz-modelos.md",
         "references/modelos/fable-5-1.md",
-        "references/modelos/fable-5.md"
+        "references/modelos/fable-5.md",
+        "references/modelos/legado.md",
+        "references/modelos/opus-4-8.md",
+        "references/modelos/opus-5.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md",
+        "references/sobreposicao-toolkit.md"
       ]
     }
   ]

@@ -13,7 +13,7 @@ O roteador escolhe a `prompt-*` pela etapa e pelo sintoma; falta a ele uma segun
 | 400 com `temperature`/`top_p`/prefill/`budget_tokens`/`tool_choice`; `stop_reason: "refusal"` (`reasoning_extraction`); "piorou depois que troquei de modelo" | sem rota | `prompt-claude-models` (modo Adaptar) | (claude-prompting-best-practices, "Migrating away from prefilled responses"); (claude-prompting-best-practices, "Overthinking and excessive thoroughness"); (whats-new-opus-5-5, "Forced tool use is not supported"); (prompting-claude-opus-5-5, "Safeguard refusals") |
 | "qual modelo / que effort / quanto custa por tarefa" | sem rota | `prompt-claude-models` (modo Recomendar) + `prompt-reliability` para o eval | (choosing-a-model, "Decide whether to upgrade or change models") |
 
-### 4.1 Pontos de integração
+### Pontos de integração
 
 Mudanças a fazer nos arquivos do roteador (linhas conferidas em 27/09/2026; texto a inserir em inglês, como o toolkit). "Já aplicado" = o arquivo já traz a nota Claude naquele ponto; não duplique. O `SKILL.md` do roteador já tem a camada em L30 ("Cross-cutting layer"), o "Step 4 — Model check (cross-cutting)" (L146–148), a isenção de padding (L178) e a linha de saída (L196); o Step 4 cobre parte dos itens 2 e 4: confira antes de aplicar.
 
@@ -33,9 +33,9 @@ Mudanças a fazer nos arquivos do roteador (linhas conferidas em 27/09/2026; tex
 | 12 | `prompt-engineering-router/references/clarifying-questions.md` | depois da Ambiguity G (após L103) | Ambiguity H — "Which model is this for?": perguntar só quando a resposta muda a rota (alvo Claude → somar `prompt-claude-models`; outro provedor → só as skills genéricas) | pendente |
 | 13 | `PROMPT_ENGINEERING_TOOLKIT.md` | L3, desambiguação L106–116, fontes L131–134 | citar a camada na L3, um bullet de desambiguação (regras específicas de modelo → `prompt-claude-models`) e as páginas oficiais da Anthropic como fonte | a seção "Cross-cutting layer" (L13) já existe; resto pendente |
 
-Não mexer na `description` do roteador: ela já tem 1177 caracteres, acima de 1024; registre a camada no corpo (ver menções defasadas em §3.9).
+Não mexer na `description` do roteador: ela já tem 1177 caracteres, acima de 1024; registre a camada no corpo.
 
-### 4.2 Contrato de ida e volta
+### Contrato de ida e volta
 
 - **Roteador → aqui.** Quando o roteador devolve uma combinação de skills e o alvo é Claude, a linha de saída do roteador já prevê isso (L196, já aplicada): “- {If the target is Claude:} Apply `prompt-claude-models` for {model}: {the 1–2 model rules that change this route}.”. Esta skill responde com a linha da tabela da §2 da técnica escolhida e, se houver prompt existente, com o diff do modo Adaptar.
 - **Aqui → roteador.** Quando o passo 4 da espinha precisa de uma técnica e não está claro qual `prompt-*` é a dona, pergunte ao roteador; ao receber a técnica de volta, aplique a §2 antes de montar. No modo Guiar, a técnica escolhida entra no campo `APLICAR` e o que a §2 manda retirar entra em `REMOVER`, com a fonte.

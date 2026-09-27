@@ -138,7 +138,7 @@ Sem o skill instalado, prompt-claude-models faz a versão mínima e rotula tudo 
 
 **Modelo-alvo**
 
-- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): "cada rama vira um passo", "cada sub-pregunta mantém a numeração", "cada Key Line sustentada por detalhes" e "cada item proposto marcado como não confirmado" são regras por item; escreva no prompt que valem para todas as ramas e Key Lines, não só para a primeira.
+- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): "cada rama vira um passo", "cada sub-pregunta mantém a numeração", "cada Key Line sustentada por detalhes" e "cada item proposto marcado como não confirmado" são regras por item; escreva no prompt que valem para todas as ramas e Key Lines, não só para a primeira.
 - (M2) Issue tree e pirâmide vão como estrutura da tarefa e seções do output, não como roteiro de pensamento nem como "mostre seu raciocínio": o guia prefere instruções gerais a um plano passo a passo escrito à mão (claude-prompting-best-practices, "Leverage thinking & interleaved thinking capabilities"); ver também o item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar".
 
 **Da skill de origem**

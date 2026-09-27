@@ -219,10 +219,10 @@ Sem a skill, escalar pela rota (SKILL.md:L71-81). QUICK: pedir só a resposta ca
 
 **Modelo-alvo**
 
-- (M1) A regra central (número só de código executado) exige modelo com ferramenta de execução de código/ambiente Jupyter; sem ferramentas, o prompt proíbe calcular e pede apenas plano/código. Na API, a tabela a consultar vai pela Files API com code execution, não colada no prompt ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt").
-- (M2) O devil's advocacy paragraph, a matriz ACH-lite e o KAC são saídas escritas: vão em formato_saida como seções nomeadas, não como 'pense passo a passo' nem como raciocínio a extrair (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): proveniência e tag acompanham cada número; o prompt diz "em todos os números, tabelas e gráficos".
-- (M4) **Opus 5:** se o prompt compilado escreve `report.md` em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
+- (M1) A regra central (número só de código executado) exige modelo com ferramenta de execução de código/ambiente Jupyter; sem ferramentas, o prompt proíbe calcular e pede apenas plano/código. Na API, a tabela a consultar vai pela Files API com code execution, não colada no prompt ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt"; optimizing-for-cost-and-intelligence, "Keep data files out of the prompt").
+- (M2) O devil's advocacy paragraph, a matriz ACH-lite e o KAC são saídas escritas: vão em formato_saida como seções nomeadas, não como 'pense passo a passo' nem como raciocínio a extrair (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): proveniência e tag acompanham cada número; o prompt diz "em todos os números, tabelas e gráficos".
+- (M4) **Opus 5:** se o prompt compilado escreve `report.md` em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
 
 **Da skill de origem**
 

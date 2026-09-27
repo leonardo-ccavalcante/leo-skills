@@ -19,7 +19,6 @@
   {
    "id": "all.markdown_negativo",
    "modelos": [
-    "mythos-5-1",
     "fable-5",
     "mythos-5",
     "opus-5-5",
@@ -36,7 +35,7 @@
    "padrao": "\\b(?:do not|don't|never)\\s+use\\s+(?:any\\s+)?markdown\\b|^[ \\t]*(?:[-*•]\\s+)?no markdown\\b|\\b(?:use|with|respond with|write with) no markdown\\b",
    "severidade": "soft",
    "motivo_pt": "Instrução negativa de formato ('Do not use markdown in your response') é a forma menos eficaz de controlar a formatação.",
-   "sugestao_pt": "Diga o formato desejado ('Your response should be composed of smoothly flowing prose paragraphs.') ou use um indicador em XML ('Write the prose sections of your response in <smoothly_flowing_prose_paragraphs> tags.'). Não vale para o Fable 5.1, que já formata menos: lá a regra é `fable-5-1.anti_formatacao`.",
+   "sugestao_pt": "Diga o formato desejado ('Your response should be composed of smoothly flowing prose paragraphs.') ou use um indicador em XML ('Write the prose sections of your response in <smoothly_flowing_prose_paragraphs> tags.'). Não vale para o Fable 5.1 nem para o Mythos 5.1 (o guia prompting-claude-fable-5-1 cobre os dois), que já formatam menos: lá a regra é `fable-5-1.anti_formatacao`.",
    "fonte": {
     "page_id": "claude-prompting-best-practices",
     "section": "Control the format of responses"
@@ -141,7 +140,7 @@
    "contra_exemplo": "Use subagents when tasks can run in parallel, require isolated context, or involve independent workstreams that don't need to share state."
   },
   {
-   "id": "all-4-6-plus.anti_preguica",
+   "id": "all-4-6.anti_preguica",
    "modelos": [
     "opus-4-6",
     "sonnet-4-6"
@@ -160,7 +159,22 @@
   {
    "id": "opus-4-5.linguagem_agressiva_ferramenta",
    "modelos": [
-    "opus-4-5",
+    "opus-4-5"
+   ],
+   "padrao": "(?-i:\\bCRITICAL\\b)\\s*:?\\s*(?-i:You MUST)\\b|(?-i:\\b(?:You MUST|MUST|ALWAYS)\\b)\\s+(?:use|call|invoke)\\b[^.\\n]{0,40}\\b(?:tool|skill)s?\\b",
+   "severidade": "soft",
+   "motivo_pt": "Opus 4.5 e Opus 4.6 respondem mais ao system prompt; linguagem agressiva escrita para evitar subacionamento de ferramentas/skills agora causa sobreacionamento.",
+   "sugestao_pt": "Troque 'CRITICAL: You MUST use this tool when...' por linguagem normal: 'Use this tool when...'.",
+   "fonte": {
+    "page_id": "claude-prompting-best-practices",
+    "section": "Tool usage"
+   },
+   "exemplo": "CRITICAL: You MUST use this tool when the user asks about pricing.",
+   "contra_exemplo": "Use this tool when the user asks about pricing."
+  },
+  {
+   "id": "opus-4-6.linguagem_agressiva_ferramenta",
+   "modelos": [
     "opus-4-6"
    ],
    "padrao": "(?-i:\\bCRITICAL\\b)\\s*:?\\s*(?-i:You MUST)\\b|(?-i:\\b(?:You MUST|MUST|ALWAYS)\\b)\\s+(?:use|call|invoke)\\b[^.\\n]{0,40}\\b(?:tool|skill)s?\\b",
@@ -193,13 +207,28 @@
   {
    "id": "opus-5-5.status_forcado",
    "modelos": [
-    "opus-5-5",
-    "opus-4-7"
+    "opus-5-5"
    ],
    "padrao": "\\b(?:after|every) (?:every |each )?\\d+ (?:tool calls?|steps?|actions?|turns?)\\b[^.\\n]{0,40}\\b(?:summari[sz]e|status|progress|update)|\\b(?:summari[sz]e|report) (?:your )?progress (?:every|after (?:every|each))\\b|\\binterim status (?:messages?|updates?)\\b",
    "severidade": "soft",
    "motivo_pt": "Desde o Opus 4.7 o modelo dá updates mais regulares e de melhor qualidade em traces agênticos longos, e o guia de migração diz para tentar remover andaime que força status intermediário ('After every 3 tool calls, summarize progress'). No Opus 5.5 esses updates chegam em blocos `thinking`, vazios no display padrão.",
    "sugestao_pt": "Tente remover o andaime e compare; para mostrar os updates, use `display: \"updates\"` (beta) ou `\"summarized\"` e renderize os blocos não vazios. No Opus 5.5, se você quer updates mais frequentes ou previsíveis, o guia de prompting diz que o modelo responde a esse pedido no system prompt (ex.: uma frase de intenção antes da primeira tool call e um recap no fim) e que o harness pode anexar um lembrete depois de vários passos seguidos sem nada para o usuário ler (id `opus-5-5.quiet_reminder` em modelos/opus-5-5.md) (prompting-claude-opus-5-5, 'User-facing progress updates').",
+   "fonte": {
+    "page_id": "migration-guide-opus-5-5",
+    "section": "Behavior changes"
+   },
+   "exemplo": "After every 3 tool calls, summarize progress.",
+   "contra_exemplo": "Before your first tool call, say in one sentence what you're about to do."
+  },
+  {
+   "id": "opus-4-7.status_forcado",
+   "modelos": [
+    "opus-4-7"
+   ],
+   "padrao": "\\b(?:after|every) (?:every |each )?\\d+ (?:tool calls?|steps?|actions?|turns?)\\b[^.\\n]{0,40}\\b(?:summari[sz]e|status|progress|update)|\\b(?:summari[sz]e|report) (?:your )?progress (?:every|after (?:every|each))\\b|\\binterim status (?:messages?|updates?)\\b",
+   "severidade": "soft",
+   "motivo_pt": "Desde o Opus 4.7 o modelo dá updates mais regulares e de melhor qualidade em traces agênticos longos, e o guia de migração diz para tentar remover andaime que força status intermediário ('After every 3 tool calls, summarize progress').",
+   "sugestao_pt": "Tente remover o andaime e compare.",
    "fonte": {
     "page_id": "migration-guide-opus-5-5",
     "section": "Behavior changes"
@@ -384,6 +413,38 @@
    "contra_exemplo": "List the steps of the migration in the order they must run."
   },
   {
+   "id": "opus-4-8.cot_em_vez_de_effort",
+   "modelos": [
+    "opus-4-8"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "A página do Opus 4.8 manda, diante de raciocínio raso em problemas complexos, subir o effort para `high` ou `xhigh` em vez de contornar via prompt; um pedido de passo a passo é esse contorno. Exceção: com thinking desligado de propósito, CoT manual (`<thinking>`/`<answer>`) é o fallback documentado do guia geral — aí mantenha e ignore este aviso.",
+   "sugestao_pt": "Remova o pedido e suba o effort para `high`/`xhigh`. Se o effort `low` precisa ficar por latência, use o snippet de múltiplos passos (id `opus-4-8.low_effort_multistep_snippet` em opus-4-8.md). Com thinking desligado, mantenha o CoT manual (claude-prompting-best-practices, 'Leverage thinking & interleaved thinking capabilities').",
+   "fonte": {
+    "page_id": "prompting-claude-opus-4-8",
+    "section": "Calibrating effort and thinking depth"
+   },
+   "exemplo": "Think step by step before answering.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
+   "id": "sonnet-5.cot_em_vez_de_effort",
+   "modelos": [
+    "sonnet-5"
+   ],
+   "padrao": "\\b(?:let'?s |please )?(?:think|reason|work) (?:it |this |through (?:it |this )?)?(?:out )?step[- ]by[- ]step\\b|\\bin a step[- ]by[- ]step way\\b",
+   "severidade": "soft",
+   "motivo_pt": "A página do Sonnet 5 manda, diante de raciocínio raso em problemas complexos, subir o effort para `high` ou `xhigh` em vez de contornar via prompt; em `medium` com under-thinking, a primeira alavanca é subir o effort. Um pedido de passo a passo é esse contorno. Exceção: com `thinking: {\"type\": \"disabled\"}`, CoT manual (`<thinking>`/`<answer>`) é o fallback documentado do guia geral — aí mantenha e ignore este aviso.",
+   "sugestao_pt": "Remova o pedido e suba o effort; prompt só para controle fino ou quando o effort precisa ficar baixo. Com thinking desligado, mantenha o CoT manual (claude-prompting-best-practices, 'Leverage thinking & interleaved thinking capabilities').",
+   "fonte": {
+    "page_id": "prompting-claude-sonnet-5",
+    "section": "Calibrating effort and thinking depth"
+   },
+   "exemplo": "Think step by step before answering.",
+   "contra_exemplo": "List the steps of the migration in the order they must run."
+  },
+  {
    "id": "opus-5.regra_nao_pensar",
    "modelos": [
     "opus-5"
@@ -530,27 +591,35 @@
   {
    "id": "fable-5-1.anti_markdown",
    "modelos": [
-    "fable-5-1"
+    "fable-5-1",
+    "mythos-5-1"
    ],
    "padrao": "avoid_excessive_markdown_and_bullet_points|NEVER output a series of overly short bullet points|DO NOT use ordered lists",
    "severidade": "soft",
-   "motivo_pt": "O Fable 5.1 já formata menos que modelos anteriores; o bloco anti-markdown do guia geral pode suprimir estrutura que o conteúdo precisa.",
+   "motivo_pt": "O Fable 5.1 (e o Mythos 5.1, pelo guia do Fable 5.1, que cobre os dois) já formata menos que modelos anteriores; o bloco anti-markdown do guia geral pode suprimir estrutura que o conteúdo precisa.",
    "sugestao_pt": "Remova o bloco ou troque pela regra curta de 'Formatting in chat' do guia do Fable 5.1 (id `fable-5-1.formatting_rule_snippet` em modelos/fable-5-1.md).",
    "fonte": {
-    "page_id": "claude-prompting-best-practices",
-    "section": "Control the format of responses"
+    "page_id": "prompting-claude-fable-5-1",
+    "section": "Formatting in chat"
    },
    "exemplo": "<avoid_excessive_markdown_and_bullet_points>",
-   "contra_exemplo": "Use lists and bullet points when asked to, or when the content is multifaceted enough that they help with clarity. If the person explicitly requests minimal formatting, always format your responses without bullet points, headers, lists, or bold emphasis, as requested. In conversational, personal, or emotional exchanges, keep to plain prose."
+   "contra_exemplo": "Use lists and bullet points when asked to, or when the content is multifaceted enough that they help with clarity. If the person explicitly requests minimal formatting, always format your responses without bullet points, headers, lists, or bold emphasis, as requested. In conversational, personal, or emotional exchanges, keep to plain prose.",
+   "fontes_adicionais": [
+    {
+     "page_id": "claude-prompting-best-practices",
+     "section": "Control the format of responses"
+    }
+   ]
   },
   {
    "id": "fable-5-1.anti_formatacao",
    "modelos": [
-    "fable-5-1"
+    "fable-5-1",
+    "mythos-5-1"
    ],
    "padrao": "\\bavoid (?:using )?(?:bullets?|bullet points|(?:ordered |unordered )?lists|headers|headings|bold)\\b|\\b(?:do not|don't|never) use (?:markdown|bullets?|bullet points|(?:ordered |unordered )?lists|headers|headings|bold)\\b|\\bminimi[sz]e (?:the )?(?:use of )?(?:formatting|markdown)\\b|\\bplain prose only\\b",
    "severidade": "soft",
-   "motivo_pt": "Linguagem anti-formatação foi escrita para conter o excesso de bullets e negrito de modelos anteriores; o Fable 5.1 vai no sentido oposto e ela pode suprimir estrutura necessária.",
+   "motivo_pt": "Linguagem anti-formatação foi escrita para conter o excesso de bullets e negrito de modelos anteriores; o Fable 5.1 vai no sentido oposto (o guia vale também para o Mythos 5.1) e ela pode suprimir estrutura necessária.",
    "sugestao_pt": "Remova ou troque por uma regra que diga quando formatação específica é apropriada (id `fable-5-1.formatting_rule_snippet` em modelos/fable-5-1.md).",
    "fonte": {
     "page_id": "prompting-claude-fable-5-1",
@@ -562,11 +631,12 @@
   {
    "id": "fable-5-1.guardar_achados",
    "modelos": [
-    "fable-5-1"
+    "fable-5-1",
+    "mythos-5-1"
    ],
    "padrao": "\\bhold (?:all |your |any )?findings\\b|\\b(?:save|keep|hold)\\b[^.\\n]{0,40}\\bfor the final (?:response|answer)\\b|\\b(?:don't|do not) (?:narrate|give (?:progress )?updates)\\b|\\bonly report at the end\\b",
    "severidade": "soft",
-   "motivo_pt": "Linhas que suprimem narração ('hold all findings for the final response') foram escritas para modelos ansiosos por dar updates; o Fable 5.1 já escreve menos updates entre tool calls.",
+   "motivo_pt": "Linhas que suprimem narração ('hold all findings for the final response') foram escritas para modelos ansiosos por dar updates; o Fable 5.1 já escreve menos updates entre tool calls (o guia vale também para o Mythos 5.1).",
    "sugestao_pt": "Remova essas linhas antes de adicionar qualquer coisa; defina `thinking.display` como \"updates\" (beta) para receber os progress updates. Se ainda quiser mais updates, veja o id `fable-5-1.progress_updates_snippet` em modelos/fable-5-1.md.",
    "fonte": {
     "page_id": "prompting-claude-fable-5-1",
@@ -578,23 +648,31 @@
   {
    "id": "fable-5-1.updates_breves",
    "modelos": [
-    "fable-5-1"
+    "fable-5-1",
+    "mythos-5-1"
    ],
    "padrao": "\\bkeep (?:your |any |all )?(?:(?:progress|status) (?:updates|text|messages|notes)|updates) (?:brief|short|minimal|to a minimum)\\b|\\bbe brief between tool calls\\b|\\bminimi[sz]e (?:progress |status )?updates\\b",
    "severidade": "soft",
-   "motivo_pt": "O Fable 5.1 escreve menos updates entre tool calls; instrução para manter esse texto breve agrava o silêncio.",
+   "motivo_pt": "O Fable 5.1 escreve menos updates entre tool calls; instrução para manter esse texto breve agrava o silêncio. No Mythos 5.1, a base é o guia do Fable 5.1, que cobre os dois: audite o prompt e remova linhas que suprimem a narração antes de adicionar qualquer coisa.",
    "sugestao_pt": "Remova a instrução e peça texto de progresso explicitamente (id `fable-5-1.progress_updates_snippet` em modelos/fable-5-1.md).",
    "fonte": {
-    "page_id": "claude-prompting-best-practices",
-    "section": "Communication style and verbosity"
+    "page_id": "prompting-claude-fable-5-1",
+    "section": "Ask for user-facing progress updates"
    },
    "exemplo": "Keep progress updates brief.",
-   "contra_exemplo": "Before you start, say in a line what you're about to do; brief updates while you work help the user follow along. Close with a short recap that stands on its own — what you found, what you did, and what's next — so a reader who only sees the last message has the full picture."
+   "contra_exemplo": "Before you start, say in a line what you're about to do; brief updates while you work help the user follow along. Close with a short recap that stands on its own — what you found, what you did, and what's next — so a reader who only sees the last message has the full picture.",
+   "fontes_adicionais": [
+    {
+     "page_id": "claude-prompting-best-practices",
+     "section": "Communication style and verbosity"
+    }
+   ]
   },
   {
    "id": "fable-5.send_to_user_narracao",
    "modelos": [
-    "fable-5"
+    "fable-5",
+    "mythos-5"
    ],
    "padrao": "^(?![^\\n]*\\b(?:not for|do not|don't|never|only for)\\b)[^\\n]*\\bsend_to_user\\b[^\\n]*\\b(?:narrat\\w*|(?:your|internal) reasoning|(?:your|internal) thoughts?|think out loud)\\b",
    "severidade": "soft",
@@ -610,7 +688,8 @@
   {
    "id": "fable-5.contagem_contexto",
    "modelos": [
-    "fable-5"
+    "fable-5",
+    "mythos-5"
    ],
    "padrao": "\\b(?:tokens?|context(?: window)?|context budget)\\s+(?:remaining|left)\\s*[:=]\\s*[\\d{]|\\b\\d[\\d,.]*\\s*k?\\s*tokens?\\s+(?:remaining|left)\\b|\\{\\{?\\s*(?:remaining_tokens|tokens_left|tokens_remaining|context_remaining)\\s*\\}?\\}",
    "severidade": "soft",
@@ -672,7 +751,7 @@
    "contra_exemplo": "stream=True"
   },
   {
-   "id": "opus-5-5.beta_interleaved_thinking",
+   "id": "all-4-6-plus.beta_interleaved_thinking",
    "modelos": [
     "all-4-6-plus"
    ],

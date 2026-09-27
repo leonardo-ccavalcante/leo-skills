@@ -54,8 +54,8 @@ Sem o skill, não reimplementá-lo nem inventar um PRD. Se o usuário já trouxe
 
 **Modelo-alvo**
 
-- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): "manter cada User Story com a numeração" e "cada Implementation Decision é decisão tomada" valem para a lista inteira; escreva o escopo no prompt ("todas as User Stories, não só as primeiras").
-- (M2) **Opus 5:** se o prompt compilado escreve o PRD em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"); como a skill pede a lista completa, o snippet (cobrir a substância, sem enchimento) não é motivo para cortar User Stories.
+- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): "manter cada User Story com a numeração" e "cada Implementation Decision é decisão tomada" valem para a lista inteira; escreva o escopo no prompt ("todas as User Stories, não só as primeiras").
+- (M2) **Opus 5:** se o prompt compilado escreve o PRD em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length"); como a skill pede a lista completa, o snippet (cobrir a substância, sem enchimento) não é motivo para cortar User Stories.
 - (M3) PRD que passe de 20k tokens vai em `<documents>` no topo, com o pedido no fim (regra comum "Material longo no topo, pedido no fim").
 
 **Da skill de origem**

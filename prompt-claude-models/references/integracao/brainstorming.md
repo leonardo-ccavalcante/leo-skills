@@ -125,8 +125,8 @@ Sem a skill, versão mínima: perguntar ao usuário, uma por vez, purpose, const
 
 **Modelo-alvo**
 
-- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): o prefixo 'premissa não confirmada:' vale para cada item que o usuário não confirmou; o prompt diz isso para a lista inteira.
-- (M2) **Opus 5:** se o prompt compilado escreve o design ou o spec em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
+- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): o prefixo 'premissa não confirmada:' vale para cada item que o usuário não confirmou; o prompt diz isso para a lista inteira.
+- (M2) **Opus 5:** se o prompt compilado escreve o design ou o spec em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
 
 **Da skill de origem**
 

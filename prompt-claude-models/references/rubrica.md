@@ -1,6 +1,6 @@
 # Rubrica de entrega
 
-Aplicada no passo 7 da espinha, depois de `pcm.py lint`. Cada critério vale 0, 1 ou 2. A nota da rubrica (0–1) entra no episódio como sinal de recompensa fraco (peso 0,10).
+Aplicada no passo 7 da espinha, depois de `pcm.py lint`. Abreviações da coluna Fonte: `claude-prompting-best-practices` (BP), `effort` (EF). Cada critério vale 0, 1 ou 2. A nota da rubrica (0–1) entra no episódio como sinal de recompensa fraco (peso 0,10).
 
 **Limiar para entregar:** nenhum 0 nos critérios marcados **duro**, e média ≥ 1,5 (nota ≥ 0,75). Abaixo disso, corrija e reavalie antes de mostrar. Se depois de duas correções ainda não passar, entregue com a pendência nomeada explicitamente — nunca esconda.
 

@@ -92,9 +92,9 @@ Sem a skill: (A) deck novo — pedir ao usuário a decisão da audiência; se el
 
 **Modelo-alvo**
 
-- (M1) Storyline tree e ghost deck são estrutura visível pedida como saída — não é chain-of-thought; pedir como artefato em markdown, não como 'pense passo a passo' nem "mostre seu raciocínio" (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): "action title em frase completa" vale para cada slide; o prompt diz "em todos os slides, não só no primeiro".
-- (M3) **Opus 5:** se o prompt compilado escreve `storyline.md` em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
+- (M1) Storyline tree e ghost deck são estrutura visível pedida como saída — não é chain-of-thought; pedir como artefato em markdown, não como 'pense passo a passo' nem "mostre seu raciocínio" (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): "action title em frase completa" vale para cada slide; o prompt diz "em todos os slides, não só no primeiro".
+- (M3) **Opus 5:** se o prompt compilado escreve `storyline.md` em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
 - (M4) **Opus 4.8** renderizando os slides (Phase 3): tem estilo visual padrão persistente (fundo creme, serifadas de display, acento terracota), e negações genéricas só trocam por outra paleta fixa; especifique a identidade visual concreta (prompting-claude-opus-4-8, "Design and frontend defaults"; `references/modelos/opus-4-8.md`).
 
 **Da skill de origem**

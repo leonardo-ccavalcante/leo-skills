@@ -170,7 +170,7 @@ When you use a tool, you may say a brief sentence first. If no tool can express 
 | Contornos de visão ajustados para modelos anteriores | Podem não ser mais necessários; revalide | — (a fonte não nomeia um contorno concreto: checar à mão) | (prompting-claude-opus-5, "Capability improvements") |
 | Regras de "não pense / não raciocine" (com thinking desligado) | Aumentam o vazamento de tags internas | `opus-5.regra_nao_pensar` | (prompting-claude-opus-5, "Running with thinking disabled") |
 | Proibições que citam as tags de thinking pelo nome | Menos eficazes que a forma geral do snippet | `opus-5.tags_thinking_por_nome` | (prompting-claude-opus-5, "Running with thinking disabled") |
-| "Be thorough", "use tools aggressively" e similares herdados | A fonte diz isso dos modelos Claude 4.6 ("more proactive and may overtrigger"), numa lista para migrar aos modelos atuais; não há medição específica do Opus 5 além da linha "be maximally thorough" acima: teste antes de cortar | `all-4-6-plus.anti_preguica` | (claude-prompting-best-practices, "Migration considerations") |
+| "Be thorough", "use tools aggressively" e similares herdados | A fonte diz isso dos modelos Claude 4.6 ("more proactive and may overtrigger"), numa lista para migrar aos modelos atuais; não há medição específica do Opus 5 além da linha "be maximally thorough" acima: teste antes de cortar | — (só leitura; lint só cobre Opus 4.6/Sonnet 4.6) | (claude-prompting-best-practices, "Migration considerations") |
 
 "—" = sem regra de lint: `pcm.py lint` não detecta esta linha. `budget_tokens`, prefill e sampling dão 400: ver Restrições duras.
 

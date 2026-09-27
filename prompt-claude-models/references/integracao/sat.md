@@ -213,8 +213,8 @@ Sem o skill instalado, versão mínima e honesta: extrair do texto do usuário (
 
 **Modelo-alvo**
 
-- (M1) O 'Cierre fijo', a tabela KAC e a matriz ACH são seções obrigatórias do produto: vão em formato_saida como partes nomeadas do entregável. Não os peça "no thinking" — no Opus 5.5 e no Fable 5.1 o campo `thinking` vem vazio no display padrão — nem como "escreva seu raciocínio na resposta", que o Opus 5.5 pode recusar com `reasoning_extraction` (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): "cada *frágil* e cada [UNSURE] vira instrução de verificar" vale para todas as linhas da KAC e todas as células da ACH; diga isso no prompt.
+- (M1) O 'Cierre fijo', a tabela KAC e a matriz ACH são seções obrigatórias do produto: vão em formato_saida como partes nomeadas do entregável. Não os peça "no thinking" — no Opus 5.5 e no Fable 5.1 o campo `thinking` vem vazio no display padrão — nem como "escreva seu raciocínio na resposta", que o grupo [RE] (Opus 5.5, Fable 5.1, Fable 5) pode recusar com `reasoning_extraction` (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-fable-5, "Recommended scaffolding changes"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): "cada *frágil* e cada [UNSURE] vira instrução de verificar" vale para todas as linhas da KAC e todas as células da ACH; diga isso no prompt.
 
 **Da skill de origem**
 

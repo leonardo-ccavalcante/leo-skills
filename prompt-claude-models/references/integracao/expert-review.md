@@ -55,14 +55,14 @@ Refs: `expert-review/SKILL.md:L39-42,52-53,57-58,60-96,102-107` · `skill-router
 
 ### Se a skill não estiver instalada
 
-Sem a skill (ou sem o arquivo de transcripts em /Users/familiagirardicavalcante/Downloads/Lenny's Podcast Transcripts Archive [public]/, L16): não simular a revisão nem produzir listas convergente/divergente/opções A-B-C, e não inventar citações (L103, L106, L107). Versão mínima: (1) declarar 'Expert Review não executada (skill ou transcripts indisponíveis)'; (2) opcionalmente registrar o entendimento do passo 1 — tipo de artefato e afirmação central (L40-L41) — rotulado como leitura própria, não revisão; (3) seguir com o artefato do usuário sem revisão, ou perguntar ao usuário se quer prosseguir assim.
+Sem a skill (ou sem o arquivo de transcripts que expert-review/SKILL.md L16 aponta): não simular a revisão nem produzir listas convergente/divergente/opções A-B-C, e não inventar citações (L103, L106, L107). Versão mínima: (1) declarar 'Expert Review não executada (skill ou transcripts indisponíveis)'; (2) opcionalmente registrar o entendimento do passo 1 — tipo de artefato e afirmação central (L40-L41) — rotulado como leitura própria, não revisão; (3) seguir com o artefato do usuário sem revisão, ou perguntar ao usuário se quer prosseguir assim.
 
 ### Atenção ao compilar
 
 **Modelo-alvo**
 
-- (M1) **Fable 5.1:** o prompt que resume ou usa os trechos dos transcripts recebe `fable-5-1.quoting_example_snippet` no system ("Delta do modelo-alvo no Compilar"); aqui isso pesa porque a skill só permite citar o que está nos transcripts (L52) e proíbe inventar citações (L106).
-- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): "não completar listas para atingir número" e "máximo 6 especialistas" valem para todas as listas da revisão; o prompt diz o escopo.
+- (M1) **Fable 5.1:** o prompt que resume ou usa os trechos dos transcripts recebe `fable-5-1.quoting_example_snippet` no system ("Delta do modelo-alvo no Compilar"; prompting-claude-fable-5-1, "Quoting retrieved sources"); aqui isso pesa porque a skill só permite citar o que está nos transcripts (L52) e proíbe inventar citações (L106).
+- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): "não completar listas para atingir número" e "máximo 6 especialistas" valem para todas as listas da revisão; o prompt diz o escopo.
 
 **Da skill de origem**
 

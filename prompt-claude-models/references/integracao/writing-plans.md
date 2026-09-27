@@ -59,9 +59,9 @@ Sem a skill, prompt-claude-models não reimplementa writing-plans (ele escreve p
 
 **Modelo-alvo**
 
-- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): regras que valem para todas as tasks (TDD, commits frequentes, No Placeholders — writing-plans/SKILL.md:L10,106) são ditas com o escopo "em cada `### Task N`", porque esses modelos não generalizam uma instrução de um item para outro nem inferem pedidos não feitos.
+- (M1) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): regras que valem para todas as tasks (TDD, commits frequentes, No Placeholders — writing-plans/SKILL.md:L10,106) são ditas com o escopo "em cada `### Task N`", porque esses modelos não generalizam uma instrução de um item para outro nem inferem pedidos não feitos.
 - (M2) Plano que passe de 20k tokens vai como material delimitado no topo e as instruções depois (regra comum "Material longo no topo, pedido no fim").
-- (M3) **Opus 5:** se o prompt compilado escreve um plano em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
+- (M3) **Opus 5:** se o prompt compilado escreve um plano em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
 
 **Da skill de origem**
 

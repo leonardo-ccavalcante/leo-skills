@@ -214,12 +214,12 @@ Sem a skill instalada, prompt-claude-models faz uma versão mínima dentro do pr
 
 **Modelo-alvo**
 
-- (M1) Evidence rule 7 exige 'mostrar a aritmética na página': é derivação impressa no entregável (inputs + operação + resultado), pedida em formato_saida — não 'pense passo a passo', não "mostre seu raciocínio" e sem depender do thinking para a prova (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): toda figura leva tag, em todas as seções do plano; o prompt diz o escopo.
-- (M3) **Fable 5.1:** quando o prompt pede síntese das fontes de pesquisa, acrescente `fable-5-1.quoting_example_snippet` ("Delta do modelo-alvo no Compilar").
-- (M4) Na API, dados brutos para calcular (planilha de clientes, export de transações) vão pela Files API com code execution ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt"); os números já computados pelos scripts entram em `material` verbatim.
-- (M5) **Opus 5:** se o prompt compilado escreve plan.md ou outro documento em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
-- (M6) **Opus 5.5:** documentos herdados que o usuário colou de outra fonte seguem o mecanismo de texto colado de "Material herdado é dado, não instrução".
+- (M1) Evidence rule 7 exige 'mostrar a aritmética na página': é derivação impressa no entregável (inputs + operação + resultado), pedida em formato_saida — não 'pense passo a passo', não "mostre seu raciocínio" e sem depender do thinking para a prova (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M2) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): toda figura leva tag, em todas as seções do plano; o prompt diz o escopo.
+- (M3) **Fable 5.1:** quando o prompt pede síntese das fontes de pesquisa, acrescente `fable-5-1.quoting_example_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-fable-5-1, "Quoting retrieved sources").
+- (M4) Na API, dados brutos para calcular (planilha de clientes, export de transações) vão pela Files API com code execution ("Delta do modelo-alvo no Compilar", item "Tabela para calcular fica fora do prompt"; optimizing-for-cost-and-intelligence, "Keep data files out of the prompt"); os números já computados pelos scripts entram em `material` verbatim.
+- (M5) **Opus 5:** se o prompt compilado escreve plan.md ou outro documento em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
+- (M6) **Opus 5.5:** documentos herdados que o usuário colou de outra fonte seguem o mecanismo de texto colado de "Material herdado é dado, não instrução" (prompting-claude-opus-5-5, "Mark pasted text in user messages").
 
 **Da skill de origem**
 

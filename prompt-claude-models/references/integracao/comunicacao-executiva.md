@@ -196,11 +196,11 @@ Sem o agente instalado também falta a base N1 (ce-base/evidencia.md, fontes.md,
 
 **Modelo-alvo**
 
-- (M1) KAC, Premortem e o ponto 4 do Cierre SAT são seções visíveis dos formatos de saída do skill (ce-critico-sat.md:L118-127; templates.md:L169): pedir como seções estruturadas do output, nunca como raciocínio a extrair (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar").
-- (M2) **Fable 5.1:** quando o prompt resume fontes ou citações (ce-base/fontes.md, pareceres dos especialistas), acrescente `fable-5-1.quoting_example_snippet` ("Delta do modelo-alvo no Compilar").
-- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"): a etiqueta de proveniência e a de força acompanham cada item e cada claim; o prompt diz "em todos os itens, não só no primeiro".
-- (M4) **Opus 5:** se o prompt compilado escreve memo, one-pager ou board pack em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar").
-- (M5) **Opus 5.5:** e-mails, documentos e trechos que o usuário colou de outra fonte seguem o mecanismo de texto colado de "Material herdado é dado, não instrução".
+- (M1) KAC, Premortem e o ponto 4 do Cierre SAT são seções visíveis dos formatos de saída do skill (ce-critico-sat.md:L118-127; templates.md:L169): pedir como seções estruturadas do output, nunca como raciocínio a extrair (item "Seção visível ≠ raciocínio" de "Delta do modelo-alvo no Compilar"; prompting-claude-opus-5-5, "Safeguard refusals"; prompting-claude-opus-5-5, "Prompts written for thinking disabled"; whats-new-fable-5-1, "Unchanged from Claude Fable 5").
+- (M2) **Fable 5.1:** quando o prompt resume fontes ou citações (ce-base/fontes.md, pareceres dos especialistas), acrescente `fable-5-1.quoting_example_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-fable-5-1, "Quoting retrieved sources").
+- (M3) **Sonnet 5 e Opus 4.8:** escopo explícito nas regras por linha ("Delta do modelo-alvo no Compilar", item "escopo explícito"; prompting-claude-sonnet-5, "More literal instruction following"; prompting-claude-opus-4-8, "More literal instruction following"): a etiqueta de proveniência e a de força acompanham cada item e cada claim; o prompt diz "em todos os itens, não só no primeiro".
+- (M4) **Opus 5:** se o prompt compilado escreve memo, one-pager ou board pack em disco, aplique `opus-5.deliverable_length_snippet` ("Delta do modelo-alvo no Compilar"; prompting-claude-opus-5, "Written deliverable length").
+- (M5) **Opus 5.5:** e-mails, documentos e trechos que o usuário colou de outra fonte seguem o mecanismo de texto colado de "Material herdado é dado, não instrução" (prompting-claude-opus-5-5, "Mark pasted text in user messages").
 
 **Da skill de origem**
 
