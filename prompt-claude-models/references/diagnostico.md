@@ -67,9 +67,9 @@ Da mais simples para a mais complexa; escolha a primeira que atende.
 | Decisão cara com hipótese favorita afirmada como fato; consenso fácil demais | supostos testados | `sat` (Key Assumptions Check; ACH se há explicações rivais) |
 | Patamar benchmark sem casos adversariais | casos de teste que quebram o prompt | `sat` (premortem / Red Team) |
 | Precisa de uma técnica específica (few-shot, cadeia, schema, defesa de injeção, eval, receita de tarefa) | técnica | a `prompt-*` dona, com a sobreposição de `sobreposicao-toolkit.md` |
-| Conteúdo já vem de outra skill (tabela KAC, matriz ACH, pirâmide, plano, PRD…) | nada — compilar | modo Compilar com `integracao-skills.md` |
+| Conteúdo já vem de outra skill (tabela KAC, matriz ACH, pirâmide, plano, PRD…) | nada — compilar | modo Compilar com `integracao-skills.md` → `integracao/<skill>.md` |
 
-Se a skill a montante não estiver instalada, faça a versão mínima descrita em `integracao-skills.md` e diga que fez.
+Se a skill a montante não estiver instalada, faça a versão mínima descrita no adaptador dela (`integracao/<skill>.md`, seção "Se a skill não estiver instalada") e diga que fez.
 
 ## 6. Saída do diagnóstico
 

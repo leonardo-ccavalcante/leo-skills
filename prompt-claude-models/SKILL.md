@@ -43,7 +43,7 @@ Toda recomendação sai das páginas oficiais da Anthropic (lista em `fontes.jso
 |---|---|
 | Conteúdo solto, pedido de prompt, "transforme isto num prompt" | **Construir** — a espinha inteira |
 | Só "qual modelo / que effort para X?" | **Recomendar** — espinha passos 1–5, sem montar prompt |
-| Um artefato de outra skill (tabela KAC, matriz ACH, premortem, issue tree, pirâmide, plano, PRD, relatório…) | **Compilar** — `references/integracao-skills.md`, depois passos 5–7 |
+| Um artefato de outra skill (tabela KAC, matriz ACH, premortem, issue tree, pirâmide, plano, PRD, relatório…) | **Compilar** — `references/integracao-skills.md` + `references/integracao/<skill>.md` da skill de origem, depois passos 5–7 |
 | Um prompt ou SKILL.md existente + modelo destino ("adapte", "migre", "está dando 400", "piorou depois que troquei de modelo") | **Adaptar** — diff: cruft removido + delta adicionado |
 | Mensagem que começa com `[Invocada por <skill>]` ou pedido explícito de outra skill | **Guiar** — contrato não interativo abaixo |
 
@@ -126,8 +126,8 @@ Detalhes em `references/memoria-e-recompensa.md`. Resumo operacional:
 | `references/matriz-modelos.md` | passo 6 e para comparar modelos |
 | `references/principios-gerais.md` | passo 6, técnicas válidas para todos os modelos |
 | `references/cruft.json` · `references/restricoes-api.json` | lidos pelo `pcm.py lint`; consulte para explicar um achado |
-| `references/sobreposicao-toolkit.md` | quando uma técnica do set `prompt-*` entra no prompt |
-| `references/integracao-skills.md` | modo Compilar e prontidão (passo 4) |
+| `references/sobreposicao-toolkit.md` | quando uma técnica do set `prompt-*` entra no prompt (a tabela técnica × modelo basta para montar; `references/toolkit/<skill>.md` só para os conflitos de uma skill específica) |
+| `references/integracao-skills.md` | modo Compilar e prontidão (passo 4): regras comuns, glossário de slots e qual adaptador ler; depois **só** `references/integracao/<skill>.md` da skill de origem |
 | `references/rubrica.md` | passo 7 |
 | `references/memoria-e-recompensa.md` | ao registrar episódio, recompensa ou promoção |
 | `assets/esqueleto-prompt.md` | passo 6 |
