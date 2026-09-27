@@ -20,6 +20,7 @@ Exit: 0 ok/parcial · 1 bug · 2 dado insuficiente · 3 falha de validação.
 from __future__ import annotations
 
 import argparse
+import bisect
 import concurrent.futures
 import contextlib
 import datetime as _dt
@@ -28,6 +29,7 @@ import hashlib
 import http.client
 import io
 import json
+import math
 import os
 import re
 import secrets
@@ -91,10 +93,14 @@ RE_TAG_FECHA = re.compile(r"</([a-z_]+)\s*>")
 # Cerca de código linha a linha: a regex única com .*? e \1 retrocedia de forma
 # catastrófica (46 KB de cercas sem fechamento levavam 9 s no lint).
 RE_FENCE_LINHA = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
-RE_CRASE = re.compile(r"`[^`\n]*`")
+# Sequências de crases: um code span abre e fecha com o mesmo comprimento
+# (CommonMark), então ``<answer>`` também é código e não tag solta.
+RE_CRASES = re.compile(r"`+")
 RE_DOC_ABRE = re.compile(r"<documents?\b")
 RE_DOC_FECHA = re.compile(r"</documents?\s*>")
-RE_VERBATIM_ABRE = re.compile(r"^\s*(`{3,})text\s+verbatim\b(.*)$")
+# Info string de uma cerca (o que vem depois de ``` ou ~~~): CommonMark aceita
+# espaço entre a cerca e a info string, então "``` text verbatim" também é bloco.
+RE_INFO_VERBATIM = re.compile(r"^[ \t]*text[ \t]+verbatim\b(.*)$")
 RE_ATRIB = re.compile(r"(\w+)=(\S+)")
 RE_WS = re.compile(r"\s+")
 RE_SHA = re.compile(r"^[0-9a-f]{64}$")
@@ -192,10 +198,13 @@ def hoje_utc() -> str:
 
 
 def parse_iso(s: str) -> _dt.datetime | None:
+    """Data ISO sempre com fuso: sem fuso vale UTC, senão comparar com um limite
+    aware levantava TypeError e uma linha editada à mão derrubava o pendentes."""
     try:
-        return _dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
-    except (ValueError, AttributeError):
+        d = _dt.datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except (ValueError, AttributeError, TypeError):
         return None
+    return d if d.tzinfo is not None else d.replace(tzinfo=_dt.timezone.utc)
 
 
 def diag(msg: str) -> None:
@@ -231,9 +240,24 @@ def escrever_atomico(path: Path, data: bytes) -> None:
         raise
 
 
-def escrever_json(path: Path, obj, final_nl: bool = True) -> None:
-    txt = json.dumps(obj, indent=2, ensure_ascii=False)
-    escrever_atomico(path, (txt + ("\n" if final_nl else "")).encode("utf-8"))
+def escrever_json(path: Path, obj, final_nl: bool = True, eol: str = "\n", bom: bool = False) -> None:
+    """eol/bom: fontes.json é do repo; reescrever CRLF como LF mudava todas as linhas no diff."""
+    txt = json.dumps(obj, indent=2, ensure_ascii=False) + ("\n" if final_nl else "")
+    if eol != "\n":
+        txt = txt.replace("\n", eol)
+    escrever_atomico(path, (("﻿" if bom else "") + txt).encode("utf-8"))
+
+
+def tem_surrogate(obj) -> bool:
+    """Surrogate solto (\\ud800 num JSON, emoji truncado) não vira UTF-8: gravar
+    o episódio ou o placar levantava UnicodeEncodeError (exit 1)."""
+    if isinstance(obj, str):
+        return any("\ud800" <= ch <= "\udfff" for ch in obj)
+    if isinstance(obj, dict):
+        return any(tem_surrogate(k) or tem_surrogate(v) for k, v in obj.items())
+    if isinstance(obj, list):
+        return any(tem_surrogate(v) for v in obj)
+    return False
 
 
 def ler_json(path: Path, padrao=None):
@@ -247,14 +271,23 @@ def ler_json(path: Path, padrao=None):
         return padrao
     if not txt.strip():
         return padrao
-    return json.loads(txt)
+    try:
+        return json.loads(txt)
+    except RecursionError:
+        # '[' aninhado demais: é JSON ruim, não bug (exit 1).
+        raise ValueError("JSON aninhado demais")
+
+
+# Tudo que um arquivo de dados ruim levanta ao ser lido: JSON inválido e
+# não UTF-8 (ValueError), diretório ou permissão (OSError).
+ERROS_LEITURA = (ValueError, OSError)
 
 
 def ler_estado(path: Path, padrao: dict) -> dict:
     """Estado da memória: corrompido vira diagnóstico (exit 3) e nunca é sobrescrito."""
     try:
         d = ler_json(path, padrao)
-    except (ValueError, OSError) as e:  # JSONDecodeError e UnicodeDecodeError são ValueError
+    except ERROS_LEITURA as e:  # JSONDecodeError e UnicodeDecodeError são ValueError
         raise ErroUso(f"{path} corrompido ({e.__class__.__name__}: {e}); corrija ou remova o arquivo",
                       EXIT_VALIDACAO)
     if d is None:
@@ -268,6 +301,8 @@ def ler_entrada(arg: str | None) -> str:
     """Lê arquivo ou stdin do mesmo jeito: UTF-8 estrito, BOM descartado e quebras
     de linha universais (como o read_text de antes, para CRLF não mudar o lint)."""
     if arg in (None, "-"):
+        if sys.stdin is None:  # stdin fechado (<&-): sem isto, AttributeError e exit 1
+            raise ErroUso("sem entrada: stdin está fechado (passe um arquivo)", EXIT_INSUFICIENTE)
         buf = getattr(sys.stdin, "buffer", None)
         if buf is None:  # stdin trocado por StringIO (selftest)
             return sys.stdin.read().lstrip("\ufeff")
@@ -394,28 +429,72 @@ def caminho_fontes() -> Path:
     return skill_dir() / "fontes.json"
 
 
-def carregar_fontes() -> tuple[dict, bool]:
-    """Devolve (dados, terminava_com_newline) para reescrever sem ruído no diff."""
+def carregar_fontes() -> tuple[dict, dict]:
+    """Devolve (dados, formato) para reescrever sem ruído no diff.
+
+    formato = {final_nl, eol, bom}: lido em bytes porque read_text traduz CRLF e
+    o fontes-aplicar reescrevia um arquivo CRLF inteiro como LF.
+    """
     p = caminho_fontes()
     try:
-        raw = p.read_text(encoding="utf-8-sig")
+        bruto = p.read_bytes()
     except FileNotFoundError:
         raise ErroUso(f"fontes.json ausente em {p}", EXIT_INSUFICIENTE)
+    except OSError as e:
+        raise ErroUso(f"fontes.json ilegível: {e.strerror or e}", EXIT_VALIDACAO)
+    try:
+        raw = bruto.decode("utf-8-sig")
     except UnicodeDecodeError as e:
         raise ErroUso(f"fontes.json não é UTF-8: {e}", EXIT_VALIDACAO)
     try:
         dados = json.loads(raw)
-    except json.JSONDecodeError as e:
+    except (ValueError, RecursionError) as e:
         raise ErroUso(f"fontes.json inválido: {e}", EXIT_VALIDACAO)
     # URL fora do domínio não invalida o arquivo aqui: vira status "erro" da página.
-    erros = validar_fontes(dados, checar_urls=False)
+    # sha provisório ("...", "") também não: a página sai "mudou" e o fontes-aplicar o preenche.
+    erros = validar_fontes(dados, checar_urls=False, sha_estrito=False)
     if erros:
         raise ErroUso("fontes.json inválido: " + "; ".join(erros), EXIT_VALIDACAO)
-    return dados, raw.endswith("\n")
+    formato = {"final_nl": raw.endswith("\n"), "eol": "\r\n" if b"\r\n" in bruto else "\n",
+               "bom": bruto.startswith(b"\xef\xbb\xbf")}
+    return dados, formato
 
 
-def validar_fontes(d, checar_urls: bool = True) -> list[str]:
-    """Checagem estrutural: outros agentes editam o arquivo, então conferimos a forma."""
+def shas_pendentes(d: dict) -> list[str]:
+    """Páginas com sha provisório (o modelo do spec usa "..."): falta um fontes-aplicar."""
+    return [p["id"] for p in d.get("paginas", [])
+            if isinstance(p, dict) and not (isinstance(p.get("sha256"), str) and RE_SHA.match(p["sha256"]))]
+
+
+@contextlib.contextmanager
+def trava_fontes():
+    """Trava exclusiva do SKILL_DIR para o read-modify-write de fontes.json.
+
+    Trava o diretório (flock num fd de diretório) em vez de criar um .lock: o
+    SKILL_DIR é o repo e não pode ganhar arquivo solto. Sem ela, 12 fontes-aplicar
+    simultâneos terminavam com exit 0 e metade das páginas perdidas.
+    """
+    if fcntl is None:  # pragma: no cover
+        yield
+        return
+    try:
+        fd = os.open(str(skill_dir()), os.O_RDONLY)
+    except OSError:
+        yield  # sem como abrir o diretório: carregar_fontes dará o erro certo
+        return
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        os.close(fd)  # fechar o fd solta a trava
+
+
+def validar_fontes(d, checar_urls: bool = True, sha_estrito: bool = True) -> list[str]:
+    """Checagem estrutural: outros agentes editam o arquivo, então conferimos a forma.
+
+    sha_estrito=False aceita sha provisório (texto qualquer ou null): uma página
+    recém-adicionada à mão bloqueava fontes-check e fontes-aplicar de todas.
+    """
     erros: list[str] = []
     if not isinstance(d, dict):
         return ["raiz não é objeto"]
@@ -456,8 +535,11 @@ def validar_fontes(d, checar_urls: bool = True) -> list[str]:
                 validar_url(p["url"], dom or "")
             except ErroRede as e:
                 erros.append(f"{pid}: {e}")
-        if not isinstance(p.get("sha256"), str) or not RE_SHA.match(p["sha256"]):
+        sha = p.get("sha256")
+        if sha_estrito and not (isinstance(sha, str) and RE_SHA.match(sha)):
             erros.append(f"{pid}: sha256 inválido")
+        elif not (sha is None or isinstance(sha, str)):
+            erros.append(f"{pid}: sha256 deve ser texto")
         if not isinstance(p.get("bytes"), int):
             erros.append(f"{pid}: bytes não é inteiro")
         for campo in ("modelos", "alimenta"):
@@ -488,15 +570,18 @@ def _checar_pagina(pag: dict, dominio: str, timeout: float) -> tuple[dict, bytes
     sha = sha256_bytes(conteudo)
     item["sha_atual"] = sha
     atual, anterior = caminho_cache(pid), caminho_cache(pid, ".anterior.md")
-    velho = ler_cache(pid)
+    velho, velho_ant = ler_cache(pid), ler_cache(pid, ".anterior.md")
     # Procura a baseline (conteúdo com o sha registrado) antes de mexer no cache.
     baseline = None
-    for cand in (velho, ler_cache(pid, ".anterior.md")):
+    for cand in (velho, velho_ant):
         if cand is not None and sha256_bytes(cand) == sha_reg:
             baseline = cand
             break
     if velho is not None and sha256_bytes(velho) != sha:
-        escrever_atomico(anterior, velho)
+        # A baseline já guardada em .anterior não é trocada por uma versão
+        # intermediária: com duas mudanças antes do fontes-aplicar o diff sumia.
+        if not (baseline is not None and baseline is velho_ant):
+            escrever_atomico(anterior, velho)
     if velho is None or sha256_bytes(velho) != sha:
         escrever_atomico(atual, conteudo)
     if sha == sha_reg:
@@ -535,14 +620,24 @@ def _descobrir(fontes: dict, conteudos: dict, timeout: float) -> tuple[list[dict
     novas, vistos = [], set()
     for m in re.finditer(desc["padrao"], conteudo.decode("utf-8", "replace")):
         nid = m.group(1) if m.groups() else m.group(0)
-        if nid in conhecidos or nid in vistos:
+        # Grupo opcional que não casou dá None; id que não serve de nome de
+        # arquivo também não vira página nova (a URL sairia .../None.md).
+        if not id_pagina_valido(nid) or nid in conhecidos or nid in vistos:
             continue
         vistos.add(nid)
         novas.append({"id": nid, "url": URL_NOVA_TMPL.format(id=nid)})
     return novas, None
 
 
+def validar_timeout(t: float) -> float:
+    """Timeout 0, negativo ou nan virava 'falha de rede' e offline=true, como se a rede tivesse caído."""
+    if not (isinstance(t, (int, float)) and math.isfinite(t) and t > 0):
+        raise ErroUso(f"--timeout deve ser um número de segundos > 0: {t}", EXIT_VALIDACAO)
+    return float(t)
+
+
 def cmd_fontes_check(args) -> tuple[dict, int]:
+    validar_timeout(args.timeout)
     fontes, _ = carregar_fontes()
     so = lista_csv(args.so)
     paginas = fontes["paginas"]
@@ -583,14 +678,22 @@ def cmd_fontes_check(args) -> tuple[dict, int]:
 
 
 def cmd_fontes_aplicar(args) -> tuple[dict, int]:
-    fontes, nl = carregar_fontes()
+    validar_timeout(args.timeout)
+    # Ler, alterar e gravar fontes.json sob trava: duas execuções simultâneas
+    # sobrescreviam uma a outra e ambas diziam exit 0.
+    with trava_fontes():
+        return _fontes_aplicar(args)
+
+
+def _fontes_aplicar(args) -> tuple[dict, int]:
+    fontes, formato = carregar_fontes()
     dominio = fontes["dominio_permitido"]
     por_id = {p["id"]: p for p in fontes["paginas"]}
     ids = lista_csv(args.ids)
     if args.todas_mudadas:
         for p in fontes["paginas"]:
             c = ler_cache(p["id"])
-            if c is not None and sha256_bytes(c) != p["sha256"] and p["id"] not in ids:
+            if c is not None and sha256_bytes(c) != p.get("sha256") and p["id"] not in ids:
                 ids.append(p["id"])
     adicionar: list[tuple[str, str]] = []
     for spec in args.adicionar or []:
@@ -642,7 +745,7 @@ def cmd_fontes_aplicar(args) -> tuple[dict, int]:
     for i in ids:
         c = ler_cache(i)
         p = por_id[i]
-        antes = p["sha256"]
+        antes = p.get("sha256")
         p["sha256"], p["bytes"], p["verificado_em"] = sha256_bytes(c), len(c), hoje
         alteradas.append({"id": i, "sha_anterior": antes, "sha_novo": p["sha256"], "bytes": p["bytes"]})
     adicionadas = []
@@ -652,7 +755,7 @@ def cmd_fontes_aplicar(args) -> tuple[dict, int]:
                    "tipo": "prompting", "modelos": [], "alimenta": []}
         fontes["paginas"].append(entrada)
         adicionadas.append({"id": nid, "sha_novo": entrada["sha256"], "bytes": len(c)})
-    escrever_json(caminho_fontes(), fontes, final_nl=nl)
+    escrever_json(caminho_fontes(), fontes, final_nl=formato["final_nl"], eol=formato["eol"], bom=formato["bom"])
     return {"arquivo": str(caminho_fontes()), "alteradas": alteradas, "adicionadas": adicionadas}, EXIT_OK
 
 
@@ -689,20 +792,41 @@ def fecha_cerca(linha: str, cerca: str) -> bool:
 
 
 def extrair_blocos(texto: str) -> list[dict]:
-    """Blocos ```text verbatim fonte=... id=...```; bloco sem fechamento vira erro."""
+    """Blocos ```text verbatim fonte=... id=...```; bloco sem fechamento vira erro.
+
+    Acompanha todas as cercas (``` e ~~~), não só as verbatim: dentro de um bloco
+    ```` que mostra a sintaxe, a linha ```text verbatim é conteúdo (CommonMark) e
+    era verificada como citação de verdade.
+    """
     linhas = texto.split("\n")
     blocos, i = [], 0
+    # Menor cerca sem fechamento já vista, por caractere: uma cerca igual ou mais
+    # longa depois dela também não fecha, e reprocurar deixaria a varredura quadrática.
+    sem_fecho: dict[str, int] = {}
     while i < len(linhas):
-        m = RE_VERBATIM_ABRE.match(linhas[i])
-        if not m:
+        m = RE_FENCE_LINHA.match(linhas[i])
+        if not m or (m.group(1)[0] == "`" and "`" in m.group(2)):
             i += 1
             continue
-        cerca, attrs = m.group(1), dict(RE_ATRIB.findall(m.group(2)))
-        j = i + 1
-        while j < len(linhas) and not fecha_cerca(linhas[j], cerca):
-            j += 1
-        blocos.append({"linha": i + 1, "fonte": attrs.get("fonte"), "id": attrs.get("id"),
-                       "conteudo": "\n".join(linhas[i + 1:j]), "fechado": j < len(linhas)})
+        cerca, info = m.group(1), m.group(2)
+        mv = RE_INFO_VERBATIM.match(info)
+        if len(cerca) >= sem_fecho.get(cerca[0], len(cerca) + 1):
+            j = len(linhas)
+        else:
+            j = i + 1
+            while j < len(linhas) and not fecha_cerca(linhas[j], cerca):
+                j += 1
+            if j >= len(linhas):
+                sem_fecho[cerca[0]] = len(cerca)
+        if mv:
+            attrs = dict(RE_ATRIB.findall(mv.group(1)))
+            blocos.append({"linha": i + 1, "fonte": attrs.get("fonte"), "id": attrs.get("id"),
+                           "conteudo": "\n".join(linhas[i + 1:j]), "fechado": j < len(linhas)})
+        elif j >= len(linhas):
+            # Cerca comum sem fechamento: pelo CommonMark engoliria o resto do
+            # arquivo, e os blocos verbatim seguintes ficariam sem verificação.
+            i += 1
+            continue
         i = j + 1
     return blocos
 
@@ -827,6 +951,9 @@ def _validar_comum(r: dict, tag: str) -> list[str]:
     mods = r.get("modelos")
     if not isinstance(mods, list) or not mods:
         erros.append(f"{tag}: modelos vazio")
+    elif not all(isinstance(m, str) for m in mods):
+        # Lista aninhada é inalcançável e ainda levantava TypeError (unhashable) aqui.
+        erros.append(f"{tag}: modelos deve ser lista de textos")
     else:
         desconhecidos = [m for m in mods if m not in GRUPOS and m not in MODELOS_CONHECIDOS]
         if desconhecidos:
@@ -846,8 +973,12 @@ def _validar_checagem(c, tag: str) -> list[str]:
     if not isinstance(c, dict) or c.get("tipo") not in TIPOS_CHECAGEM:
         return [f"{tag}: checagem.tipo deve ser um de {TIPOS_CHECAGEM}"]
     t = c["tipo"]
-    if t == "campo_presente" and not (isinstance(c.get("campos"), list) and c["campos"]):
-        return [f"{tag}: campo_presente exige campos"]
+    if t == "campo_presente" and not (isinstance(c.get("campos"), list) and c["campos"]
+                                      and all(isinstance(x, str) and x for x in c["campos"])):
+        # Caminho não texto passava aqui e quebrava o lint no split (exit 1).
+        return [f"{tag}: campo_presente exige campos (lista de caminhos em texto)"]
+    if t in ("valor_igual", "combinacao") and isinstance(c.get("caminho"), str) and not c["caminho"]:
+        return [f"{tag}: caminho vazio"]
     if t == "valor_igual" and not (isinstance(c.get("caminho"), str) and isinstance(c.get("valores"), list)):
         return [f"{tag}: valor_igual exige caminho e valores"]
     if t == "ultimo_role" and not isinstance(c.get("valores"), list):
@@ -857,24 +988,37 @@ def _validar_checagem(c, tag: str) -> list[str]:
         if not isinstance(todas, list) or not todas:
             return [f"{tag}: combinacao exige todas"]
         for s in todas:
-            if not (isinstance(s, dict) and isinstance(s.get("caminho"), str) and isinstance(s.get("valores"), list)):
+            if not (isinstance(s, dict) and isinstance(s.get("caminho"), str) and s["caminho"]
+                    and isinstance(s.get("valores"), list)):
                 return [f"{tag}: subcondição de combinacao exige caminho e valores"]
     return []
 
 
-def carregar_regras(nome: str, validador) -> list[dict]:
-    """Arquivo ausente = sem regras (a skill ainda está sendo montada)."""
-    p = skill_dir() / "references" / nome
+def validar_arquivo_regras(p: Path, validador) -> tuple[dict | None, list[str]]:
+    """Lê e valida um arquivo de regras; (None, []) se ausente.
+
+    Único caminho de leitura para lint, doctor e selftest: cada um lia de um jeito
+    (BOM aceito num, recusado no outro) e davam veredictos diferentes do mesmo arquivo.
+    """
     try:
         d = ler_json(p)
-    except json.JSONDecodeError as e:
-        raise ErroUso(f"{nome} inválido: {e}", EXIT_VALIDACAO)
+    except ERROS_LEITURA as e:  # JSON inválido, não UTF-8, diretório no lugar do arquivo
+        motivo = f"não é UTF-8 (byte inválido na posição {e.start})" if isinstance(e, UnicodeDecodeError) \
+            else f"{e.__class__.__name__}: {e}"
+        return None, [motivo]
+    if d is None:
+        return None, []
+    return d, validador(d)
+
+
+def carregar_regras(nome: str, validador) -> list[dict]:
+    """Arquivo ausente = sem regras (a skill ainda está sendo montada)."""
+    d, erros = validar_arquivo_regras(skill_dir() / "references" / nome, validador)
+    if erros:
+        raise ErroUso(f"{nome} inválido: " + "; ".join(erros), EXIT_VALIDACAO)
     if d is None:
         diag(f"{nome} ausente: regras dele não aplicadas")
         return []
-    erros = validador(d)
-    if erros:
-        raise ErroUso(f"{nome} inválido: " + "; ".join(erros), EXIT_VALIDACAO)
     return d["regras"]
 
 
@@ -884,6 +1028,18 @@ def carregar_regras(nome: str, validador) -> list[dict]:
 
 def _linha_de(texto: str, pos: int) -> int:
     return texto.count("\n", 0, pos) + 1
+
+
+def indice_linhas(texto: str) -> list[int]:
+    """Posições de cada '\\n', para achar a linha de um casamento por busca binária.
+
+    Contar do início a cada casamento deixava o lint quadrático (1,5 MB, 26 s).
+    """
+    return [m.start() for m in re.finditer("\n", texto)]
+
+
+def _linha_idx(idx: list[int], pos: int) -> int:
+    return bisect.bisect_left(idx, pos) + 1
 
 
 def _trecho(texto: str, pos: int) -> str:
@@ -916,11 +1072,39 @@ def _mascarar_cercas(texto: str) -> str:
     return "\n".join(linhas)
 
 
+def _mascarar_crases_linha(linha: str) -> str:
+    """Code spans de uma linha viram espaços, em tempo linear.
+
+    CommonMark: abre com N crases e fecha na próxima sequência de exatamente N
+    crases; sem par, as crases são texto. A regex antiga só via `x` e, em
+    ``<answer>``, casava os pares vazios e deixava a tag exposta.
+    """
+    seqs = [(m.start(), m.end()) for m in RE_CRASES.finditer(linha)]
+    if len(seqs) < 2:
+        return linha
+    proximo: list[int | None] = [None] * len(seqs)
+    ultimo: dict[int, int] = {}
+    for k in range(len(seqs) - 1, -1, -1):
+        n = seqs[k][1] - seqs[k][0]
+        proximo[k] = ultimo.get(n)
+        ultimo[n] = k
+    partes, cursor, k = [], 0, 0
+    while k < len(seqs):
+        par = proximo[k]
+        if par is None:
+            k += 1
+            continue
+        ini, fim = seqs[k][0], seqs[par][1]
+        partes.append(linha[cursor:ini])
+        partes.append(" " * (fim - ini))
+        cursor, k = fim, par + 1
+    partes.append(linha[cursor:])
+    return "".join(partes)
+
+
 def _mascarar_codigo(texto: str) -> str:
     """Troca código (cercas e crases) por espaços, preservando posições e linhas."""
-    def branco(m):
-        return re.sub(r"[^\n]", " ", m.group(0))
-    return RE_CRASE.sub(branco, _mascarar_cercas(texto))
+    return "\n".join(_mascarar_crases_linha(ln) for ln in _mascarar_cercas(texto).split("\n"))
 
 
 def _achado(regra, sev, linha, trecho, motivo, sugestao, fonte, origem=None) -> dict:
@@ -933,13 +1117,16 @@ def _achado(regra, sev, linha, trecho, motivo, sugestao, fonte, origem=None) -> 
 
 def lint_texto(texto: str, modelo: str, regras: list[dict], compiladas: dict, origem=None) -> list[dict]:
     achados = []
+    idx: list[int] | None = None
     for r in regras:
         if modelo not in expandir_modelos(r["modelos"]):
             continue
         rx = compiladas[r["id"]]
         linhas_vistas: set[int] = set()
         for m in rx.finditer(texto):
-            ln = _linha_de(texto, m.start())
+            if idx is None:
+                idx = indice_linhas(texto)
+            ln = _linha_idx(idx, m.start())
             if ln in linhas_vistas:
                 continue
             linhas_vistas.add(ln)
@@ -970,17 +1157,20 @@ def heuristicas(texto: str, modelo: str, origem=None) -> list[dict]:
                            "ajustar para 3–5 exemplos variados e relevantes",
                            {"page_id": FONTE_GUIA, "section": "Use examples effectively"}, origem))
     # (c) Tags XML abertas e nunca fechadas: estrutura quebrada confunde o parsing do modelo.
-    abertas: dict[str, list[int]] = {}
-    for m in RE_TAG_ABRE.finditer(semcod):
-        if m.group(0).endswith("/>"):
-            continue
-        abertas.setdefault(m.group(1), []).append(m.start())
-    fechadas: dict[str, int] = {}
-    for m in RE_TAG_FECHA.finditer(semcod):
-        fechadas[m.group(1)] = fechadas.get(m.group(1), 0) + 1
-    for nome, posicoes in abertas.items():
-        if len(posicoes) > fechadas.get(nome, 0):
-            pos = posicoes[fechadas.get(nome, 0)]
+    # Pela ordem, não pela contagem: um </foo> solto antes não "fecha" um <foo> posterior.
+    eventos = [(m.start(), m.group(1), True) for m in RE_TAG_ABRE.finditer(semcod) if not m.group(0).endswith("/>")]
+    eventos += [(m.start(), m.group(1), False) for m in RE_TAG_FECHA.finditer(semcod)]
+    eventos.sort(key=lambda e: e[0])
+    pilhas: dict[str, list[int]] = {}
+    for pos, nome, abre in eventos:
+        pilha = pilhas.setdefault(nome, [])
+        if abre:
+            pilha.append(pos)
+        elif pilha:
+            pilha.pop()
+    for nome, pilha in sorted(((n, p) for n, p in pilhas.items() if p), key=lambda x: x[1][0]):
+        if pilha:
+            pos = pilha[0]
             out.append(_achado("heur.tag_sem_fechamento", "soft", _linha_de(texto, pos), f"<{nome}>",
                                f"tag <{nome}> aberta sem </{nome}> correspondente",
                                f"fechar com </{nome}> ou remover a tag",
@@ -1075,7 +1265,8 @@ def executar_lint(texto: str, modelo: str) -> dict:
     restr = carregar_regras("restricoes-api.json", validar_restricoes)
     compiladas = {r["id"]: re.compile(r["padrao"], re.I | re.M) for r in cruft}
     req = None
-    with contextlib.suppress(ValueError):
+    # RecursionError: '[' aninhado demais não é JSON utilizável; vira texto de prompt.
+    with contextlib.suppress(ValueError, RecursionError):
         cand = json.loads(texto)
         if isinstance(cand, dict) and "messages" in cand:
             req = cand
@@ -1126,11 +1317,14 @@ def carregar_episodios() -> dict[str, dict]:
                     continue
                 try:
                     ep = json.loads(linha)
-                except json.JSONDecodeError:
+                except (ValueError, RecursionError):
                     diag(f"episodios.jsonl linha {n} ilegível; ignorada")
                     continue
-                if isinstance(ep, dict) and ep.get("id"):
+                # id não texto (lista, número) derrubava todo comando que lê episódios.
+                if isinstance(ep, dict) and isinstance(ep.get("id"), str) and ep["id"]:
                     eps[ep["id"]] = ep
+                elif isinstance(ep, dict):
+                    diag(f"episodios.jsonl linha {n} sem id válido; ignorada")
     except FileNotFoundError:
         pass
     return eps
@@ -1183,6 +1377,8 @@ def _num01(v, nome: str) -> float:
 def validar_episodio(d) -> dict:
     if not isinstance(d, dict):
         raise ErroUso("episódio deve ser objeto JSON", EXIT_VALIDACAO)
+    if tem_surrogate(d):
+        raise ErroUso("episódio com texto que não é UTF-8 válido (surrogate solto, ex.: \\ud800)", EXIT_VALIDACAO)
     longos = _strings_longas(d)
     if longos:
         # Texto livre longo quase sempre é conteúdo do usuário: não guardamos.
@@ -1204,6 +1400,9 @@ def validar_episodio(d) -> dict:
     decs = d["decisoes"]
     if not isinstance(decs, list) or not all(isinstance(x, str) and x.strip() for x in decs):
         raise ErroUso("decisoes deve ser lista de ids", EXIT_VALIDACAO)
+    # Sem espaço nas pontas, como o lista_csv do --decisoes-editadas: senão "a "
+    # nunca casava com "a" e a decisão editada recebia crédito cheio.
+    decs = [x.strip() for x in decs]
     # '|' separa as partes da chave do placar; '*' é a chave agregada.
     for v in [d["modelo"], d["tarefa"], *decs]:
         if "|" in v:
@@ -1226,16 +1425,36 @@ def validar_episodio(d) -> dict:
 def cmd_episodio(args) -> tuple[dict, int]:
     try:
         d = json.loads(ler_entrada(args.arquivo))
-    except json.JSONDecodeError as e:
-        raise ErroUso(f"JSON inválido: {e}", EXIT_VALIDACAO)
+    except (ValueError, RecursionError) as e:  # RecursionError: '[' aninhado demais
+        raise ErroUso(f"JSON inválido: {e.__class__.__name__}: {e}", EXIT_VALIDACAO)
     ep = validar_episodio(d)
-    agora = _dt.datetime.now(_dt.timezone.utc)
-    ep_id = f"ep-{agora.strftime('%Y%m%dT%H%M%S')}-{secrets.token_hex(2)}"
-    ep.update({"id": ep_id, "criado_em": agora_iso(), "pendente": True,
-               "sinais": {}, "decisoes_editadas": [], "contribuicao": {}, "R": None})
     with trava_estado():
+        ep_id, agora = _novo_id_episodio()
+        ep.update({"id": ep_id, "criado_em": agora.replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                   "pendente": True, "sinais": {}, "decisoes_editadas": [], "contribuicao": {}, "R": None})
         anexar_episodio(ep)
     return {"id": ep_id}, EXIT_OK
+
+
+def _novo_id_episodio() -> tuple[str, _dt.datetime]:
+    """Id que ainda não está em episodios.jsonl; chame sob trava_estado().
+
+    O sufixo tem só 4 hex: dois episódios no mesmo segundo podiam colidir e virar
+    um só (o segundo tratado como nova recompensa do primeiro). Com o sorteio
+    esgotado, espera o próximo segundo.
+    """
+    try:
+        existentes = caminho_episodios().read_bytes()
+    except FileNotFoundError:
+        existentes = b""
+    for tentativa in range(200):
+        agora = _dt.datetime.now(_dt.timezone.utc)
+        ep_id = f"ep-{agora.strftime('%Y%m%dT%H%M%S')}-{secrets.token_hex(2)}"
+        if f'"{ep_id}"'.encode() not in existentes:
+            return ep_id, agora
+        if tentativa % 20 == 19:
+            time.sleep(1.0 - agora.microsecond / 1e6 + 0.01)
+    raise ErroUso("não foi possível gerar id de episódio único; tente de novo", EXIT_BUG)
 
 
 def caminho_placar() -> Path:
@@ -1291,6 +1510,10 @@ def _sinais_novos(args) -> dict:
     elif args.editado or args.entregue:
         if not (args.editado and args.entregue):
             raise ErroUso("--editado e --entregue vão juntos", EXIT_VALIDACAO)
+        if args.editado == "-" and args.entregue == "-":
+            # O segundo '-' lia um stdin já vazio: edição 0,0 e recompensa péssima gravada.
+            raise ErroUso("--editado e --entregue não podem ser ambos '-' (stdin só é lido uma vez)",
+                          EXIT_VALIDACAO)
         # Os arquivos só são lidos para a razão de similaridade; nada deles é guardado.
         ent, edi = ler_entrada(args.entregue), ler_entrada(args.editado)
         s["edicao"] = similaridade(ent, edi)
@@ -1312,8 +1535,9 @@ def _aplicar_placar(placar: dict, ep_id: str, modelo: str, tarefa: str, velha: d
         for t in (tarefa, "*"):
             k = chave(modelo, t, d)
             e = placar.get(k)
-            if not isinstance(e, dict):
+            if e is None:
                 e = placar[k] = {"alfa": 0.0, "beta": 0.0, "n": 0, "atualizado_em": agora}
+            _conferir_entrada(k, e)
             aplicados = e.get("episodios")
             if not isinstance(aplicados, dict):
                 aplicados = e["episodios"] = {}
@@ -1335,35 +1559,75 @@ def _aplicar_placar(placar: dict, ep_id: str, modelo: str, tarefa: str, velha: d
             e["atualizado_em"] = agora
 
 
+def _conferir_entrada(k: str, e) -> None:
+    """Entrada do placar com alfa/beta/n não numéricos: parar (exit 3) em vez de
+    sobrescrever às cegas ou levantar ValueError (exit 1)."""
+    ok = isinstance(e, dict)
+    if ok:
+        for campo in ("alfa", "beta", "n"):
+            v = e.get(campo, 0)
+            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+                ok = False
+    if not ok:
+        raise ErroUso(f"{caminho_placar()} corrompido na chave {k!r}; corrija ou remova a entrada", EXIT_VALIDACAO)
+
+
+def _conferir_episodio(ep: dict) -> None:
+    """Retrato editado à mão sem modelo/tarefa/decisões não pode virar KeyError (exit 1)."""
+    decs = ep.get("decisoes")
+    if not (isinstance(ep.get("modelo"), str) and isinstance(ep.get("tarefa"), str) and isinstance(decs, list)
+            and all(isinstance(x, str) for x in decs)):
+        raise ErroUso(f"episódio {ep.get('id')} corrompido em episodios.jsonl (modelo/tarefa/decisoes)",
+                      EXIT_VALIDACAO)
+
+
 def cmd_recompensa(args) -> tuple[dict, int]:
+    # Sinais (inclusive a similaridade, que pode ser lenta) antes da trava: com
+    # ela tomada, uma comparação longa travava todo episodio/recompensa.
+    novos = _sinais_novos(args)
+    editadas = None
+    if args.decisoes_editadas is not None:
+        editadas = lista_csv(args.decisoes_editadas)
+        if tem_surrogate(editadas):
+            raise ErroUso("--decisoes-editadas com texto que não é UTF-8 válido", EXIT_VALIDACAO)
     # Ler episódio + placar, somar e gravar é um read-modify-write: sem trava, dois
     # processos simultâneos perdiam contribuições (12 recompensas → n=9).
     with trava_estado():
-        return _recompensa(args)
+        return _recompensa(args, novos, editadas)
 
 
-def _recompensa(args) -> tuple[dict, int]:
+def _recompensa(args, novos: dict, editadas_arg: list[str] | None) -> tuple[dict, int]:
     eps = carregar_episodios()
     ep = eps.get(args.id)
     if ep is None:
         raise ErroUso(f"episódio não encontrado: {args.id}", EXIT_INSUFICIENTE)
-    novos = _sinais_novos(args)
+    _conferir_episodio(ep)
+    if editadas_arg is not None:
+        conhecidas = {d.strip() for d in ep["decisoes"]}
+        fora = [d for d in editadas_arg if d not in conhecidas]
+        if fora:
+            # Um erro de digitação dava crédito cheio à decisão que o usuário desfez.
+            raise ErroUso(f"--decisoes-editadas fora do episódio: {', '.join(fora)} "
+                          f"(decisões: {', '.join(ep['decisoes'])})", EXIT_VALIDACAO)
+        ep["decisoes_editadas"] = editadas_arg
     sinais = dict(ep.get("sinais") or {})
     sinais.update(novos)  # a última chamada de cada sinal vale
     efetivos = dict(sinais)
     if "rubrica" not in efetivos and ep.get("rubrica") is not None:
         efetivos["rubrica"] = float(ep["rubrica"])
-    if args.decisoes_editadas is not None:
-        ep["decisoes_editadas"] = lista_csv(args.decisoes_editadas)
     R = calcular_R(efetivos)
     if R is None:
+        # Sem sinal ainda, mas a lista de editadas (e o --fechar) valem para a próxima
+        # chamada: antes só eram gravadas com --fechar e a decisão desfeita levava R cheio.
         if args.fechar:
             ep["pendente"] = False
+        if args.fechar or editadas_arg is not None:
             anexar_episodio(ep)
         raise ErroUso("nenhum sinal de recompensa (use --nota/--eval/--iteracoes/--edicao/--rubrica)",
-                      EXIT_INSUFICIENTE, {"id": ep["id"], "R": None, "fechado": bool(args.fechar)})
+                      EXIT_INSUFICIENTE, {"id": ep["id"], "R": None, "fechado": bool(args.fechar),
+                                          "decisoes_editadas_gravadas": editadas_arg is not None})
     editadas = set(ep.get("decisoes_editadas") or [])
-    nova = {d: (0.0 if d in editadas else R) for d in ep["decisoes"]}
+    nova = {d: (0.0 if d.strip() in editadas else R) for d in ep["decisoes"]}
     placar = ler_estado(caminho_placar(), {})
     _aplicar_placar(placar, ep["id"], ep["modelo"], ep["tarefa"], ep.get("contribuicao") or {}, nova)
     escrever_json(caminho_placar(), placar)
@@ -1454,7 +1718,7 @@ def cmd_candidatos(args) -> tuple[dict, int]:
         marcado = k
     promovidos = ler_estado(caminho_promovidos(), {})
     hoje = hoje_utc()
-    out = []
+    out, omitidos = [], []
     for k in sorted(placar):
         modelo, tarefa, dec = partes_chave(k)
         if tarefa == "*" or k in promovidos:
@@ -1471,13 +1735,15 @@ def cmd_candidatos(args) -> tuple[dict, int]:
             continue
         if direcao == "evitar" and dec.startswith(("api.", "hard.")):
             # politica trata api./hard. como fixas: a memória nunca afrouxa restrição da API.
+            # Sai em omitidos_fixos para a omissão ficar visível, não silenciosa.
+            omitidos.append({"chave": k, "n": n, "media": media, "motivo": "decisão fixa (api./hard.): nunca 'evitar'"})
             continue
         media_txt = f"{media:.2f}".replace(".", ",")
         linha = (f"- [{hoje} · {modelo} · {tarefa}] {dec}: {direcao} — Aplicar: <preencher>. "
                  f"Evidência: n={n}, R̄={media_txt}")
         out.append({"chave": k, "modelo": modelo, "tarefa": tarefa, "decisao": dec, "n": n,
                     "media": media, "direcao": direcao, "linha": linha})
-    res = {"candidatos": out}
+    res = {"candidatos": out, "omitidos_fixos": omitidos}
     if marcado:
         res["marcado"] = marcado
     return res, EXIT_OK
@@ -1490,15 +1756,19 @@ def cmd_pendentes(args) -> tuple[dict, int]:
         limite = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=args.dias)
     except OverflowError:  # --dias enorme = sem limite de idade
         limite = _dt.datetime.min.replace(tzinfo=_dt.timezone.utc)
-    lista = []
-    for ep in carregar_episodios().values():
+    ordenados = []
+    # A ordem do dict é a de criação (1ª linha de cada id): desempata episódios do
+    # mesmo segundo, que antes saíam do mais velho para o mais novo.
+    for ordem, ep in enumerate(carregar_episodios().values()):
         if not ep.get("pendente"):
             continue
         criado = parse_iso(ep.get("criado_em", ""))
         if criado is None or criado < limite:
             continue
-        lista.append({k: ep.get(k) for k in ("id", "criado_em", "modo", "modelo", "tarefa", "decisoes", "R")})
-    lista.sort(key=lambda e: e["criado_em"], reverse=True)
+        item = {k: ep.get(k) for k in ("id", "criado_em", "modo", "modelo", "tarefa", "decisoes", "R")}
+        ordenados.append((criado, ordem, item))
+    ordenados.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    lista = [item for _c, _o, item in ordenados]
     return {"dias": args.dias, "total": len(lista), "pendentes": lista}, EXIT_OK
 
 
@@ -1553,17 +1823,18 @@ def cmd_doctor(args) -> tuple[dict, int]:
     try:
         fontes, _ = carregar_fontes()
         checks.append(_check("fontes.json", True, f"{len(fontes['paginas'])} páginas"))
+        pend = shas_pendentes(fontes)
+        if pend:
+            checks.append(_check("fontes.json: sha provisório", False,
+                                 f"{', '.join(pend)}: rode fontes-check e fontes-aplicar --ids <id>", "aviso"))
     except ErroUso as e:
         checks.append(_check("fontes.json", False, str(e)))
     for nome, val in (("cruft.json", validar_cruft), ("restricoes-api.json", validar_restricoes)):
         p = skill_dir() / "references" / nome
-        if not p.exists():
+        d, erros = validar_arquivo_regras(p, val)
+        if d is None and not erros:
             checks.append(_check(nome, True, "ausente (opcional até ser gerado)", "aviso"))
             continue
-        try:
-            erros = val(ler_json(p, {}))
-        except json.JSONDecodeError as e:
-            erros = [str(e)]
         checks.append(_check(nome, not erros, "; ".join(erros) if erros else "válido"))
     if fontes and fontes["paginas"]:
         url = fontes["paginas"][0]["url"]
@@ -2056,21 +2327,20 @@ def _st_robustez(st: _Selftest, sk: Path, fetch_dir: Path) -> None:
 
 def _st_dados_reais(st: _Selftest, real: Path) -> None:
     """Valida os arquivos reais da skill, quando existem (outros agentes os geram)."""
+    # Mesma leitura (utf-8-sig) e mesma validação do lint/doctor: o veredicto tem de bater.
     p = real / "fontes.json"
     if p.exists():
         try:
-            erros = validar_fontes(json.loads(p.read_text(encoding="utf-8")))
-        except json.JSONDecodeError as e:
-            erros = [str(e)]
+            d = ler_json(p, {})
+            # sha provisório é aviso no doctor, não arquivo inválido (fontes-check o aceita).
+            erros = validar_fontes(d, sha_estrito=False)
+        except ERROS_LEITURA as e:
+            erros = [f"{e.__class__.__name__}: {e}"]
         st.t("dados: fontes.json válido", not erros, "; ".join(erros))
     for nome, val in (("cruft.json", validar_cruft), ("restricoes-api.json", validar_restricoes)):
-        p = real / "references" / nome
-        if not p.exists():
+        d, erros = validar_arquivo_regras(real / "references" / nome, val)
+        if d is None and not erros:
             continue
-        try:
-            erros = val(json.loads(p.read_text(encoding="utf-8")))
-        except json.JSONDecodeError as e:
-            erros = [str(e)]
         st.t(f"dados: {nome} válido (regex, exemplo, contra_exemplo)", not erros, "; ".join(erros[:20]))
 
 
@@ -2100,7 +2370,10 @@ def cmd_selftest(args) -> tuple[dict, int]:
             else:
                 os.environ[k] = v
         shutil.rmtree(st.tmp, ignore_errors=True)
-    _st_dados_reais(st, real)
+    try:
+        _st_dados_reais(st, real)
+    except Exception as e:  # dado real malformado não pode esconder o {ok, testes}
+        st.t("dados: exceção", False, f"{e.__class__.__name__}: {e}")
     ok = all(t["ok"] for t in st.testes)
     falhas = sum(1 for t in st.testes if not t["ok"])
     return {"ok": ok, "total": len(st.testes), "falhas": falhas, "testes": st.testes}, EXIT_OK if ok else EXIT_BUG
@@ -2129,7 +2402,8 @@ def construir_parser() -> argparse.ArgumentParser:
 
     p = add("fontes-check", "busca as páginas de fontes.json, compara sha256, gera diff e descobre páginas novas",
             cmd_fontes_check)
-    p.add_argument("--timeout", type=float, default=15.0, help="timeout por página em segundos (padrão 15)")
+    p.add_argument("--timeout", type=float, default=15.0,
+                   help="prazo total por página em segundos, > 0 (padrão 15)")
     p.add_argument("--so", help="só estes ids, separados por vírgula")
 
     p = add("fontes-aplicar", "grava em fontes.json o sha do cache atual depois que as references foram atualizadas",
@@ -2138,7 +2412,8 @@ def construir_parser() -> argparse.ArgumentParser:
     g.add_argument("--ids", help="ids a aplicar, separados por vírgula")
     g.add_argument("--todas-mudadas", action="store_true", help="aplica todas cujo cache difere do sha registrado")
     p.add_argument("--adicionar", action="append", metavar="ID=URL", help="cria entrada nova (repetível)")
-    p.add_argument("--timeout", type=float, default=15.0, help="timeout para buscar página nova sem cache")
+    p.add_argument("--timeout", type=float, default=15.0,
+                   help="prazo em segundos (> 0) para buscar página nova sem cache (padrão 15)")
 
     add("snippets-verificar", "confere se cada bloco ```text verbatim``` existe na página-fonte em cache", cmd_snippets)
 
@@ -2156,26 +2431,33 @@ def construir_parser() -> argparse.ArgumentParser:
     p.add_argument("--eval", type=float, help="resultado de eval, 0 a 1")
     p.add_argument("--iteracoes", type=int, help="rodadas de ajuste até aceitar (0 = de primeira)")
     p.add_argument("--edicao", type=float, help="similaridade entregue×editado, 0 a 1")
-    p.add_argument("--editado", help="arquivo editado pelo usuário (lido só para a razão; não é guardado)")
-    p.add_argument("--entregue", help="arquivo entregue por Claude (lido só para a razão; não é guardado)")
-    p.add_argument("--decisoes-editadas", help="decisões que o usuário desfez (recebem 0), por vírgula")
+    p.add_argument("--editado", help="arquivo editado pelo usuário ('-' = stdin); lido só para a razão de "
+                                     "similaridade (SequenceMatcher com autojunk=False; acima de 20 000 "
+                                     "caracteres, por tokens) e não é guardado")
+    p.add_argument("--entregue", help="arquivo entregue por Claude ('-' = stdin, mas não os dois); lido só para a "
+                                      "razão e não é guardado")
+    p.add_argument("--decisoes-editadas", help="decisões do episódio que o usuário desfez (recebem 0), por vírgula; "
+                                               "id fora do episódio é recusado")
     p.add_argument("--rubrica", type=float, help="nota de rubrica 0 a 1 (sobrepõe a do episódio)")
     p.add_argument("--fechar", action="store_true", help="tira o episódio de pendentes")
 
     p = add("politica", "média Beta por decisão e ação sugerida (fixa/promover/manter/rebaixar)", cmd_politica)
-    p.add_argument("--modelo", required=True)
+    p.add_argument("--modelo", required=True, help=f"modelo cuja política consultar; um de: {', '.join(MODELOS_CONHECIDOS)}")
     p.add_argument("--tarefa", help="tipo de tarefa; usada se n>=3, senão cai no agregado")
     p.add_argument("--candidatas", help="decisões a avaliar, por vírgula (padrão: todas do placar)")
     p.add_argument("--recomendadas", help="decisões recomendadas pelo guia (prior Beta(2,1)), por vírgula")
 
-    p = add("candidatos", "decisões com evidência para virar linha do MEMORY.md", cmd_candidatos)
-    p.add_argument("--min-n", type=int, default=3)
-    p.add_argument("--alto", type=float, default=0.75)
-    p.add_argument("--baixo", type=float, default=0.25)
+    p = add("candidatos", "decisões com evidência para virar linha do MEMORY.md (decisões api./hard. nunca saem "
+                          "como 'evitar'; ficam em omitidos_fixos)", cmd_candidatos)
+    p.add_argument("--min-n", type=int, default=3, help="mínimo de episódios na chave (padrão 3)")
+    p.add_argument("--alto", type=float, default=0.75,
+                   help="média R >= este valor (0 a 1) sugere 'reforçar' (padrão 0.75)")
+    p.add_argument("--baixo", type=float, default=0.25,
+                   help="média R <= este valor (0 a 1) sugere 'evitar' (padrão 0.25)")
     p.add_argument("--marcar-promovido", metavar="CHAVE", help="chave modelo|tarefa|decisao já promovida")
 
     p = add("pendentes", "episódios pendentes recentes (mais novo primeiro)", cmd_pendentes)
-    p.add_argument("--dias", type=int, default=14)
+    p.add_argument("--dias", type=int, default=14, help="só episódios criados nos últimos N dias, N >= 0 (padrão 14)")
 
     add("stats", "resumo da memória: episódios, R médio, melhores e piores decisões", cmd_stats)
     add("selftest", "testes embutidos em diretórios temporários + validação dos dados reais", cmd_selftest)
@@ -2203,10 +2485,22 @@ def main(argv: list[str] | None = None) -> int:
         raise
     except Exception as e:  # bug: exit 1 com diagnóstico, nunca traceback cru no stdout
         diag(f"erro inesperado: {e.__class__.__name__}: {e}")
-        print(json.dumps({"erro": f"{e.__class__.__name__}: {e}"}, ensure_ascii=False))
-        return EXIT_BUG
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+        payload, code = {"erro": f"{e.__class__.__name__}: {e}"}, EXIT_BUG
+    imprimir_json(payload)
     return code
+
+
+def imprimir_json(payload) -> None:
+    """JSON no stdout mesmo quando o texto não cabe na codificação dele.
+
+    Surrogate solto vindo da entrada, ou stdout cp1252 (Windows redirecionado) com
+    R̄ ou →, levantavam UnicodeEncodeError fora do try: traceback cru e exit 1.
+    Cair para ensure_ascii dá JSON equivalente só com escapes \\uXXXX.
+    """
+    try:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    except UnicodeEncodeError:
+        print(json.dumps(payload, ensure_ascii=True, indent=2))
 
 
 if __name__ == "__main__":
