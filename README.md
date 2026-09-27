@@ -30,8 +30,8 @@ The one exception is [`agents/`](agents/), which holds **subagent bundles** — 
 |---|---|
 | `intercom-inbox-coach` | Inbox review, ticket coaching and shift handoff for Intercom support teams, through the Intercom MCP — sizes and prioritizes the workload with structured problem solving (issue trees, quick wins vs needs-evaluation, assumption checks), gives each ticket a verdict, coaches the human side of hard tickets with Carnegie's principles plus reply drafts, and writes the end-of-shift handoff for Slack, email and internal notes. Metrics run in a bundled Python script; ships a one-time Setup flow that bakes the workspace config into a team-wide `.skill` package |
 
-### Prompt engineering toolkit (9 skills)
-`prompt-engineering-router` plus eight specialized skills: `prompt-foundations`, `prompt-reasoning`, `prompt-role-and-context`, `prompt-orchestration`, `prompt-output-control`, `prompt-reliability`, `prompt-security`, `prompt-task-patterns`. A meta-router dispatches to the right one based on the actual failure mode or task.
+### Prompt engineering toolkit (10 skills)
+`prompt-engineering-router` plus eight specialized skills: `prompt-foundations`, `prompt-reasoning`, `prompt-role-and-context`, `prompt-orchestration`, `prompt-output-control`, `prompt-reliability`, `prompt-security`, `prompt-task-patterns`. A meta-router dispatches to the right one based on the actual failure mode or task. `prompt-claude-models` is the cross-cutting Claude layer: it diagnoses task effort and quality bar, picks the Claude model and `effort`, writes the prompt the way that model's official guide says, compiles artifacts from `problem-solving`, `sat` and other skills into prompts, re-checks Anthropic's docs on every run and learns from each delivery.
 
 ### Book operations (Alexandria)
 `catalogo-normalize`, `catalogo-resolver-categorias`, `iberlibro-csv-converter` — cataloguing, category resolution, and marketplace-export tooling for a Spanish book-donation operation (see [alexandria-os](https://github.com/leonardo-ccavalcante/alexandria-os)). Includes eval suites.

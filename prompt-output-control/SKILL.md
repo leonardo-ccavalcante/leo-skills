@@ -11,6 +11,8 @@ When the model knows *what* to produce but not *exactly how to shape it*, you ne
 2. **Constraint specification** — length, vocabulary, allow/forbid lists, refusal conditions.
 3. **Format drift recovery** — why outputs drift and what to do about it.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## When this skill is the right call
 
 - The user wants JSON, XML, or another structured format.

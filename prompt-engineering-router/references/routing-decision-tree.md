@@ -70,9 +70,9 @@ When the user describes what's wrong, not what they want.
 
 | Failure pattern | First-stop skill | Why |
 |---|---|---|
-| "Confidently wrong final answer" on multi-step | reasoning | Symptom of missing CoT |
+| "Confidently wrong final answer" on multi-step | reasoning | Symptom of missing CoT (Claude target: see `prompt-claude-models` first) |
 | "Confidently wrong factual claim" | reliability | Symptom of hallucination |
-| "Random behavior across runs" | reliability | Self-consistency or temperature issue |
+| "Random behavior across runs" | reliability | Self-consistency or temperature issue (Claude target: see `prompt-claude-models` first) |
 | "Output format drifts" | output-control | Format-instruction failure |
 | "Model adds 'Sure! Here's…' preamble" | output-control | Common preamble-suppression need |
 | "Model breaks character" | role-and-context | Persona insufficient |

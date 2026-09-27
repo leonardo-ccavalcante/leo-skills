@@ -11,6 +11,8 @@ The framing throughout: **assume an adversary is on the other end of the input p
 
 This skill is for **defensive work** — hardening systems, red-teaming your own deployments, understanding ethical guardrails. It is not a recipe book for attacking third-party systems.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## When this skill is the right call
 
 - User is hardening a prompt against malicious input.

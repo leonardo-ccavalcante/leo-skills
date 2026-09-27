@@ -7,6 +7,8 @@ description: Techniques that elicit deeper reasoning from an LLM — Chain-of-Th
 
 When a model gets the wrong answer on a problem that requires more than one mental step, the fix is almost never "tell it harder" — it's to make the reasoning visible and verifiable. This skill is the catalog of techniques for doing that.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## When this skill is the right call
 
 - Math, logic, multi-hop questions, planning tasks.

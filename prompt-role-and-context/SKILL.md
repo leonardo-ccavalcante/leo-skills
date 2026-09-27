@@ -24,6 +24,8 @@ Not the right call if:
 - The user wants structured output → `prompt-output-control`.
 - The user wants a multi-step pipeline → `prompt-orchestration`.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## Role / persona prompting
 
 ### What it actually does

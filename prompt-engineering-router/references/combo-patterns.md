@@ -66,6 +66,8 @@ The rule of thumb: **start with the skill that frames the system; layer in the o
 
 **The trick**: ask for the reasoning trace first, then a marker like `Final answer:` followed by the JSON. Models reliably follow this two-zone pattern. Extracting JSON from the tail is easier than from a mixed-format blob.
 
+> **Claude target?** Check this combo with `prompt-claude-models` first: some current Claude models refuse requests to write the reasoning into the response.
+
 ## Combo 6 — Persona-driven assistant with refusals
 
 **Setup**: User is building a tutor / coach / specialist assistant that should refuse off-topic queries.

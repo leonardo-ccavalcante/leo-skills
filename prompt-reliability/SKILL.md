@@ -11,6 +11,8 @@ A prompt that works on three hand-picked examples is not the same as a prompt th
 2. **Optimization** — how to iterate on prompts using those measurements.
 3. **Failure mitigation** — reducing hallucinations, bias, and inconsistency.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## When this skill is the right call
 
 - The user wants to evaluate or A/B test a prompt.

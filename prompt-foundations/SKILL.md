@@ -19,6 +19,8 @@ If the user wants a multi-step pipeline → `prompt-orchestration`.
 If the user wants JSON/structured output → `prompt-output-control`.
 If the user is doing classification, summarization, extraction, code-gen, etc. → `prompt-task-patterns`.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## Anatomy of a prompt
 
 A prompt has up to six parts. Not every prompt needs all six — use only what the task calls for. Naming the parts helps the user think about what's missing.

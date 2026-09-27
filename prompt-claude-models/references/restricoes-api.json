@@ -1,0 +1,1283 @@
+{
+  "_sobre": "Regras sobre o CORPO de request JSON aplicadas por `pcm.py lint`. Cada regra lista só os modelos que as páginas citadas sustentam; `fatos` são ids de fatos verificados na construção da skill (rastreabilidade; o lint não os lê). Toda regra usa o prefixo `api.`, que `pcm.py politica`/`candidatos` tratam como fixo (a memória nunca rebaixa nem manda evitar). `severidade` hard = a fonte documenta rejeição (400/erro); soft = a fonte desaconselha ou lista indisponível sem dizer qual erro volta. `exemplo_request` deve disparar a regra e `contra_exemplo_request` não, em todos os modelos listados; o selftest não verifica isso — conferir com `pcm.py lint` ao editar. Quando a seção citada é o título da página, o trecho fica antes do primeiro heading. O que não é checável num corpo isolado está em `_lacunas`.",
+  "regras": [
+    {
+      "id": "api.sampling_params",
+      "modelos": [
+        "opus-5-5",
+        "opus-5",
+        "opus-4-8",
+        "opus-4-7",
+        "sonnet-5",
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5"
+      ],
+      "checagem": {
+        "tipo": "campo_presente",
+        "campos": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "temperature/top_p/top_k com valor não-default retornam 400 no Opus 4.7 e posteriores (inclusive Opus 5.5), no Sonnet 5, no Fable 5.1/Fable 5 e no Mythos 5.1 (o guia de migração para o par 5.1 diz que a restrição de sampling 'carries over' vindo do Opus 5 e dá claude-mythos-5-1 como ID alternativo com as mesmas capacidades); o valor default (ou omitir) é aceito pela API, mas o lint não conhece o default e dispara em qualquer presença: o guia diz que o caminho mais seguro é omiti-los, e no Python SDK v1.0+ passá-los levanta TypeError.",
+      "sugestao_pt": "remover temperature, top_p e top_k do corpo (se o valor já é o default, a remoção não muda nada) e guiar o comportamento por prompting; se temperature servia para variedade de design (Opus 4.8, Sonnet 5), pedir que o modelo proponha direções distintas antes de construir",
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "Breaking changes"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "What every request to Claude Opus 5.5 must satisfy"
+        },
+        {
+          "page_id": "whats-new-sonnet-5",
+          "section": "Sampling parameters not accepted"
+        },
+        {
+          "page_id": "whats-new-fable-5-1",
+          "section": "Unchanged from Claude Fable 5"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Migrating to Claude Fable 5.1 from Claude Opus 5"
+        },
+        {
+          "page_id": "prompting-claude-opus-4-8",
+          "section": "Design and frontend defaults"
+        },
+        {
+          "page_id": "prompting-claude-sonnet-5",
+          "section": "Design and frontend defaults"
+        }
+      ],
+      "fatos": [
+        "opus-5-5.sampling_removed_sdk_typeerror",
+        "opus-5-5.sampling_params_rejected",
+        "sonnet-5.sampling_400",
+        "sonnet-5.sampling_params_400",
+        "fable-5-1.no_sampling_params",
+        "fable-5-1.from_opus5_carryovers",
+        "opus-4-8.temperature_for_variety",
+        "sonnet-5.design_propose_options_snippet"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "temperature": 0.7
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api.budget_tokens",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5",
+        "mythos-5",
+        "opus-5-5",
+        "opus-5",
+        "opus-4-8",
+        "opus-4-7",
+        "sonnet-5"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "thinking.type",
+        "valores": [
+          "enabled"
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "extended thinking manual (thinking.type \"enabled\" + budget_tokens) retorna 400 nos modelos Claude 4.7 e posteriores (no Opus 4.6/Sonnet 4.6 é só deprecado); no Opus 5.5 e no Fable 5.1 a mensagem é '\"thinking.type.enabled\" is not supported for this model.'",
+      "sugestao_pt": "trocar por thinking {\"type\": \"adaptive\"} e controlar a profundidade com output_config.effort, usando max_tokens como teto rígido; rodar um effort sweep nos próprios evals em vez de traduzir o valor de budget_tokens. Omitir thinking só equivale a adaptive no Fable 5.1, Mythos 5.1, Fable 5, Mythos 5 e Opus 5.5 (thinking sempre ligado); no Opus 5 e no Sonnet 5 omitir deixa o thinking ligado por padrão; no Opus 4.7 e 4.8 omitir DESLIGA o thinking, então enviar {\"type\": \"adaptive\"} explicitamente",
+      "fonte": {
+        "page_id": "claude-prompting-best-practices",
+        "section": "Overthinking and excessive thoroughness"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "whats-new-sonnet-5",
+          "section": "Manual extended thinking removed"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Migrating to Claude Fable 5.1 and Claude Mythos 5.1"
+        },
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "What every request to Claude Opus 5.5 must satisfy"
+        },
+        {
+          "page_id": "whats-new-opus-5-5",
+          "section": "Thinking can't be disabled"
+        },
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "Thinking can't be disabled"
+        },
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "Breaking changes"
+        },
+        {
+          "page_id": "models-overview",
+          "section": "Compare models"
+        },
+        {
+          "page_id": "claude-prompting-best-practices",
+          "section": "Leverage thinking & interleaved thinking capabilities"
+        }
+      ],
+      "fatos": [
+        "all.budget_tokens_400",
+        "sonnet-5.manual_thinking_400",
+        "sonnet-5.budget_tokens_400",
+        "fable-5-1.adaptive_thinking_always_on_400",
+        "opus-5-5.thinking_always_adaptive",
+        "opus-5.budget_tokens_400",
+        "later.extended_thinking_rejected",
+        "opus-5-5.thinking_error_msgs",
+        "opus-5-5.thinking_disabled_error_use_lower_effort",
+        "opus-5-5.effort_sweep_not_budget_translation",
+        "fable-5-1.thinking_always_adaptive",
+        "opus-5.thinking_on_default",
+        "opus-4-6.thinking_off_default"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 10000
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    },
+    {
+      "id": "api.budget_tokens_deprecado",
+      "modelos": [
+        "opus-4-6",
+        "sonnet-4-6"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "thinking.type",
+        "valores": [
+          "enabled"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "extended thinking com budget_tokens ainda funciona no Opus 4.6 e no Sonnet 4.6, mas está deprecado (e não é aceito nos modelos posteriores, o que quebra a próxima migração)",
+      "sugestao_pt": "migrar para thinking {\"type\": \"adaptive\"} e mover o controle para output_config.effort",
+      "fonte": {
+        "page_id": "claude-prompting-best-practices",
+        "section": "Overthinking and excessive thoroughness"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "models-overview",
+          "section": "Compare models"
+        }
+      ],
+      "fatos": [
+        "opus-4-6.budget_tokens_deprecated",
+        "opus-4-6.extended_thinking_deprecated"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 4000
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "adaptive"
+        }
+      }
+    },
+    {
+      "id": "api.thinking_disabled",
+      "modelos": [
+        "opus-5-5",
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "thinking.type",
+        "valores": [
+          "disabled"
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "no Opus 5.5, Fable 5.1, Mythos 5.1 e Fable 5 o thinking está sempre ligado e o adaptativo é o único modo; thinking {\"type\": \"disabled\"} retorna 400 em qualquer effort (no Opus 5.5 e no Fable 5.1: '\"thinking.type.disabled\" is not supported for this model.'). No Fable 5 o 400 vem de 'Unchanged from Claude Fable 5' (whats-new-fable-5-1). Mythos 5 fica em api.thinking_disabled_sem_efeito: a fonte não documenta o 400 nele.",
+      "sugestao_pt": "remover o campo thinking ou enviar {\"type\": \"adaptive\"} (equivalentes); onde se desligava o thinking para economizar, baixar o output_config.effort e revisar max_tokens",
+      "fonte": {
+        "page_id": "whats-new-opus-5-5",
+        "section": "Thinking can't be disabled"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "Thinking can't be disabled"
+        },
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "What every request to Claude Opus 5.5 must satisfy"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Migrating to Claude Fable 5.1 and Claude Mythos 5.1"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "What changed"
+        },
+        {
+          "page_id": "whats-new-fable-5-1",
+          "section": "Unchanged from Claude Fable 5"
+        },
+        {
+          "page_id": "effort",
+          "section": "Recommended effort levels for Claude Opus 5.5"
+        }
+      ],
+      "fatos": [
+        "opus-5-5.thinking_disabled_400",
+        "opus-5-5.thinking_always_adaptive",
+        "opus-5-5.thinking_error_msgs",
+        "opus-5-5.thinking_disabled_error_use_lower_effort",
+        "fable-5-1.adaptive_thinking_always_on_400",
+        "fable-5-1.from_opus5_thinking_disabled_400",
+        "fable-5-1.thinking_enabled_disabled_400",
+        "opus-5-5.no_thinking_disabled"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "low"
+        }
+      }
+    },
+    {
+      "id": "api.thinking_disabled_sem_efeito",
+      "modelos": [
+        "mythos-5"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "thinking.type",
+        "valores": [
+          "disabled"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "no Mythos 5 o thinking está sempre ligado, independentemente do parâmetro thinking, e o adaptativo é o único modo: {\"type\": \"disabled\"} não desliga o thinking. A fonte não diz se a API rejeita o valor nesse modelo (o 400 só está documentado para Opus 5.5, Fable 5.1, Mythos 5.1 e Fable 5).",
+      "sugestao_pt": "remover o campo thinking e, onde se desligava o thinking para economizar, baixar o output_config.effort e revisar max_tokens",
+      "fonte": {
+        "page_id": "claude-prompting-best-practices",
+        "section": "Leverage thinking & interleaved thinking capabilities"
+      },
+      "fatos": [
+        "fable-5-1.thinking_always_adaptive"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "low"
+        }
+      }
+    },
+    {
+      "id": "api.thinking_disabled_high_effort",
+      "modelos": [
+        "opus-5"
+      ],
+      "checagem": {
+        "tipo": "combinacao",
+        "todas": [
+          {
+            "caminho": "thinking.type",
+            "valores": [
+              "disabled"
+            ]
+          },
+          {
+            "caminho": "output_config.effort",
+            "valores": [
+              "xhigh",
+              "max"
+            ]
+          }
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "no Opus 5 o thinking só pode ser desligado em effort high ou abaixo; thinking {\"type\": \"disabled\"} com effort xhigh ou max retorna 400",
+      "sugestao_pt": "ou manter o thinking (omitir o campo) em xhigh/max, ou baixar o effort para high ou menos se o thinking precisa ficar desligado",
+      "fonte": {
+        "page_id": "prompting-claude-opus-5",
+        "section": "Running with thinking disabled"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "effort",
+          "section": "Recommended effort levels for Claude Opus 5"
+        },
+        {
+          "page_id": "claude-prompting-best-practices",
+          "section": "Leverage thinking & interleaved thinking capabilities"
+        }
+      ],
+      "fatos": [
+        "opus-5.thinking_disabled_400",
+        "opus-5.thinking_disabled_400_xhigh_max",
+        "opus-5.disable_thinking_effort"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "disabled"
+        },
+        "output_config": {
+          "effort": "xhigh"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "disabled"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    },
+    {
+      "id": "api.forced_tool_choice",
+      "modelos": [
+        "opus-5-5",
+        "fable-5-1",
+        "mythos-5-1"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "tool_choice.type",
+        "valores": [
+          "any",
+          "tool"
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "tool use forçado não é suportado: tool_choice {\"type\": \"any\"} ou {\"type\": \"tool\", ...} retorna 400 invalid_request_error ('tool_choice: type \"tool\" and \"any\" are not supported for this model.'), também no endpoint de token counting; auto (default) e none seguem aceitos",
+      "sugestao_pt": "usar tool_choice {\"type\": \"auto\"} com strict: true nas ferramentas, ou structured outputs (output_config.format) se o objetivo era só JSON pelo schema, e dizer no prompt quando a ferramenta se aplica",
+      "fonte": {
+        "page_id": "whats-new-opus-5-5",
+        "section": "Forced tool use is not supported"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "whats-new-fable-5-1",
+          "section": "Forced tool use is not supported"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Breaking changes"
+        },
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "What every request to Claude Opus 5.5 must satisfy"
+        }
+      ],
+      "fatos": [
+        "opus-5-5.forced_tool_400",
+        "opus-5-5.forced_tool_choice_rejected",
+        "fable-5-1.no_forced_tool_use",
+        "fable-5-1.tool_choice_forced_400",
+        "fable-5-1.tool_choice_error_text_all_endpoints"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "get_weather"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        }
+      }
+    },
+    {
+      "id": "api.prefill",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5",
+        "mythos-5",
+        "opus-5-5",
+        "opus-5",
+        "opus-4-8",
+        "opus-4-7",
+        "opus-4-6",
+        "sonnet-5",
+        "sonnet-4-6"
+      ],
+      "checagem": {
+        "tipo": "ultimo_role",
+        "valores": [
+          "assistant"
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "a partir dos modelos Claude 4.6, prefill no último turno do assistente não é suportado e a requisição retorna 400; mensagens do assistente em outros pontos da conversa não são afetadas",
+      "sugestao_pt": "terminar messages num turno user; para forçar formato usar structured outputs (output_config.format) ou instrução no system prompt; para cortar preâmbulo, instrução direta no system prompt; para continuação, mover o texto parcial para o turno user",
+      "fonte": {
+        "page_id": "claude-prompting-best-practices",
+        "section": "Migrating away from prefilled responses"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "What every request to Claude Opus 5.5 must satisfy"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Migrating to Claude Fable 5.1 and Claude Mythos 5.1"
+        },
+        {
+          "page_id": "whats-new-sonnet-5",
+          "section": "Assistant message prefilling not supported"
+        }
+      ],
+      "fatos": [
+        "all.prefill_400",
+        "opus-5-5.prefill_rejected",
+        "opus-5-5.prefill_alternatives",
+        "fable-5-1.prefill_400",
+        "fable-5-1.no_prefill",
+        "sonnet-5.prefill_400"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Classifique"
+          },
+          {
+            "role": "assistant",
+            "content": "{\"categoria\": \""
+          }
+        ]
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          },
+          {
+            "role": "assistant",
+            "content": "Olá"
+          },
+          {
+            "role": "user",
+            "content": "Classifique"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api.effort_adaptive_invalido",
+      "modelos": [
+        "fable-5-1",
+        "mythos-5-1",
+        "fable-5",
+        "mythos-5",
+        "opus-5-5",
+        "opus-5",
+        "opus-4-8",
+        "opus-4-7",
+        "opus-4-6",
+        "opus-4-5",
+        "sonnet-5",
+        "sonnet-4-6"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "output_config.effort",
+        "valores": [
+          "adaptive"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "adaptive é um modo de thinking, não um nível de effort; os níveis são low, medium, high, xhigh e max. A página diz \"Don't pass\" mas não diz qual erro a API devolve",
+      "sugestao_pt": "pôr adaptive em thinking.type e escolher um nível válido em output_config.effort (omitir thinking só equivale a adaptive no Fable 5.1, Mythos 5.1, Fable 5, Mythos 5 e Opus 5.5)",
+      "fonte": {
+        "page_id": "effort",
+        "section": "Effort with thinking"
+      },
+      "fatos": [
+        "all.adaptive_not_effort_value"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "adaptive"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "adaptive"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      }
+    },
+    {
+      "id": "api.effort_xhigh_indisponivel",
+      "modelos": [
+        "opus-4-6",
+        "sonnet-4-6"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "output_config.effort",
+        "valores": [
+          "xhigh"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "nem todo modelo que suporta max suporta xhigh: pela tabela de níveis, Opus 4.6 e Sonnet 4.6 têm max mas não xhigh; a página não diz qual erro a API devolve",
+      "sugestao_pt": "usar high ou max nesses modelos, ou trocar para um modelo que ofereça xhigh (Fable 5.1, Mythos 5.1, Fable 5, Mythos 5, Opus 5.5, Opus 5, Opus 4.8, Opus 4.7 ou Sonnet 5)",
+      "fonte": {
+        "page_id": "effort",
+        "section": "Effort levels"
+      },
+      "fatos": [
+        "all.xhigh_not_everywhere"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "xhigh"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "max"
+        }
+      }
+    },
+    {
+      "id": "api.effort_nivel_indisponivel_opus_4_5",
+      "modelos": [
+        "opus-4-5"
+      ],
+      "checagem": {
+        "tipo": "valor_igual",
+        "caminho": "output_config.effort",
+        "valores": [
+          "xhigh",
+          "max"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "a tabela de níveis de effort não lista o Opus 4.5 entre os modelos com max nem com xhigh (ele suporta effort, junto com budget_tokens); a página não diz qual erro a API devolve",
+      "sugestao_pt": "usar high (ou menos) no Opus 4.5 e ajustar a profundidade pelo budget_tokens, ou migrar para um modelo com xhigh/max",
+      "fonte": {
+        "page_id": "effort",
+        "section": "Effort levels"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "effort",
+          "section": "Effort with thinking"
+        }
+      ],
+      "fatos": [
+        "opus-4-5.effort_with_budget_tokens"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "max"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    },
+    {
+      "id": "api.effort_nao_suportado",
+      "modelos": [
+        "haiku-4-5",
+        "sonnet-4-5"
+      ],
+      "checagem": {
+        "tipo": "campo_presente",
+        "campos": [
+          "output_config.effort"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "o parâmetro effort não é suportado no Haiku 4.5 (overview: 'Not supported'); o Sonnet 4.5 não está na lista supportedModels do frontmatter da página de effort (sem fato verificado próprio; a evidência é a ausência na lista). As páginas não dizem qual erro a API devolve",
+      "sugestao_pt": "remover output_config.effort e controlar custo por max_tokens e pelo prompt, ou trocar para um modelo com effort",
+      "fonte": {
+        "page_id": "models-overview",
+        "section": "Compare models"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "effort",
+          "section": "Effort",
+          "nota": "título da página; a evidência é a lista supportedModels do frontmatter, que não inclui claude-sonnet-4-5 nem Haiku"
+        }
+      ],
+      "fatos": [
+        "haiku-4-5.no_effort"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "effort": "low"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api.output_format_deprecado",
+      "modelos": [
+        "opus-5-5"
+      ],
+      "checagem": {
+        "tipo": "campo_presente",
+        "campos": [
+          "output_format"
+        ]
+      },
+      "severidade": "soft",
+      "motivo_pt": "output_format está deprecado e será removido; só funciona com o beta header structured-outputs-2025-11-13, sem o qual a API retorna 400 (o header não aparece no corpo, por isso o achado é soft)",
+      "sugestao_pt": "mover o schema para output_config={\"format\": {...}}",
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "Recommended changes"
+      },
+      "fatos": [
+        "opus-5-5.output_config_format"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_format": {
+          "type": "json_schema",
+          "schema": {}
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "output_config": {
+          "format": {
+            "type": "json_schema",
+            "schema": {}
+          }
+        }
+      }
+    },
+    {
+      "id": "api.keepalive_thinking_enabled",
+      "modelos": [
+        "all-current"
+      ],
+      "checagem": {
+        "tipo": "combinacao",
+        "todas": [
+          {
+            "caminho": "max_tokens",
+            "valores": [
+              0
+            ]
+          },
+          {
+            "caminho": "thinking.type",
+            "valores": [
+              "enabled"
+            ]
+          }
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "uma requisição max_tokens: 0 (pré-aquecimento/keep-alive do cache) é rejeitada quando define thinking.type \"enabled\" (a página ressalva que o adaptive thinking padrão do Fable 5.1 é ok). No Opus 4.7 e posteriores api.budget_tokens já acusa o mesmo campo; esta regra só acrescenta informação nos modelos em que \"enabled\" ainda é aceito fora do keep-alive (ex.: Opus 4.6, Sonnet 4.6, Haiku 4.5)",
+      "sugestao_pt": "nesse workload, comprar a duração de cache de 1 hora em vez de manter o cache de 5 minutos aquecido com max_tokens: 0",
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Pick the cache duration"
+      },
+      "fatos": [
+        "all.keepalive_rejections"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 2000
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api.keepalive_forced_tool",
+      "modelos": [
+        "all-current"
+      ],
+      "checagem": {
+        "tipo": "combinacao",
+        "todas": [
+          {
+            "caminho": "max_tokens",
+            "valores": [
+              0
+            ]
+          },
+          {
+            "caminho": "tool_choice.type",
+            "valores": [
+              "any",
+              "tool"
+            ]
+          }
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "uma requisição max_tokens: 0 (pré-aquecimento/keep-alive do cache) é rejeitada quando usa tool choice forçado. No Opus 5.5, Fable 5.1 e Mythos 5.1 api.forced_tool_choice já acusa o mesmo campo; esta regra só acrescenta informação nos modelos que aceitam tool choice forçado fora do keep-alive",
+      "sugestao_pt": "nesse workload, comprar a duração de cache de 1 hora em vez de manter o cache de 5 minutos aquecido com max_tokens: 0",
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Pick the cache duration"
+      },
+      "fatos": [
+        "all.keepalive_rejections"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "tool_choice": {
+          "type": "any"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "tool_choice": {
+          "type": "auto"
+        },
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "api.keepalive_stream",
+      "modelos": [
+        "all-current"
+      ],
+      "checagem": {
+        "tipo": "combinacao",
+        "todas": [
+          {
+            "caminho": "max_tokens",
+            "valores": [
+              0
+            ]
+          },
+          {
+            "caminho": "stream",
+            "valores": [
+              true
+            ]
+          }
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "uma requisição max_tokens: 0 (pré-aquecimento/keep-alive do cache) não pode usar streaming",
+      "sugestao_pt": "ao reenviar a requisição como keep-alive, remover stream (e manter o resto do prefixo e os headers idênticos)",
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Pick the cache duration"
+      },
+      "fatos": [
+        "all.keepalive_no_stream"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "stream": true,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 0,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ]
+      }
+    }
+  ],
+  "_lacunas": [
+    {
+      "tema": "computer_20251124 / computer_20250124 no Opus 5.5",
+      "motivo_pt": "fato hard (400 \"'claude-opus-5-5' does not support tool types: computer_20251124.\" na Claude API e no Google Cloud; no Amazon Bedrock continua funcionando), mas tools é um array e os tipos de checagem (caminho pontuado só em objetos) não alcançam tools[].type; além disso a validade depende da plataforma, que não está no corpo. Checar à mão: trocar por {\"type\": \"computer_toolset_20260801\"}.",
+      "fatos": [
+        "opus-5-5.computer_20251124_400",
+        "opus-5-5.legacy_computer_tools_rejected",
+        "opus-5-5.computer_toolset_required",
+        "opus-5-5.computer_bedrock_ok"
+      ],
+      "fonte": {
+        "page_id": "whats-new-opus-5-5",
+        "section": "The `computer_20251124` computer use tool is not supported on the Claude API and Google Cloud"
+      }
+    },
+    {
+      "tema": "strict: true com input_schema fora do subconjunto suportado (Opus 5.5)",
+      "motivo_pt": "fato hard: strict tool use aceita um subconjunto de JSON Schema, e todo objeto do schema precisa de additionalProperties: false; confira cada input_schema antes de ligar strict: true (o caminho comum ao trocar tool_choice forçado por auto + strict). tools é um array e os tipos de checagem (caminho pontuado só em objetos) não alcançam tools[].input_schema nem os objetos aninhados dele. Checar à mão.",
+      "fatos": [
+        "opus-5-5.strict_tool_use_schema_rules"
+      ],
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "Forced tool use is not supported"
+      }
+    },
+    {
+      "tema": "model ID do Opus 5.5 (fixo, sem sufixo de data)",
+      "motivo_pt": "na Claude API o ID é claude-opus-5-5, fixo e sem sufixo de data; em Amazon Bedrock, Claude Platform on AWS, Google Cloud e Microsoft Foundry usa-se o ID da plataforma. Um model com sufixo de data (claude-opus-5-5-AAAAMMDD) é erro de corpo, mas não há tipo de checagem por padrão/prefixo (valor_igual só compara valores exatos) e a validade depende da plataforma, que não está no corpo; a fonte também não documenta qual erro volta. Checar à mão.",
+      "fatos": [
+        "opus-5-5.model_id"
+      ],
+      "fonte": {
+        "page_id": "migration-guide-opus-5-5",
+        "section": "What every request to Claude Opus 5.5 must satisfy"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "whats-new-opus-5-5",
+          "section": "New model"
+        }
+      ]
+    },
+    {
+      "tema": "sampling params no Mythos 5",
+      "motivo_pt": "as fontes afirmam o 400 de temperature/top_p/top_k para Fable 5.1 e Fable 5 ('Unchanged from Claude Fable 5') e, para o Mythos 5.1, pela seção 'Migrating to Claude Fable 5.1 from Claude Opus 5' (migration-guide-fable-5-1), que diz que a restrição de sampling 'carries over' e dá claude-mythos-5-1 como ID alternativo: por isso o Mythos 5.1 está em api.sampling_params, como já está em api.thinking_disabled e api.forced_tool_choice. Para o Mythos 5 não há frase, só inferência (delta Mythos 5 → 5.1 igual ao Fable 5 → 5.1); ficou fora da regra. Omitir os três parâmetros continua sendo o caminho seguro.",
+      "fonte": {
+        "page_id": "whats-new-fable-5-1",
+        "section": "Unchanged from Claude Fable 5"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Migrating to Claude Fable 5.1 from Claude Opus 5"
+        }
+      ]
+    },
+    {
+      "tema": "max_tokens: 0 com structured outputs ou compaction",
+      "motivo_pt": "também rejeitados no keep-alive, mas combinacao só aceita subcondições valor_igual; 'output_config.format presente' e 'compaction presente' não são expressáveis.",
+      "fatos": [
+        "all.keepalive_rejections"
+      ],
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Pick the cache duration"
+      }
+    },
+    {
+      "tema": "task budget abaixo de 20.000 tokens",
+      "motivo_pt": "rejeitado, mas não há tipo de checagem numérica (menor que).",
+      "fatos": [
+        "all.task_budget_beta"
+      ],
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Set budgets and output caps"
+      }
+    },
+    {
+      "tema": "effort por mensagem (beta) e beta headers em geral",
+      "motivo_pt": "effort por mensagem exige o header mid-conversation-output-config-2026-07-01; modelos sem per-turn effort (ex.: Fable 5) retornam 400 'output_config.effort requires a model that supports per-turn effort; this model does not'. Headers não estão no corpo e o effort por mensagem fica dentro do array messages, fora do alcance dos caminhos pontuados.",
+      "fatos": [
+        "all.per_message_beta_header",
+        "all.per_message_unsupported_400"
+      ],
+      "fonte": {
+        "page_id": "effort",
+        "section": "Per-message effort (beta)"
+      }
+    },
+    {
+      "tema": "histórico append-only / binding dos thinking blocks (Fable 5.1, Opus 5.5)",
+      "motivo_pt": "o 400 depende de comparar a requisição com as anteriores (system, tools ou mensagem antes de um thinking block mudou); um corpo isolado não basta.",
+      "fatos": [
+        "fable-5-1.append_only_400",
+        "opus-5-5.prefix_mismatch_400",
+        "opus-5-5.return_thinking_unmodified",
+        "fable-5-1.append_only_history",
+        "fable-5-1.editing_history_invalidates_thinking_400",
+        "fable-5-1.binding_check_enforcement_by_account_age",
+        "fable-5-1.token_counting_runs_binding_check",
+        "fable-5-1.prefix_edit_invalidates",
+        "fable-5-1.prefix_check_enforcement_date",
+        "fable-5-1.bound_error_drop_block",
+        "opus-5-5.append_only_enforcement"
+      ],
+      "fonte": {
+        "page_id": "whats-new-opus-5-5",
+        "section": "Thinking blocks are tied to the model and the conversation"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "migration-guide-opus-5-5",
+          "section": "Thinking blocks are tied to the model and the conversation"
+        },
+        {
+          "page_id": "migration-guide-fable-5-1",
+          "section": "Breaking changes"
+        },
+        {
+          "page_id": "whats-new-fable-5-1",
+          "section": "Editing earlier turns invalidates thinking blocks"
+        },
+        {
+          "page_id": "claude-prompting-best-practices",
+          "section": "Migration considerations"
+        }
+      ]
+    },
+    {
+      "tema": "retenção de dados de 30 dias (Fable 5.1 / Mythos 5.1)",
+      "motivo_pt": "o 400 depende da configuração da organização/workspace, não do corpo.",
+      "fatos": [
+        "fable-5-1.data_retention_30d_zdr_400"
+      ],
+      "fonte": {
+        "page_id": "migration-guide-fable-5-1",
+        "section": "Migrating to Claude Fable 5.1 and Claude Mythos 5.1"
+      }
+    },
+    {
+      "tema": "beta headers de clear_at e de display \"updates\"",
+      "motivo_pt": "mensagens de sistema turn-scoped (clear_at: \"next_user_message\") exigem o header mid-conversation-system-clear-at-2026-08-21 (Opus 5.5, Fable 5.1) e thinking display \"updates\" exige thinking-display-updates-2026-08-18 (Opus 5.5); headers não estão no corpo e clear_at fica dentro de messages.",
+      "fatos": [
+        "opus-5-5.clear_at_beta",
+        "fable-5-1.turn_scoped_beta",
+        "opus-5-5.display_updates_beta"
+      ],
+      "fonte": {
+        "page_id": "prompting-claude-opus-5-5",
+        "section": "User-facing progress updates"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "prompting-claude-fable-5-1",
+          "section": "Batch independent tool calls in agent loops"
+        }
+      ]
+    },
+    {
+      "tema": "keep-alive sem o mesmo header anthropic-beta",
+      "motivo_pt": "a requisição max_tokens: 0 precisa reenviar o mesmo header anthropic-beta, ou os campos beta do corpo são rejeitados; headers não estão no corpo.",
+      "fatos": [
+        "all.keepalive_rejections"
+      ],
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Pick the cache duration"
+      }
+    },
+    {
+      "tema": "max_tokens de 128.000 sem streaming (Fable 5.1, Opus 5.5)",
+      "motivo_pt": "um teto de 128.000 tokens é grande demais para uma requisição sem streaming; não há tipo de checagem numérica (maior que) nem de campo ausente (stream), então não é expressável.",
+      "fatos": [
+        "all.max_tokens_128k_stream"
+      ],
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Show the model elapsed time"
+      }
+    },
+    {
+      "tema": "mensagem system no meio da conversa antes de um turno user (Fable 5.1)",
+      "motivo_pt": "uma mensagem system no meio da conversa precisa vir depois de um turno user; a ordem dentro do array messages está fora do alcance dos tipos de checagem (ultimo_role só olha a última).",
+      "fatos": [
+        "fable-5-1.midconv_after_user_turn"
+      ],
+      "fonte": {
+        "page_id": "optimizing-for-cost-and-intelligence",
+        "section": "Show the model elapsed time"
+      }
+    },
+    {
+      "tema": "fatos só de ponteiro ou de comportamento da resposta (Opus 5.5, Fable 5)",
+      "motivo_pt": "opus-5-5.four_breaking_changes e fable-5.api_changes_pointer só apontam para o guia de migração / a página de introdução; as restrições concretas que eles resumem estão nas regras (api.thinking_disabled, api.budget_tokens etc.) ou nas outras lacunas. fable-5.reasoning_extraction_no_fallback é comportamento da resposta: o fallback no servidor com fallbacks: \"default\" não refaz uma requisição recusada com reasoning_extraction, e essa recusa volta para você; nada no corpo do request permite checar isso.",
+      "fatos": [
+        "opus-5-5.four_breaking_changes",
+        "fable-5.api_changes_pointer",
+        "fable-5.reasoning_extraction_no_fallback"
+      ],
+      "fonte": {
+        "page_id": "prompting-claude-fable-5",
+        "section": "Recommended scaffolding changes"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "prompting-claude-opus-5-5",
+          "section": "Prompting Claude Opus 5.5"
+        },
+        {
+          "page_id": "prompting-claude-fable-5",
+          "section": "Prompting Claude Fable 5"
+        }
+      ]
+    }
+  ]
+}

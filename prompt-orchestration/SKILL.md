@@ -41,6 +41,8 @@ Don't chain when:
 
 Rule of thumb: if you can write the sub-steps with crisp boundaries and a typed interface between them, chain. If the boundary is fuzzy, keep them in one prompt with CoT.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## Common chain shapes
 
 ```

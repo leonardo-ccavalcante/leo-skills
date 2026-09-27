@@ -19,6 +19,8 @@ Not the right call if:
 - The user has a multi-step pipeline → `prompt-orchestration`.
 - The user wants structured/JSON output → `prompt-output-control`.
 
+> **Claude target?** If the prompt is for a Claude model, finish with `prompt-claude-models`: it picks the model and `effort` and applies that model's documented rules, some of which override techniques in this skill.
+
 ## The task families covered
 
 ```

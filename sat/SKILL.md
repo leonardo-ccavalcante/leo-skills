@@ -132,3 +132,7 @@ Regla de fuentes: no inventes casos históricos, citas textuales, estadísticas 
 - Un premortem produce causas que *avergüenza* no haber visto, cada una con señal temprana y desactivador — no la lista de riesgos que ya todos conocían.
 - Un set de escenarios cruza 2 incertidumbres críticas — no 4 variaciones del caso base.
 - Todo cierre incluye el punto 4: qué cambió en el juicio. Ese punto es el producto.
+
+## Después de este skill
+
+Si el artefacto (tabla KAC, matriz ACH, premortem, Red Team) va a alimentar un prompt para un modelo Claude, pásalo a `prompt-claude-models` (modo Compilar): los supuestos *frágiles* y las etiquetas `[UNSURE]` se conservan como instrucciones de verificar, nunca como hechos.

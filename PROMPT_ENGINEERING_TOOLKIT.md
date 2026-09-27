@@ -10,6 +10,10 @@ Eight specialized skills + 1 meta-router, mutually exclusive and collectively ex
 
 [`prompt-engineering-router`](prompt-engineering-router/SKILL.md) — picks the right specialized skill(s) for a given query. Use when the question is broad, ambiguous, spans 2+ skills, or you're unsure which to invoke. Built using McKinsey **issue-tree + Pyramid Principle** and CIA SAT's **Key Assumptions Check + Analysis of Competing Hypotheses**.
 
+## Cross-cutting layer: `prompt-claude-models`
+
+[`prompt-claude-models`](prompt-claude-models/SKILL.md) sits on top of the eight skills rather than beside them. When the target is a Claude model it diagnoses the task's effort and quality bar, picks the model and `effort`, and applies that model's documented rules from Anthropic's guides, which it re-checks on every run. The router appends it in "Step 4 — Model check"; each of the eight skills carries a one-line pointer to it. The eight remain model-agnostic.
+
 ## The eight specialized skills
 
 | # | Skill | One-line | When it triggers |

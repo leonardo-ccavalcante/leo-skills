@@ -117,3 +117,7 @@ No resuelvas el problema por el usuario. Tus movimientos clave:
 - "Governing Thought" — la conclusión sintetizada que responde la pregunta y lleva a la acción.
 - "Strike the right balance between convergent and divergent thinking" — la maestría está en alternar.
 - "Storyline antes que storytelling" — la estructura antes que la narrativa.
+
+## Después de este skill
+
+Si el problem statement, el issue tree o la pirámide van a convertirse en un prompt para un modelo Claude (API, agente, skill), pásalos a `prompt-claude-models` (modo Compilar): conserva la estructura, elige modelo y effort y aplica las reglas de ese modelo.
