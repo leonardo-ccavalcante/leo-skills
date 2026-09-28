@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "repo": {
+    "name": "acme/monorepo",
+    "index_commit": "mock0000commit",
+    "indexed_at": "2026-09-01",
+    "tree_partial": false,
+    "i18n_partial": false,
+    "search_available": true
+  },
+  "topics": {
+    "cancelamento": {
+      "aliases": [
+        "cancelar assinatura",
+        "cancel subscription",
+        "cancelamento"
+      ],
+      "articles": [
+        "articles/01-correct.md"
+      ],
+      "paths": [
+        {
+          "path": "apps/api/src/billing/handlers/cancelSubscription.ts",
+          "symbols": [
+            "cancelSubscription"
+          ],
+          "hits": 1,
+          "last_verified": "2026-09-01",
+          "commit": "mock0000commit",
+          "stale": false
+        },
+        {
+          "path": "apps/api/src/billing/cancel.ts",
+          "symbols": [
+            "cancelSubscription"
+          ],
+          "hits": 2,
+          "last_verified": "2026-07-15",
+          "commit": "mock0000commit",
+          "stale": false
+        }
+      ]
+    }
+  }
+}

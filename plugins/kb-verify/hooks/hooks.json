@@ -1,0 +1,27 @@
+{
+  "description": "kb-verify guard: read-only enforcement for the KB verifier (PreToolUse) and ARMED/DISARMED banner plus run cleanup (SessionStart).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|Read|Grep|Glob|WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/kb-guard.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/kb-session-start.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

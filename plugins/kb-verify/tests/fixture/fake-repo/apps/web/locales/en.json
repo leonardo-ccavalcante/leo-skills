@@ -1,0 +1,62 @@
+{
+  "common": {
+    "settings": "Settings",
+    "billing": "Billing",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "back": "Back"
+  },
+  "billing": {
+    "tabs": {
+      "subscription": "Subscription",
+      "invoices": "Invoices",
+      "refunds": "Refunds"
+    },
+    "cancel": {
+      "button": "Cancel subscription",
+      "title": "Cancel subscription?",
+      "body": "You keep access until the end of the current period. No further charges will be made.",
+      "confirm": "Confirm cancellation",
+      "keep": "Keep subscription",
+      "ok": "Your subscription has been cancelled. Access continues until the end of the current period.",
+      "forbidden_hint": "Only owners and admins can cancel the subscription."
+    },
+    "refund": {
+      "button": "Request refund",
+      "hint": "Refunds can be requested up to {{days}} days after the charge.",
+      "reason_label": "Reason (optional)",
+      "ok": "Refund request received. The amount returns to the original payment method within {{days}} business days."
+    },
+    "invoices": {
+      "download": "Download invoices (CSV)",
+      "range_label": "Period",
+      "range_months": "Last {{months}} months",
+      "empty": "No invoices in the selected period.",
+      "ok": "Download started."
+    },
+    "plan": {
+      "change": "Change plan",
+      "current": "Current plan: {{plan}}",
+      "seats": "{{used}} of {{limit}} seats in use",
+      "confirm": "Confirm plan change",
+      "prorated": "The change applies immediately. The difference is charged or credited pro rata.",
+      "ok": "Plan changed successfully.",
+      "names": {
+        "starter": "Starter",
+        "team": "Team",
+        "business": "Business"
+      }
+    },
+    "errors": {
+      "FORBIDDEN": "You are not allowed to perform this action.",
+      "SUB_NOT_FOUND": "Subscription not found.",
+      "SUB_ALREADY_CANCELLED": "This subscription has already been cancelled.",
+      "CHARGE_NOT_FOUND": "Charge not found.",
+      "REFUND_WINDOW_EXPIRED": "The refund window for this charge has closed.",
+      "REFUND_ALREADY_REQUESTED": "A refund has already been requested for this charge.",
+      "PLAN_UNKNOWN": "Unknown plan.",
+      "PLAN_SEAT_LIMIT_EXCEEDED": "Remove members before downgrading: the new plan has fewer seats than are in use."
+    }
+  }
+}

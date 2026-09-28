@@ -1,0 +1,19 @@
+{
+  "has_frontmatter": true,
+  "title": "Alterar plano: upgrade e downgrade",
+  "title_source": "frontmatter",
+  "tags": ["billing", "planos", "upgrade"],
+  "topic": "change-plan",
+  "status": null,
+  "topic_override": "plan-change",
+  "raw": {
+    "titulo": "Alterar plano: upgrade e downgrade",
+    "etiquetas": ["billing", "planos", "upgrade"],
+    "politica": "change-plan",
+    "kb_verify.topic": "plan-change",
+    "autor": "Equipe de Suporte"
+  },
+  "notes": [],
+  "verify": true,
+  "body": {"lines": 3, "steps": 0, "conditions": 1, "numbers": 1}
+}

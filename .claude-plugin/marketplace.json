@@ -1,0 +1,20 @@
+{
+  "name": "leo-skills",
+  "owner": {
+    "name": "Leonardo Cavalcante",
+    "url": "https://github.com/leonardo-ccavalcante"
+  },
+  "metadata": {
+    "description": "Plugins distributed from the leo-skills repository",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "kb-verify",
+      "source": "./plugins/kb-verify",
+      "description": "Verifies support knowledge-base articles against a private monorepo through the GitHub API, read-only by hooks. Emits CORRECT | DOC_OUTDATED | CODE_BUG | INCONCLUSIVE with file:line@commit evidence.",
+      "version": "0.1.0",
+      "category": "engineering"
+    }
+  ]
+}

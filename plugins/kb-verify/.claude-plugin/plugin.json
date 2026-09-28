@@ -1,0 +1,12 @@
+{
+  "name": "kb-verify",
+  "version": "0.1.0",
+  "description": "Verifies knowledge-base articles against the code of a GitHub repository, read-only through the gh API, and emits CORRECT | DOC_OUTDATED | CODE_BUG | INCONCLUSIVE with path:line@commit evidence. CODE_BUG writes a bug MD for human triage; DOC_OUTDATED writes a proposed diff next to the article. A PreToolUse guard enforces read-only behaviour.",
+  "author": {
+    "name": "leonardo-ccavalcante",
+    "url": "https://github.com/leonardo-ccavalcante"
+  },
+  "license": "MIT",
+  "keywords": ["knowledge-base", "documentation", "verification", "github", "read-only"],
+  "hooks": "./hooks/hooks.json"
+}
