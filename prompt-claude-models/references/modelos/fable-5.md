@@ -164,7 +164,7 @@ I'm working on [the larger task] for [who it's for]. They need [what the output 
 **Onde:** system prompt (adendo de estilo de comunicação) · **Não use quando:** — · **Fonte:** (prompting-claude-fable-5, "Readability when communicating with the user")
 
 ```text verbatim fonte=prompting-claude-fable-5 id=fable-5.readability_addendum
-Terse shorthand is fine between tool calls (that's you thinking out loud, and brevity there is good). Your final summary is different: it's for a reader who didn't see any of that.
+Terse shorthand is fine between tool calls. Your final summary is different: it's for a reader who didn't see any of that.
 
 If you've been working for a while without the user watching (overnight, across many tool calls, since they last spoke), your final message is their first look at any of it. Write it as a re-grounding, not a continuation of your working thread: the outcome first, then the one or two things you need from them, each explained as if new. The vocabulary you built up while working is yours, not theirs; leave it behind unless you re-introduce it.
 

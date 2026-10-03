@@ -12,22 +12,22 @@ Antes delas, pese os quatro critérios de partida: capacidades necessárias, vel
 
 ## 2. Lineup atual (MO, "Compare models")
 
-| | Fable 5.1 | Opus 5.5 | Sonnet 5 | Haiku 4.5 |
+| | Fable 5.1 | Opus 5.5 | Sonnet 5.5 | Haiku 4.5 |
 |---|---|---|---|---|
 | Para quê (texto oficial) | raciocínio exigente e trabalho agêntico de longo horizonte | agente de código de longa duração e trabalho de conhecimento | melhor combinação de velocidade e inteligência | o mais rápido, inteligência quase de fronteira |
-| ID na API | `claude-fable-5-1` | `claude-opus-5-5` | `claude-sonnet-5` | `claude-haiku-4-5-20251001` (alias `claude-haiku-4-5`) |
+| ID na API | `claude-fable-5-1` | `claude-opus-5-5` | `claude-sonnet-5-5` | `claude-haiku-4-5-20251001` (alias `claude-haiku-4-5`) |
 | Latência comparativa | mais lenta | moderada | rápida | a mais rápida |
 | Preço (entrada / saída por MTok) | US$ 10 / 50 | US$ 4 / 20 | US$ 2 / 10 | US$ 1 / 5 |
 | Leitura de cache | 2,5% do preço de entrada | 5% | 10% | 10% |
 | Thinking | adaptativo, sempre ligado | adaptativo, sempre ligado | adaptativo | extended (`budget_tokens`) |
 | Effort default | `high` | `medium` | `high` | não suportado |
 | Contexto / saída máx. | 1M / 128K | 1M / 128K | 1M / 128K | 200K / 64K |
-| Corte de conhecimento confiável | jun/2026 | jun/2026 | jan/2026 | fev/2025 |
-| Aposentadoria (não antes de) | 1 set 2027 | 22 set 2027 | 30 jun 2027 | **15 out 2026** |
+| Corte de conhecimento confiável | jun/2026 | jun/2026 | jun/2026 | fev/2025 |
+| Aposentadoria (não antes de) | 1 set 2027 | 22 set 2027 | 28 set 2027 | **15 out 2026** |
 
-Batch API: 50% de desconto (MO; OC "Batch work that can wait"). Legados ainda disponíveis: Fable 5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 4.6, Sonnet 4.5 (MO). Mythos 5.1 = mesmas capacidades do Fable 5.1, só para participantes do Project Glasswing (CM).
+Batch API: 50% de desconto (MO; OC "Batch work that can wait"). Legados ainda disponíveis: Fable 5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 5, Sonnet 4.6 (MO); o Sonnet 4.5 saiu dessa lista. Mythos 5.1 = mesmas capacidades do Fable 5.1, só para participantes do Project Glasswing (CM).
 
-**Alerta de ciclo de vida:** compare a data de hoje com a coluna de aposentadoria. Haiku 4.5 tem aposentadoria "not sooner than October 15, 2026" — para uso novo e duradouro, diga isso e ofereça Sonnet 5 em `low` como alternativa a medir.
+**Alerta de ciclo de vida:** compare a data de hoje com a coluna de aposentadoria. Haiku 4.5 tem aposentadoria "not sooner than October 15, 2026" — para uso novo e duradouro, diga isso e ofereça Sonnet 5.5 em `low` como alternativa a medir.
 
 ## 3. Matriz oficial de seleção (CM, "Model selection matrix")
 
@@ -39,7 +39,7 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 |---|---|---|
 | A maior capacidade disponível | Fable 5.1 | sessões de agente de horas, pesquisa profunda em várias etapas, análise levada até documento, planilha ou deck finalizados |
 | Agente de código complexo e trabalho empresarial | Opus 5.5 | agentes de código autônomos de várias horas, refatoração em larga escala, engenharia de sistemas complexos, fluxos pesados em visão, computer use (na Claude API e no Google Cloud, só com `computer_toolset_20260801`; ver §5) |
-| Velocidade e capacidade no dia a dia (código, agente, empresa) | Sonnet 5 | geração de código, análise de dados, criação de conteúdo, entendimento visual, uso agêntico de ferramentas |
+| Velocidade e capacidade no dia a dia (código, agente, empresa) | Sonnet 5.5 | geração de código, análise de dados, criação de conteúdo, entendimento visual, uso agêntico de ferramentas |
 | Menor latência e preço, com extended thinking | Haiku 4.5 | tempo real, processamento inteligente em alto volume, implantações sensíveis a custo, tarefas de subagente |
 
 ## 4. Duas rotas de partida (CM, "Choose the best model to start with")
@@ -52,18 +52,18 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 | Situação | Consequência | Fonte |
 |---|---|---|
 | Contexto > 200K tokens | exclui Haiku 4.5 | MO |
-| Precisa de fatos posteriores a jan/2026 sem ferramenta de busca | exclui Sonnet 5 (corte confiável jan/2026) e Haiku 4.5 (fev/2025); fatos posteriores a fev/2025 → exclui Haiku 4.5 | MO, "Compare models" |
-| Precisa de `temperature`/`top_p`/`top_k` não-default | 400 em Sonnet 5, Opus 4.7+, Opus 5/5.5, Fable 5/5.1 — mude a técnica, não o modelo (variedade via "proponha N direções") | Sonnet 5 guide; ver `restricoes-api.json` |
-| Precisa desligar thinking | impossível em Fable 5/5.1 e Opus 5.5; Opus 5 só em effort ≤ `high`; Sonnet 5 aceita | EF; guias por modelo |
-| Integração força ferramenta (`tool_choice` any/tool) | 400 em Fable 5.1, Mythos 5.1 e Opus 5.5 → `auto` + instrução + `strict: true`, ou structured outputs | `whats-new-fable-5-1`, "Forced tool use is not supported"; `whats-new-opus-5-5`, "Forced tool use is not supported" |
+| Precisa de fatos posteriores a jan/2026 sem ferramenta de busca | exclui o Sonnet 5 legado (corte confiável jan/2026) e Haiku 4.5 (fev/2025); fatos posteriores a fev/2025 → exclui Haiku 4.5 | MO, "Compare models" |
+| Precisa de `temperature`/`top_p`/`top_k` não-default | 400 em Sonnet 5.5, Sonnet 5, Opus 4.7+, Opus 5/5.5, Fable 5/5.1 — mude a técnica, não o modelo (variedade via "proponha N direções") | Sonnet 5 guide; ver `restricoes-api.json` |
+| Precisa desligar thinking | impossível em Fable 5/5.1 e Opus 5.5; Opus 5 só em effort ≤ `high`; Sonnet 5.5 só com `thinking: {"type": "between_tools"}` em effort ≤ `high` (`disabled` dá 400); Sonnet 5 aceita `disabled` | EF; guias por modelo; `whats-new-sonnet-5-5`, "Turn off up-front thinking with `between_tools`" |
+| Integração força ferramenta (`tool_choice` any/tool) | 400 em Fable 5.1, Mythos 5.1, Opus 5.5 e Sonnet 5.5 → `auto` + instrução + `strict: true`, ou structured outputs | `whats-new-fable-5-1`, "Forced tool use is not supported"; `whats-new-opus-5-5`, "Forced tool use is not supported"; `whats-new-sonnet-5-5`, "Forced tool use is not supported" |
 | Integração usa prefill no último turno do assistente | 400 a partir de Claude 4.6 | best-practices |
-| Integração declara `computer_20251124` ou `computer_20250124` na Claude API ou no Google Cloud | 400 no Opus 5.5 (`'claude-opus-5-5' does not support tool types: computer_20251124.`) → migre para o toolset `computer_toolset_20260801`; no Amazon Bedrock, `computer_20251124` segue aceito | `whats-new-opus-5-5`, "The `computer_20251124` computer use tool is not supported on the Claude API and Google Cloud"; `migration-guide-opus-5-5`, "What every request to Claude Opus 5.5 must satisfy" |
-| Harness reescreve `system`, `tools` ou turnos anteriores entre requests e reenvia os thinking blocks | 400 `The block is bound to a different conversation` no Fable 5.1 e no Opus 5.5 (por padrão em contas criadas a partir de 31/08/2026) → torne o histórico append-only ou use `prefix_mismatch_behavior: "drop_block"` (header `thinking-binding-controls-2026-08-01`); o Mythos 5.1 não roda a checagem. Detalhes em `modelos/fable-5-1.md` e `modelos/opus-5-5.md` | `whats-new-fable-5-1`, "Editing earlier turns invalidates thinking blocks"; `migration-guide-opus-5-5`, "Thinking blocks are tied to the model and the conversation" |
+| Integração declara `computer_20251124` ou `computer_20250124` na Claude API ou no Google Cloud | 400 no Opus 5.5 e no Sonnet 5.5 (`'claude-opus-5-5' does not support tool types: computer_20251124.`) → migre para o toolset `computer_toolset_20260801`; no Amazon Bedrock, `computer_20251124` segue aceito | `whats-new-opus-5-5`, "The `computer_20251124` computer use tool is not supported on the Claude API and Google Cloud"; `migration-guide-opus-5-5`, "What every request to Claude Opus 5.5 must satisfy" |
+| Harness reescreve `system`, `tools` ou turnos anteriores entre requests e reenvia os thinking blocks | 400 `The block is bound to a different conversation` no Fable 5.1, no Opus 5.5 e no Sonnet 5.5 (por padrão em contas criadas a partir de 31/08/2026) → torne o histórico append-only ou use `prefix_mismatch_behavior: "drop_block"` (header `thinking-binding-controls-2026-08-01`); o Mythos 5.1 não roda a checagem. Detalhes em `modelos/fable-5-1.md`, `modelos/opus-5-5.md` e `modelos/sonnet-5-5.md` | `whats-new-fable-5-1`, "Editing earlier turns invalidates thinking blocks"; `migration-guide-opus-5-5`, "Thinking blocks are tied to the model and the conversation" |
 | Retenção zero de dados (ZDR) | Fable 5.1, Mythos 5.1, Fable 5 e Mythos 5 (Covered Models) exigem retenção de 30 dias e não estão disponíveis sob ZDR salvo autorização expressa — o Fable 5 legado não é saída; o erro 400 está documentado só para o par 5.1 | `whats-new-fable-5-1`; `migration-guide-fable-5-1` (abertura) |
-| Domínio cyber (segurança ofensiva) | Fable 5/5.1, Opus 5.5, Opus 5 (classificadores só-cyber), Opus 4.7 em diante (salvaguardas cyber em tempo real introduzidas no 4.7) e Sonnet 5 (primeiro Sonnet com salvaguardas cyber; HTTP 200 com `stop_reason: "refusal"`) podem recusar; nenhum deles é alternativa livre de recusa — configure fallback | guias Fable 5, Fable 5.1, Opus 5.5; `migration-guide-fable-5-1`, "What changed"; `whats-new-sonnet-5`, "Cybersecurity safeguards"; `migration-guide-opus-5-5`, "Behavior changes" |
-| Domínio bio/ciências da vida ou extração de raciocínio | Fable 5/5.1 e Opus 5.5 podem responder `stop_reason: "refusal"`; configure fallback | guias Fable 5, Opus 5.5; `migration-guide-fable-5-1`, "What changed" |
-| Latência de primeira resposta crítica em chat | Opus 5.5: remova instruções "pense com cuidado" do system; se os turnos de follow-up ficam lentos, adicione o snippet `opus-5-5.settled_answers` (fim do system); `low` é a partida documentada para integrações que rodavam com thinking desativado. Alternativa: Sonnet 5 em `low` | (`prompting-claude-opus-5-5`, "Thinking instructions in chat system prompts"); partida em `low`: (`prompting-claude-opus-5-5`, "Prompts written for thinking disabled"); EF |
-| Mensagens de sistema no meio da conversa (relógio, lembretes por turno) | Sonnet 5 não suporta; use bloco de texto após os `tool_result` | OC, "Show the model elapsed time" |
+| Domínio cyber (segurança ofensiva) | Fable 5/5.1, Opus 5.5, Opus 5 (cyber e extração de raciocínio), Opus 4.7 em diante (salvaguardas cyber em tempo real introduzidas no 4.7) Sonnet 5 (primeiro Sonnet com salvaguardas cyber; HTTP 200 com `stop_reason: "refusal"`) e Sonnet 5.5 (que recusa também em `frontier_llm` e `general_harms`) podem recusar; nenhum deles é alternativa livre de recusa — configure fallback | guias Fable 5, Fable 5.1, Opus 5.5; `migration-guide-fable-5-1`, "What changed"; `whats-new-sonnet-5`, "Cybersecurity safeguards"; `whats-new-sonnet-5-5`, "Behavior differences"; `migration-guide-opus-5-5`, "Behavior changes" |
+| Domínio bio/ciências da vida ou extração de raciocínio | Fable 5/5.1, Opus 5.5 e Sonnet 5.5 podem responder `stop_reason: "refusal"` (no Opus 5, só a extração de raciocínio); o fallback server-side não refaz `bio` nem `reasoning_extraction` no Sonnet 5.5; configure fallback | guias Fable 5, Opus 5, Opus 5.5, Sonnet 5.5; `migration-guide-fable-5-1`, "What changed"; `whats-new-sonnet-5-5`, "Refusals, fallback, and billing" |
+| Latência de primeira resposta crítica em chat | Opus 5.5: remova instruções "pense com cuidado" do system; se os turnos de follow-up ficam lentos, adicione o snippet `opus-5-5.settled_answers` (fim do system); `low` é a partida documentada para integrações que rodavam com thinking desativado. Alternativa: Sonnet 5.5 em `low` (pula o thinking na maioria dos pedidos simples; `prompting-claude-sonnet-5-5`, "Calibrate effort") | (`prompting-claude-opus-5-5`, "Thinking instructions in chat system prompts"); partida em `low`: (`prompting-claude-opus-5-5`, "Prompts written for thinking disabled"); EF |
+| Mensagens de sistema no meio da conversa (relógio, lembretes por turno) | o Sonnet 5 legado não suporta (use bloco de texto após os `tool_result`); o Sonnet 5.5 suporta | OC, "Show the model elapsed time"; `whats-new-sonnet-5-5`, "Feature support" |
 
 ## 6. Effort inicial por modelo (EF, "Recommended effort levels…", salvo onde a linha cita outra página)
 
@@ -75,7 +75,8 @@ Divergência oficial registrada: `whats-new-fable-5-1` (intro) ainda diz "For mo
 | Opus 5 | `high` (default) | `xhigh` (código/agente exigente), `max` | `low`/`medium` "liberally" onde a qualidade se mantém | effort não encurta a resposta visível: peça concisão no prompt |
 | Opus 4.8 | `xhigh` em código e agente; `high` no resto | `max` só com folga medida | `medium`/`low` só medido | `max_tokens` a partir de 64k em `xhigh`/`max` |
 | Opus 4.7 | `xhigh` em código e agente; `high` como mínimo no resto sensível a inteligência | `max` só com folga medida sobre `xhigh` | `medium` em cargas sensíveis a custo | `max_tokens` a partir de 64k em `xhigh`/`max` |
-| Sonnet 5 | `high` (default) | `xhigh` no código/agente mais difícil | `medium` (≈ Sonnet 4.6 em `high`); `low` para alto volume, chat, não-código | respeita effort estritamente no baixo: risco de pensar pouco em `low` (prompting-claude-sonnet-5, "Calibrating effort and thinking depth") |
+| Sonnet 5.5 | `high` (default); `medium` em código agêntico e uso de ferramentas em vários passos bem especificado; `medium`/`low` em chat e latência | `high` nas tarefas agênticas mais difíceis ou longas; `xhigh`/`max` só onde os evals mostram ganho | `low` em chat e pedidos simples (pode pular a verificação de código) | níveis recalibrados: refaça a varredura em vez de levar a do Sonnet 5; `between_tools` só até `high`; 128.000 de `max_tokens` com streaming em código agêntico; effort por mensagem (beta) preserva cache (EF, "Recommended effort levels for Claude Sonnet 5.5") |
+| Sonnet 5 (legado) | `high` (default) | `xhigh` no código/agente mais difícil | `medium` (≈ Sonnet 4.6 em `high`); `low` para alto volume, chat, não-código | respeita effort estritamente no baixo: risco de pensar pouco em `low` (prompting-claude-sonnet-5, "Calibrating effort and thinking depth") |
 | Sonnet 4.6 | `medium` (recomendado) | `high` | `low` | default da API é `high`: defina explícito |
 | Haiku 4.5 | — | — | — | effort não suportado; thinking por `budget_tokens` |
 

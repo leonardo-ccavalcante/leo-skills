@@ -4,7 +4,7 @@ Fontes: claude-prompting-best-practices · effort · models-overview · choosing
 
 > **Nenhum destes modelos tem página `prompting-claude-*` própria.** Tudo abaixo sai de menções pontuais em best practices, effort, models-overview, choosing-a-model, optimizing-for-cost-and-intelligence, guias de migração e what's-new. Onde as fontes nada dizem, está escrito "não documentado nas fontes rastreadas" — não complete com o comportamento de um modelo vizinho. Opus 4.8 tem arquivo próprio (`opus-4-8.md`). Os princípios gerais de best practices valem para Opus 4.7, Opus 4.6, Sonnet 4.6 e Haiku 4.5, que a página lista como "current models"; Opus 4.5 e Sonnet 4.5 não estão nessa lista (claude-prompting-best-practices, intro).
 
-Legados ainda disponíveis: Fable 5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 4.6, Sonnet 4.5 (models-overview, "Compare models"). O Haiku 4.5 **não** é legado: é o menor modelo da linha atual (optimizing-for-cost-and-intelligence, "Trade cost against intelligence"), mas também não tem guia próprio.
+Legados ainda disponíveis: Fable 5, Opus 5, Opus 4.8, Opus 4.7, Opus 4.6, Opus 4.5, Sonnet 5, Sonnet 4.6 (models-overview, "Compare models"); o Sonnet 5 tem ficha própria em `modelos/sonnet-5.md`, e o Sonnet 4.5 saiu da lista. Nota de fonte: as seções citadas de `whats-new-sonnet-5` são da versão lida em 2026-09-27; desde então essa URL serve a página de visão geral do Sonnet 5 (modelo legado), e o que vale para quem migra está em `migration-guide-sonnet-5-5`. O Haiku 4.5 **não** é legado: é o menor modelo da linha atual (optimizing-for-cost-and-intelligence, "Trade cost against intelligence"), mas também não tem guia próprio.
 
 **Coluna id nas tabelas:** é o id da regra que `pcm.py lint` mostra ao acusar o item — `api.*` estão em `restricoes-api.json`, os demais em `cruft.json`. "—" = sem regra de lint para aquele modelo: confira à mão. Snippets que valem para vários destes modelos estão em [Snippets compartilhados](#snippets-compartilhados), logo abaixo do comparativo.
 
@@ -62,7 +62,7 @@ context remaining.
 ```
 
 ### Thinking desligado: CoT manual como fallback
-Sem bloco verbatim na fonte. No Opus 4.7, Opus 4.6 e Sonnet 4.6 o thinking fica desligado quando o campo `thinking` é omitido; nesses casos (e no Haiku 4.5 sem extended thinking), peça que o modelo pense o problema passo a passo e separe raciocínio e resposta final com tags `<thinking>` e `<answer>` (claude-prompting-best-practices, "Leverage thinking & interleaved thinking capabilities"). No Opus 4.5 com extended thinking desligado, troque "think" por "consider"/"evaluate"/"reason through" (seção Opus 4.5). Texto completo da técnica em `principios-gerais.md`.
+Sem bloco verbatim na fonte. No Opus 4.7, Opus 4.6 e Sonnet 4.6 o thinking fica desligado quando o campo `thinking` é omitido; nesses casos (e no Haiku 4.5 sem extended thinking), peça que o modelo pense o problema antes de responder e ponha a resposta final em tags `<answer>`, para extraí-la (claude-prompting-best-practices, "Leverage thinking & interleaved thinking capabilities"). No Opus 4.5 com extended thinking desligado, troque "think" por "consider"/"evaluate"/"reason through" (seção Opus 4.5). Texto completo da técnica em `principios-gerais.md`.
 
 ---
 

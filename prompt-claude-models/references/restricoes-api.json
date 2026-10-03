@@ -8,6 +8,7 @@
         "opus-5",
         "opus-4-8",
         "opus-4-7",
+        "sonnet-5-5",
         "sonnet-5",
         "fable-5-1",
         "mythos-5-1",
@@ -22,7 +23,7 @@
         ]
       },
       "severidade": "hard",
-      "motivo_pt": "temperature/top_p/top_k com valor não-default retornam 400 no Opus 4.7 e posteriores (inclusive Opus 5.5), no Sonnet 5, no Fable 5.1/Fable 5 e no Mythos 5.1 (o guia de migração para o par 5.1 diz que a restrição de sampling 'carries over' vindo do Opus 5 e dá claude-mythos-5-1 como ID alternativo com as mesmas capacidades); o valor default (ou omitir) é aceito pela API, mas o lint não conhece o default e dispara em qualquer presença: o guia diz que o caminho mais seguro é omiti-los, e no Python SDK v1.0+ passá-los levanta TypeError.",
+      "motivo_pt": "temperature/top_p/top_k com valor não-default retornam 400 no Opus 4.7 e posteriores (inclusive Opus 5.5), no Sonnet 5.5 e no Sonnet 5, no Fable 5.1/Fable 5 e no Mythos 5.1 (o guia de migração para o par 5.1 diz que a restrição de sampling 'carries over' vindo do Opus 5 e dá claude-mythos-5-1 como ID alternativo com as mesmas capacidades); o valor default (ou omitir) é aceito pela API, mas o lint não conhece o default e dispara em qualquer presença: o guia diz que o caminho mais seguro é omiti-los, e no Python SDK v1.0+ passá-los levanta TypeError.",
       "sugestao_pt": "remover temperature, top_p e top_k do corpo (se o valor já é o default, a remoção não muda nada) e guiar o comportamento por prompting; se temperature servia para variedade de design (Opus 4.8, Sonnet 5), pedir que o modelo proponha direções distintas antes de construir",
       "fonte": {
         "page_id": "migration-guide-opus-5-5",
@@ -52,6 +53,10 @@
         {
           "page_id": "prompting-claude-sonnet-5",
           "section": "Design and frontend defaults"
+        },
+        {
+          "page_id": "migration-guide-sonnet-5-5",
+          "section": "Breaking changes"
         }
       ],
       "fatos": [
@@ -97,6 +102,7 @@
         "opus-5",
         "opus-4-8",
         "opus-4-7",
+        "sonnet-5-5",
         "sonnet-5"
       ],
       "checagem": {
@@ -145,6 +151,10 @@
         {
           "page_id": "claude-prompting-best-practices",
           "section": "Leverage thinking & interleaved thinking capabilities"
+        },
+        {
+          "page_id": "whats-new-sonnet-5-5",
+          "section": "Turn off up-front thinking with `between_tools`"
         }
       ],
       "fatos": [
@@ -257,7 +267,8 @@
         "opus-5-5",
         "fable-5-1",
         "mythos-5-1",
-        "fable-5"
+        "fable-5",
+        "sonnet-5-5"
       ],
       "checagem": {
         "tipo": "valor_igual",
@@ -267,8 +278,8 @@
         ]
       },
       "severidade": "hard",
-      "motivo_pt": "no Opus 5.5, Fable 5.1, Mythos 5.1 e Fable 5 o thinking está sempre ligado e o adaptativo é o único modo; thinking {\"type\": \"disabled\"} retorna 400 em qualquer effort (no Opus 5.5 e no Fable 5.1: '\"thinking.type.disabled\" is not supported for this model.'). No Fable 5 o 400 vem de 'Unchanged from Claude Fable 5' (whats-new-fable-5-1). Mythos 5 fica em api.thinking_disabled_sem_efeito: a fonte não documenta o 400 nele.",
-      "sugestao_pt": "remover o campo thinking ou enviar {\"type\": \"adaptive\"} (equivalentes); onde se desligava o thinking para economizar, baixar o output_config.effort e revisar max_tokens",
+      "motivo_pt": "no Opus 5.5, Fable 5.1, Mythos 5.1 e Fable 5 o thinking está sempre ligado e o adaptativo é o único modo; thinking {\"type\": \"disabled\"} retorna 400 em qualquer effort (no Opus 5.5 e no Fable 5.1: '\"thinking.type.disabled\" is not supported for this model.'). No Fable 5 o 400 vem de 'Unchanged from Claude Fable 5' (whats-new-fable-5-1). Mythos 5 fica em api.thinking_disabled_sem_efeito: a fonte não documenta o 400 nele. No Sonnet 5.5 o thinking pode ser desligado, mas só com {\"type\": \"between_tools\"}: \"disabled\" retorna 400 invalid_request_error cuja mensagem aponta para between_tools.",
+      "sugestao_pt": "remover o campo thinking ou enviar {\"type\": \"adaptive\"} (equivalentes); onde se desligava o thinking para economizar, baixar o output_config.effort e revisar max_tokens; no Sonnet 5.5, para rodar sem thinking antecipado, enviar thinking {\"type\": \"between_tools\"} em effort high ou abaixo",
       "fonte": {
         "page_id": "whats-new-opus-5-5",
         "section": "Thinking can't be disabled"
@@ -297,6 +308,10 @@
         {
           "page_id": "effort",
           "section": "Recommended effort levels for Claude Opus 5.5"
+        },
+        {
+          "page_id": "whats-new-sonnet-5-5",
+          "section": "Turn off up-front thinking with `between_tools`"
         }
       ],
       "fatos": [
@@ -307,7 +322,8 @@
         "fable-5-1.adaptive_thinking_always_on_400",
         "fable-5-1.from_opus5_thinking_disabled_400",
         "fable-5-1.thinking_enabled_disabled_400",
-        "opus-5-5.no_thinking_disabled"
+        "opus-5-5.no_thinking_disabled",
+        "sonnet-5-5.thinking_disabled_400_use_between_tools"
       ],
       "exemplo_request": {
         "model": "x",
@@ -464,11 +480,88 @@
       }
     },
     {
+      "id": "api.between_tools_high_effort",
+      "modelos": [
+        "sonnet-5-5"
+      ],
+      "checagem": {
+        "tipo": "combinacao",
+        "todas": [
+          {
+            "caminho": "thinking.type",
+            "valores": [
+              "between_tools"
+            ]
+          },
+          {
+            "caminho": "output_config.effort",
+            "valores": [
+              "xhigh",
+              "max"
+            ]
+          }
+        ]
+      },
+      "severidade": "hard",
+      "motivo_pt": "no Sonnet 5.5 thinking {\"type\": \"between_tools\"} só é aceito em effort low, medium e high; em xhigh ou max a request retorna 400",
+      "sugestao_pt": "em xhigh/max usar thinking adaptativo (omitir o campo thinking ou enviar {\"type\": \"adaptive\"}); para manter between_tools, baixar o effort para high ou menos",
+      "fonte": {
+        "page_id": "whats-new-sonnet-5-5",
+        "section": "Turn off up-front thinking with `between_tools`"
+      },
+      "fontes_adicionais": [
+        {
+          "page_id": "effort",
+          "section": "Recommended effort levels for Claude Sonnet 5.5"
+        },
+        {
+          "page_id": "prompting-claude-sonnet-5-5",
+          "section": "Running without up-front thinking"
+        }
+      ],
+      "fatos": [
+        "sonnet-5-5.between_tools_low_medium_high_only"
+      ],
+      "exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "between_tools"
+        },
+        "output_config": {
+          "effort": "xhigh"
+        }
+      },
+      "contra_exemplo_request": {
+        "model": "x",
+        "max_tokens": 1024,
+        "messages": [
+          {
+            "role": "user",
+            "content": "Oi"
+          }
+        ],
+        "thinking": {
+          "type": "between_tools"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      }
+    },
+    {
       "id": "api.forced_tool_choice",
       "modelos": [
         "opus-5-5",
         "fable-5-1",
-        "mythos-5-1"
+        "mythos-5-1",
+        "sonnet-5-5"
       ],
       "checagem": {
         "tipo": "valor_igual",
@@ -479,7 +572,7 @@
         ]
       },
       "severidade": "hard",
-      "motivo_pt": "tool use forçado não é suportado: tool_choice {\"type\": \"any\"} ou {\"type\": \"tool\", ...} retorna 400 invalid_request_error ('tool_choice: type \"tool\" and \"any\" are not supported for this model.'), também no endpoint de token counting; auto (default) e none seguem aceitos",
+      "motivo_pt": "no Opus 5.5, no Fable 5.1, no Mythos 5.1 e no Sonnet 5.5 tool use forçado não é suportado: tool_choice {\"type\": \"any\"} ou {\"type\": \"tool\", ...} retorna 400 invalid_request_error ('tool_choice: type \"tool\" and \"any\" are not supported for this model.'), também no endpoint de token counting; auto (default) e none seguem aceitos",
       "sugestao_pt": "usar tool_choice {\"type\": \"auto\"} com strict: true nas ferramentas, ou structured outputs (output_config.format) se o objetivo era só JSON pelo schema, e dizer no prompt quando a ferramenta se aplica",
       "fonte": {
         "page_id": "whats-new-opus-5-5",
@@ -497,6 +590,10 @@
         {
           "page_id": "migration-guide-opus-5-5",
           "section": "What every request to Claude Opus 5.5 must satisfy"
+        },
+        {
+          "page_id": "whats-new-sonnet-5-5",
+          "section": "Forced tool use is not supported"
         }
       ],
       "fatos": [
@@ -546,6 +643,7 @@
         "opus-4-8",
         "opus-4-7",
         "opus-4-6",
+        "sonnet-5-5",
         "sonnet-5",
         "sonnet-4-6"
       ],
@@ -574,6 +672,10 @@
         {
           "page_id": "whats-new-sonnet-5",
           "section": "Assistant message prefilling not supported"
+        },
+        {
+          "page_id": "migration-guide-sonnet-5-5",
+          "section": "Migrating from Claude Sonnet 4.5 or earlier"
         }
       ],
       "fatos": [
@@ -630,6 +732,7 @@
         "opus-4-7",
         "opus-4-6",
         "opus-4-5",
+        "sonnet-5-5",
         "sonnet-5",
         "sonnet-4-6"
       ],
@@ -678,7 +781,8 @@
         "output_config": {
           "effort": "medium"
         }
-      }
+      },
+      "fontes_adicionais": []
     },
     {
       "id": "api.effort_xhigh_indisponivel",
@@ -1278,6 +1382,18 @@
           "section": "Prompting Claude Fable 5"
         }
       ]
+    },
+    {
+      "tema": "between_tools com outros campos ou com effort por mensagem (Sonnet 5.5)",
+      "motivo_pt": "fato hard: thinking {\"type\": \"between_tools\"} não aceita nenhum outro campo (display, budget_tokens ou block_binding junto dele retornam 400), e com between_tools um output_config.effort por mensagem diferente do nível em vigor também retorna 400. Os tipos de checagem não testam a presença de um campo condicionada a um valor, nem leem mensagens role system dentro de messages[]. Checar à mão.",
+      "fatos": [
+        "sonnet-5-5.between_tools_no_other_fields",
+        "sonnet-5-5.between_tools_no_per_message_effort"
+      ],
+      "fonte": {
+        "page_id": "whats-new-sonnet-5-5",
+        "section": "Turn off up-front thinking with `between_tools`"
+      }
     }
   ]
 }

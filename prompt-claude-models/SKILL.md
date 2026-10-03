@@ -2,13 +2,13 @@
 name: prompt-claude-models
 description: >
   Diagnostica o esforço e o nível de qualidade que uma tarefa exige, escolhe o modelo Claude e o
-  effort certos (Fable 5.1, Opus 5.5, Sonnet 5, Haiku 4.5, legados) e monta o prompt do jeito que
+  effort certos (Fable, Opus, Sonnet, Haiku e legados) e monta o prompt do jeito que
   esse modelo rende melhor — com parâmetros de API, casos de teste e plano de medição. Compila
   artefatos de outras skills (problem-solving, sat, data-analyst…) em prompt, adapta prompts e
   SKILL.md entre modelos e é a camada Claude do set prompt-*. Checa as páginas oficiais da
   Anthropic a cada uso e aprende com cada entrega. Use em "prompt para Opus/Sonnet/Fable", "qual
   modelo uso", "que effort", "adapte/migre este prompt", "transforme isto num prompt", "system
-  prompt", "which Claude model", "prompt for Sonnet 5", "migrate my prompt to Fable", "400 com
+  prompt", "which Claude model", "prompt for Sonnet", "migrate my prompt to Fable", "400 com
   temperature/prefill". Não use para técnica genérica sem alvo Claude (prompt-foundations e cia.),
   código de SDK (claude-api) nem para analisar a decisão em si (sat).
 ---

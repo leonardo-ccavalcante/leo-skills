@@ -9,9 +9,9 @@
     {
       "id": "claude-prompting-best-practices",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md",
-      "sha256": "d8da822f28a9df98f90c206466a5e808a561a3c6e9f948c3a44f27998f54cf12",
-      "bytes": 65061,
-      "verificado_em": "2026-09-27",
+      "sha256": "86ad39e45ce3b3ed565d06730f7f97d6a3d0cb27cfd74e55e85f740c0d6f71b3",
+      "bytes": 66840,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "all-current"
@@ -29,6 +29,7 @@
         "references/modelos/opus-4-8.md",
         "references/modelos/opus-5-5.md",
         "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5-5.md",
         "references/modelos/sonnet-5.md",
         "references/principios-gerais.md",
         "references/restricoes-api.json",
@@ -48,9 +49,9 @@
     {
       "id": "prompting-claude-fable-5-1",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1.md",
-      "sha256": "26221728e1acfce699d973c7cf9667a4ae6c5a9ab26a3134a357768e86cf3553",
-      "bytes": 54502,
-      "verificado_em": "2026-09-27",
+      "sha256": "4aa7e61031b5d52456433bd9804503717b8e0b5a3c35137f48ea5324c7913db4",
+      "bytes": 55050,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "fable-5-1",
@@ -75,9 +76,9 @@
     {
       "id": "prompting-claude-sonnet-5",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5.md",
-      "sha256": "07e7db846f96915a1d533fe6f62f7812790a966361b9982b6522557e74d08127",
-      "bytes": 16479,
-      "verificado_em": "2026-09-27",
+      "sha256": "560089d4c75943749b7a81afdf628290c518713e8e82aff88b389c5cc5544c8e",
+      "bytes": 15963,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "sonnet-5"
@@ -117,9 +118,9 @@
     {
       "id": "prompting-claude-fable-5",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5.md",
-      "sha256": "44732ba550fc55f13c061d47f755169246f9b4872a7f51fe63a6c9985503313e",
-      "bytes": 19155,
-      "verificado_em": "2026-09-27",
+      "sha256": "0487e942e489fffab11d413caa1b9795ac13463a213df77e545d833fea653bf9",
+      "bytes": 19340,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "fable-5",
@@ -146,9 +147,9 @@
     {
       "id": "prompting-claude-opus-5-5",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5.md",
-      "sha256": "38355a519405b71173408c5c5f126c428eab61105eb92f38d950bf699ac5c215",
-      "bytes": 28306,
-      "verificado_em": "2026-09-27",
+      "sha256": "ad7119a29add19ada00b88f5bab4e737ad5d2834a1281004505cca00b348bc07",
+      "bytes": 28499,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "opus-5-5"
@@ -185,9 +186,9 @@
     {
       "id": "prompting-claude-opus-5",
       "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5.md",
-      "sha256": "643499b80e34139a5007226a31908d64a65a2d64f08275d502e64ccd43a8413e",
-      "bytes": 12108,
-      "verificado_em": "2026-09-27",
+      "sha256": "cb089946ebaa9500565b2326e8411a8a6f6c8d1a11c843155b91cc5743e00e83",
+      "bytes": 12910,
+      "verificado_em": "2026-10-03",
       "tipo": "prompting",
       "modelos": [
         "opus-5"
@@ -252,9 +253,9 @@
     {
       "id": "choosing-a-model",
       "url": "https://platform.claude.com/docs/en/about-claude/models/choosing-a-model.md",
-      "sha256": "ea49c7303d6fd33864630229a0a1b5f5f16b5db8cb08c06a936fddb24725d300",
-      "bytes": 8344,
-      "verificado_em": "2026-09-27",
+      "sha256": "61ba56e001af73f7c58bb52865d883ca696c9252b4969bc290bb962ccfafa09d",
+      "bytes": 8375,
+      "verificado_em": "2026-10-03",
       "tipo": "selecao",
       "modelos": [
         "all-current"
@@ -266,6 +267,7 @@
         "references/modelos/opus-4-8.md",
         "references/modelos/opus-5-5.md",
         "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5-5.md",
         "references/modelos/sonnet-5.md",
         "references/selecao-modelo.md",
         "references/sobreposicao-toolkit.md",
@@ -278,9 +280,9 @@
     {
       "id": "models-overview",
       "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
-      "sha256": "404372e69b13defcb4598bb8a8cfbc359c0c31384d809daf53d75c3ca9316bc3",
-      "bytes": 17052,
-      "verificado_em": "2026-09-27",
+      "sha256": "9d3c37c0d62e0d466d461fad29a3cba34e7ea54a1d313e2a2c025864acdfe7f3",
+      "bytes": 17143,
+      "verificado_em": "2026-10-03",
       "tipo": "selecao",
       "modelos": [
         "all-current"
@@ -294,6 +296,7 @@
         "references/modelos/opus-4-8.md",
         "references/modelos/opus-5-5.md",
         "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5-5.md",
         "references/modelos/sonnet-5.md",
         "references/principios-gerais.md",
         "references/restricoes-api.json",
@@ -306,9 +309,9 @@
     {
       "id": "effort",
       "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
-      "sha256": "ab7a176aa3927fb96a3f2f5433b82e23a6e44950cd5eb5ca91d5f0bc7746f3d7",
-      "bytes": 36866,
-      "verificado_em": "2026-09-27",
+      "sha256": "073ce24b7a8922388477281126b05dca553ed3d95efa86e3256402b55044bd64",
+      "bytes": 39458,
+      "verificado_em": "2026-10-03",
       "tipo": "selecao",
       "modelos": [
         "all-current"
@@ -323,6 +326,7 @@
         "references/modelos/opus-4-8.md",
         "references/modelos/opus-5-5.md",
         "references/modelos/opus-5.md",
+        "references/modelos/sonnet-5-5.md",
         "references/modelos/sonnet-5.md",
         "references/restricoes-api.json",
         "references/rubrica.md",
@@ -404,9 +408,9 @@
     {
       "id": "whats-new-opus-5-5",
       "url": "https://platform.claude.com/docs/en/models/opus-5-5/whats-new-opus-5-5.md",
-      "sha256": "6ba1ff350b0ced73d0eeba0330b37f14cd516a7100f3eb404410f82e6826d546",
-      "bytes": 21800,
-      "verificado_em": "2026-09-27",
+      "sha256": "7f58fdf7cd12deb670c9bed09a0e3fd89ceaef7fc8217f2bcaac1e71dba8c039",
+      "bytes": 21884,
+      "verificado_em": "2026-10-03",
       "tipo": "api",
       "modelos": [
         "opus-5-5"
@@ -431,9 +435,9 @@
     {
       "id": "whats-new-sonnet-5",
       "url": "https://platform.claude.com/docs/en/models/sonnet-5/whats-new-sonnet-5.md",
-      "sha256": "02f0df53f8780f93ca88c9691f530f07032ebd5d41c88ec838fc0f9aa85007db",
-      "bytes": 13195,
-      "verificado_em": "2026-09-27",
+      "sha256": "68f590298ac0f5e6271fd2d9707084e4f9d2e7e22358d4bfa8f5279cbd690708",
+      "bytes": 12914,
+      "verificado_em": "2026-10-03",
       "tipo": "api",
       "modelos": [
         "sonnet-5"
@@ -452,9 +456,9 @@
     {
       "id": "migration-guide-opus-5-5",
       "url": "https://platform.claude.com/docs/en/models/opus-5-5/migration-guide.md",
-      "sha256": "9a108c032bf9a368ea9d84648de028e5641f97ab3e65d1301db5e379c2c04b90",
-      "bytes": 90144,
-      "verificado_em": "2026-09-27",
+      "sha256": "163b24c6ff9c51434db34cf55775ec1eca01c823883f66cb8d0b2a1af34de59a",
+      "bytes": 91107,
+      "verificado_em": "2026-10-03",
       "tipo": "api",
       "modelos": [
         "opus-5-5",
@@ -480,9 +484,9 @@
     {
       "id": "migration-guide-fable-5-1",
       "url": "https://platform.claude.com/docs/en/models/fable-5-1/migration-guide.md",
-      "sha256": "66b4fb8c6a70993a54fb2637602fbf4d717ae0a66fbe785b57d10ff3bf7c98b4",
-      "bytes": 93306,
-      "verificado_em": "2026-09-27",
+      "sha256": "9e13651b3c0c2af310d81501b1e0106061396955ebf676920cac36bd73551053",
+      "bytes": 93245,
+      "verificado_em": "2026-10-03",
       "tipo": "api",
       "modelos": [
         "fable-5-1",
@@ -503,6 +507,59 @@
         "references/selecao-modelo.md",
         "references/sobreposicao-toolkit.md"
       ]
+    },
+    {
+      "id": "prompting-claude-sonnet-5-5",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5.md",
+      "tipo": "prompting",
+      "modelos": [
+        "sonnet-5-5"
+      ],
+      "alimenta": [
+        "references/cruft.json",
+        "references/matriz-modelos.md",
+        "references/modelos/sonnet-5-5.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md"
+      ],
+      "sha256": "a5c6fe2de8ab6891003d4470def0a612cebf2667bb5852dea41acab18b54377e",
+      "bytes": 27655,
+      "verificado_em": "2026-10-03"
+    },
+    {
+      "id": "whats-new-sonnet-5-5",
+      "url": "https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5.md",
+      "tipo": "api",
+      "modelos": [
+        "sonnet-5-5"
+      ],
+      "alimenta": [
+        "references/matriz-modelos.md",
+        "references/modelos/sonnet-5-5.md",
+        "references/restricoes-api.json",
+        "references/selecao-modelo.md"
+      ],
+      "sha256": "730565e4d74148cdb132e4074d6427291af1e0588ed856080f1b238de94819bc",
+      "bytes": 22652,
+      "verificado_em": "2026-10-03"
+    },
+    {
+      "id": "migration-guide-sonnet-5-5",
+      "url": "https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide.md",
+      "tipo": "api",
+      "modelos": [
+        "sonnet-5-5"
+      ],
+      "alimenta": [
+        "references/matriz-modelos.md",
+        "references/modelos/legado.md",
+        "references/modelos/sonnet-5-5.md",
+        "references/modelos/sonnet-5.md",
+        "references/restricoes-api.json"
+      ],
+      "sha256": "7db37f2b75ab87963cf72fce15a6e66672241b3632b358d764c9172876248a8c",
+      "bytes": 55633,
+      "verificado_em": "2026-10-03"
     }
   ]
 }

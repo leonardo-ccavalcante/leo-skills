@@ -2,6 +2,16 @@
 
 Cada sincronização de fonte (páginas oficiais em `fontes.json`) e cada lição promovida para `MEMORY.md` entra aqui, mais recente primeiro.
 
+## 2026-10-03 — sync: Claude Sonnet 5.5 e mudanças de 13 páginas
+
+- Sonnet 5.5 entra como o Sonnet atual: `references/modelos/sonnet-5-5.md` (restrições, effort recalibrado, `between_tools`, 7 snippets verbatim, migração por modelo de origem) e três páginas novas em `fontes.json` (`prompting-claude-sonnet-5-5`, `whats-new-sonnet-5-5`, `migration-guide-sonnet-5-5`). O Sonnet 5 passa a legado.
+- `restricoes-api.json`: Sonnet 5.5 em sampling, `budget_tokens`, prefill, `thinking` disabled (o substituto é `between_tools`) e `tool_choice` forçado; regra nova `api.between_tools_high_effort` (400 em `xhigh`/`max`) e lacuna para `between_tools` com outros campos ou effort por mensagem. `pcm.py` aceita `--modelo sonnet-5-5`.
+- `cruft.json`: cinco regras novas (`sonnet-5-5.regra_nao_pensar`, `.desencoraja_tools`, `.segurar_achados`, `.raciocinio_na_resposta` e `opus-5.raciocinio_na_resposta`).
+- Guia geral: o CoT manual não usa mais tags `<thinking>` (só `<answer>` para extrair a resposta), exemplos resolvidos viram "problema, método e resposta esperada", e em Fable 5.1, Fable 5, Opus 5.5, Opus 5 e Sonnet 5.5 a orientação é usar o thinking em effort menor, porque pedir o raciocínio escrito pode ser recusado. Atualizados `principios-gerais.md`, `sobreposicao-toolkit.md`, `toolkit/prompt-reasoning.md`, `cruft.json` e as fichas de modelo.
+- Opus 5 também recusa com `reasoning_extraction` (seção nova "Reasoning in the response"); o Opus 5.5 lê thinking blocks do Sonnet 5.5 na Claude API e no Google Cloud.
+- `selecao-modelo.md`, `matriz-modelos.md` e `diagnostico.md` trocam o Sonnet 5 pelo Sonnet 5.5 no lineup, na matriz de seleção, nos filtros e no effort inicial; snippet `fable-5.readability_addendum` acompanha o texto novo da página.
+- A URL de `whats-new-sonnet-5` passou a servir a visão geral do Sonnet 5: as seções citadas dela ficam como registro da versão de 2026-09-27, com nota em `modelos/sonnet-5.md` e `modelos/legado.md`. A descrição da skill passa a nomear famílias de modelo em vez de versões.
+
 ## 2026-09-27 — cortes depois da auditoria de superengenharia
 
 - `SKILL.md` de 27 KB para 12 KB: uma sequência por modo, sem regras que o `pcm.py` já aplica e explica nas próprias mensagens de erro.

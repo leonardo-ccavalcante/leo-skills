@@ -70,12 +70,12 @@ _SELFTEST_ATIVO = False
 # restricoes-api.json, para que uma regra "all-4-6-plus" signifique o mesmo nos dois.
 MODELOS_CONHECIDOS = (
     "fable-5-1", "mythos-5-1", "fable-5", "mythos-5", "opus-5-5", "opus-5",
-    "opus-4-8", "opus-4-7", "opus-4-6", "opus-4-5", "sonnet-5", "sonnet-4-6",
-    "sonnet-4-5", "haiku-4-5",
+    "opus-4-8", "opus-4-7", "opus-4-6", "opus-4-5", "sonnet-5-5", "sonnet-5",
+    "sonnet-4-6", "sonnet-4-5", "haiku-4-5",
 )
 _G_4_5_PLUS = (
     "opus-4-5", "opus-4-6", "opus-4-7", "opus-4-8", "opus-5", "opus-5-5",
-    "sonnet-4-5", "sonnet-4-6", "sonnet-5", "haiku-4-5", "fable-5", "fable-5-1",
+    "sonnet-4-5", "sonnet-4-6", "sonnet-5", "sonnet-5-5", "haiku-4-5", "fable-5", "fable-5-1",
     "mythos-5", "mythos-5-1",
 )
 GRUPOS = {
