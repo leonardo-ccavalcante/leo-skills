@@ -81,10 +81,10 @@ Save the ghost deck as a markdown file (`storyline.md`) and show it to the user.
 
 Goal: produce the actual `.pptx` (and optional PDF) using the `pptx` skill.
 
-1. **Read the `pptx` skill's SKILL.md first** — specifically `pptxgenjs.md` for creating from scratch. Follow its current best practices instead of inventing your own.
+1. **Read the `pptx` skill's SKILL.md first** — specifically its "Creating with pptxgenjs" section for creating from scratch. Follow its current best practices instead of inventing your own.
 2. **Generate slides in 16:9 (13.33"×7.5" / 960×540 pt)** by default — the consulting standard.
 3. **Apply the visual conventions in `references/style-guide.md`:** action title at top, content in body, footnote line, source line, page number. One sans-serif family. Restricted color palette.
-4. **For data slides, build the chart programmatically** rather than describing one. Use python-pptx native shapes/charts or matplotlib → image insertion.
+4. **For data slides, build the chart programmatically** rather than describing one. Use native charts, as the `pptx` skill describes; insert an image only for chart types PowerPoint can't draw natively.
 5. **Produce a PDF if asked** (LibreOffice headless conversion — see the `pptx` skill).
 
 If the user asks for *just* the storyline (markdown), stop after Phase 2 and deliver `storyline.md`. The thinking is often the highest-leverage thing you can deliver — don't generate a `.pptx` unless they want one.
@@ -93,7 +93,7 @@ If the user asks for *just* the storyline (markdown), stop after Phase 2 and del
 
 When the user already has a deck:
 
-1. **Read the deck.** Use the `pptx` skill (`python -m markitdown deck.pptx` or `editing.md`) to extract every slide's title and body.
+1. **Read the deck.** Use the `pptx` skill (`markitdown deck.pptx`) to extract every slide's title and body.
 2. **Reconstruct the implicit storyline.** What's the Governing Thought as written? What are the Key Lines (read off section dividers or first slide of each cluster)? Write them out.
 3. **Run the four diagnostics** (in order — most leverage to least):
    - **Action title test.** Read every title in order. Is it a coherent argument that ends in a recommendation? If many titles are topic labels (*"Q3 Performance"*) instead of takeaways (*"Q3 revenue beat plan by 8%"*), that's the first thing to fix. See `references/action-titles.md`.
@@ -101,7 +101,7 @@ When the user already has a deck:
    - **Synthesis vs. summary check.** Is the Governing Thought a recommendation or just a list of findings restated?
    - **Audience fit.** Is anything in the deck the audience already knows? Anything missing they'd ask about? See `references/storylining.md`.
 4. **Propose changes as a diff.** Show the user the existing titles and the proposed replacements side-by-side. Don't rewrite the whole deck silently.
-5. **Apply the diff with `pptx`** — `editing.md` covers in-place edits.
+5. **Apply the diff with `pptx`** — its "Editing existing decks and templates" section covers in-place edits.
 
 Don't propose throwing the whole deck out unless the structure is genuinely broken. Most decks are 80% there and need title rewrites + reordering, not a rebuild.
 
